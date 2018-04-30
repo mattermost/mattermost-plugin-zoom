@@ -67,7 +67,6 @@ export default class ChannelHeaderButton extends React.PureComponent {
     }
 
     resetHover = () => {
-        this.hideHover();
         this.rowStartHideHover();
         this.rowStartWithTopicHideHover();
         this.rowShareHideHover();
