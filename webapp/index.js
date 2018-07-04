@@ -12,7 +12,6 @@ class PluginClass {
         registry.registerChannelHeaderButtonAction(
             <Icon/>,
             (channel) => {
-                console.log(channel);
                 startMeeting(channel.id)(store.dispatch, store.getState);
             },
             'Start Zoom Meeting'
