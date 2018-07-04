@@ -20,6 +20,7 @@ const (
 
 type Plugin struct {
 	plugin.MattermostPlugin
+
 	zoomClient *zd.Client
 
 	ZoomURL       string

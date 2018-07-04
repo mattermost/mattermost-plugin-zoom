@@ -41,13 +41,6 @@ func TestPlugin(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	validConfiguration := Configuration{
-		ZoomAPIURL:    ts.URL,
-		APIKey:        "theapikey",
-		APISecret:     "theapisecret",
-		WebhookSecret: "thewebhooksecret",
-	}
-
 	validMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 	validMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
@@ -64,55 +57,37 @@ func TestPlugin(t *testing.T) {
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
 
 	for name, tc := range map[string]struct {
-		Configuration      Configuration
-		ConfigurationError error
 		Request            *http.Request
 		CreatePostError    *model.AppError
 		ExpectedStatusCode int
 	}{
 		"UnauthorizedMeetingRequest": {
-			Configuration:      validConfiguration,
 			Request:            noAuthMeetingRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
 		"ValidMeetingRequest": {
-			Configuration:      validConfiguration,
 			Request:            validMeetingRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidPersonalMeetingRequest": {
-			Configuration:      validConfiguration,
 			Request:            personalMeetingRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidWebhookRequest": {
-			Configuration:      validConfiguration,
 			Request:            validWebhookRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidStartedWebhookRequest": {
-			Configuration:      validConfiguration,
 			Request:            validStartedWebhookRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"NoSecretWebhookRequest": {
-			Configuration:      validConfiguration,
 			Request:            noSecretWebhookRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
-		"BadConfig": {
-			Configuration:      Configuration{},
-			Request:            validMeetingRequest,
-			ExpectedStatusCode: http.StatusNotImplemented,
-		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			api := &plugintest.API{Store: &plugintest.KeyValueStore{}}
-
-			api.On("LoadPluginConfiguration", mock.AnythingOfType("*main.Configuration")).Return(func(dest interface{}) error {
-				*dest.(*Configuration) = tc.Configuration
-				return tc.ConfigurationError
-			})
+			api := &plugintest.API{}
 
 			api.On("GetUser", "theuserid").Return(&model.User{
 				Id:    "theuserid",
@@ -125,16 +100,23 @@ func TestPlugin(t *testing.T) {
 			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, (*model.AppError)(nil))
 			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, (*model.AppError)(nil))
 
-			api.KeyValueStore().(*plugintest.KeyValueStore).On("Set", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
-			api.KeyValueStore().(*plugintest.KeyValueStore).On("Set", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
+			api.On("KVSet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
+			api.On("KVSet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
 
-			api.KeyValueStore().(*plugintest.KeyValueStore).On("Get", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return([]byte("thepostid"), (*model.AppError)(nil))
-			api.KeyValueStore().(*plugintest.KeyValueStore).On("Get", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123)).Return([]byte("thepostid"), (*model.AppError)(nil))
+			api.On("KVGet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return([]byte("thepostid"), (*model.AppError)(nil))
+			api.On("KVGet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123)).Return([]byte("thepostid"), (*model.AppError)(nil))
 
-			api.KeyValueStore().(*plugintest.KeyValueStore).On("Delete", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return((*model.AppError)(nil))
+			api.On("KVDelete", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return((*model.AppError)(nil))
 
-			p := Plugin{}
-			p.OnActivate(api)
+			p := Plugin{
+				ZoomAPIURL:    ts.URL,
+				APIKey:        "theapikey",
+				APISecret:     "theapisecret",
+				WebhookSecret: "thewebhooksecret",
+			}
+			p.SetAPI(api)
+			err := p.OnActivate()
+			assert.Nil(t, err)
 
 			w := httptest.NewRecorder()
 			p.ServeHTTP(w, tc.Request)
