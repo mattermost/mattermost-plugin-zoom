@@ -15,14 +15,14 @@
                 "key": "ZoomURL",
                 "display_name": "Zoom URL",
                 "type": "text",
-                "help_text": "The URL for an on-premise Zoom server. For example, https://yourzoom.com. Leave blank when not using an on-premise Zoom deployment.",
+                "help_text": "The URL for a self-hosted private cloud or on-premise Zoom server. For example, https://yourzoom.com. Leave blank if you're using Zoom's vendor-hosted SaaS service.",
                 "placeholder": "https://zoom.us"
             },
             {
                 "key": "ZoomAPIURL",
                 "display_name": "Zoom API URL",
                 "type": "text",
-                "help_text": "The API URL for an on-premise Zoom server. For example, https://api.yourzoom.com/v2. Leave blank when not using an on-premise Zoom deployment.",
+                "help_text": "The API URL for a self-hosted private cloud or on-premise Zoom server. For example, https://api.yourzoom.com/v2. Leave blank if you're using Zoom's vendor-hosted SaaS service.",
                 "placeholder": "https://api.zoom.us/v2"
             },
             {
