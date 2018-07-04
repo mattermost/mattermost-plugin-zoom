@@ -1,13 +1,23 @@
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import ChannelHeaderButton from './components/channel_header_button';
-import MobileChannelHeaderButton from './components/mobile_channel_header_button';
+const React = window.react;
+
+import Icon from './components/icon.jsx';
 import PostTypeZoom from './components/post_type_zoom';
+import {startMeeting} from './actions'
 
 class PluginClass {
-    initialize(registerComponents, store) {
-        registerComponents({ChannelHeaderButton, MobileChannelHeaderButton}, {custom_zoom: PostTypeZoom});
+    initialize(registry, store) {
+        registry.registerChannelHeaderButtonAction(
+            <Icon/>,
+            (channel) => {
+                console.log(channel);
+                startMeeting(channel.id)(store.dispatch, store.getState);
+            },
+            'Start Zoom Meeting'
+        );
+        registry.registerPostTypeComponent('custom_zoom', PostTypeZoom)
     }
 }
 
