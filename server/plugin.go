@@ -52,7 +52,7 @@ func (p *Plugin) IsConfigurationValid() error {
 	return nil
 }
 
-func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	if err := p.IsConfigurationValid(); err != nil {
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
 		return
