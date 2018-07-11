@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync/atomic"
 
 	"github.com/gorilla/schema"
 	"github.com/mattermost/mattermost-server/model"
@@ -20,41 +19,41 @@ const (
 )
 
 type Plugin struct {
-	api           plugin.API
-	configuration atomic.Value
-	zoomClient    *zd.Client
+	plugin.MattermostPlugin
+
+	zoomClient *zd.Client
+
+	ZoomURL       string
+	ZoomAPIURL    string
+	APIKey        string
+	APISecret     string
+	WebhookSecret string
 }
 
-func (p *Plugin) OnActivate(api plugin.API) error {
-	p.api = api
-	if err := p.OnConfigurationChange(); err != nil {
+func (p *Plugin) OnActivate() error {
+	if err := p.IsConfigurationValid(); err != nil {
 		return err
 	}
 
-	config := p.config()
-	if err := config.IsValid(); err != nil {
-		return err
-	}
-
-	p.zoomClient = zd.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
+	p.zoomClient = zd.NewClient(p.ZoomAPIURL, p.APIKey, p.APISecret)
 
 	return nil
 }
 
-func (p *Plugin) config() *Configuration {
-	return p.configuration.Load().(*Configuration)
+func (p *Plugin) IsConfigurationValid() error {
+	if len(p.APIKey) == 0 {
+		return fmt.Errorf("APIKey is not configured.")
+	} else if len(p.APISecret) == 0 {
+		return fmt.Errorf("APISecret is not configured.")
+	} else if len(p.WebhookSecret) == 0 {
+		return fmt.Errorf("WebhookSecret is not configured.")
+	}
+
+	return nil
 }
 
-func (p *Plugin) OnConfigurationChange() error {
-	var configuration Configuration
-	err := p.api.LoadPluginConfiguration(&configuration)
-	p.configuration.Store(&configuration)
-	return err
-}
-
-func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	config := p.config()
-	if err := config.IsValid(); err != nil {
+func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
+	if err := p.IsConfigurationValid(); err != nil {
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
 		return
 	}
@@ -70,9 +69,7 @@ func (p *Plugin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	config := p.config()
-
-	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(p.WebhookSecret)) != 1 {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -104,7 +101,7 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 
 	postId := ""
 	key := fmt.Sprintf("%v%v", POST_MEETING_KEY, webhook.ID)
-	if b, err := p.api.KeyValueStore().Get(key); err != nil {
+	if b, err := p.API.KVGet(key); err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
 		return
 	} else if b == nil {
@@ -113,7 +110,7 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 		postId = string(b)
 	}
 
-	post, err := p.api.GetPost(postId)
+	post, err := p.API.GetPost(postId)
 	if err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
 		return
@@ -122,12 +119,12 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 	post.Message = "Meeting has ended."
 	post.Props["meeting_status"] = zd.WEBHOOK_STATUS_ENDED
 
-	if _, err := p.api.UpdatePost(post); err != nil {
+	if _, err := p.API.UpdatePost(post); err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
 		return
 	}
 
-	p.api.KeyValueStore().Delete(key)
+	p.API.KVDelete(key)
 
 	w.Write([]byte(post.ToJson()))
 }
@@ -155,12 +152,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	var user *model.User
 	var err *model.AppError
-	user, err = p.api.GetUser(userId)
+	user, err = p.API.GetUser(userId)
 	if err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
 	}
 
-	if _, err := p.api.GetChannelMember(req.ChannelId, user.Id); err != nil {
+	if _, err := p.API.GetChannelMember(req.ChannelId, user.Id); err != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -193,7 +190,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	zoomUrl := strings.TrimSpace(p.config().ZoomURL)
+	zoomUrl := strings.TrimSpace(p.ZoomURL)
 	if len(zoomUrl) == 0 {
 		zoomUrl = "https://zoom.us"
 	}
@@ -217,11 +214,11 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if post, err := p.api.CreatePost(post); err != nil {
+	if post, err := p.API.CreatePost(post); err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
 		return
 	} else {
-		err = p.api.KeyValueStore().Set(fmt.Sprintf("%v%v", POST_MEETING_KEY, meetingId), []byte(post.Id))
+		err = p.API.KVSet(fmt.Sprintf("%v%v", POST_MEETING_KEY, meetingId), []byte(post.Id))
 		if err != nil {
 			http.Error(w, err.Error(), err.StatusCode)
 			return

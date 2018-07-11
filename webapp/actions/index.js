@@ -2,10 +2,10 @@ import {PostTypes} from 'mattermost-redux/action_types';
 
 import Client from '../client';
 
-export function startMeeting(channelId, personal = false, topic = '', meetingId = 0) {
+export function startMeeting(channelId) {
     return async (dispatch, getState) => {
         try {
-            await Client.startMeeting(channelId, personal, topic, meetingId);
+            await Client.startMeeting(channelId, true);
         } catch (error) {
             const post = {
                 id: 'zoomPlugin' + Date.now(),
