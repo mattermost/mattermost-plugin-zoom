@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/mattermost/mattermost-server/model"
+	"github.com/mattermost/mattermost-server/plugin"
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
 	"github.com/mattermost/mattermost-server/plugin/plugintest/mock"
 
@@ -119,7 +120,7 @@ func TestPlugin(t *testing.T) {
 			assert.Nil(t, err)
 
 			w := httptest.NewRecorder()
-			p.ServeHTTP(w, tc.Request)
+			p.ServeHTTP(&plugin.Context{}, w, tc.Request)
 			assert.Equal(t, tc.ExpectedStatusCode, w.Result().StatusCode)
 		})
 	}
