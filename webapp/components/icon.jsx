@@ -1,4 +1,4 @@
-const React = window.react;
+import React from 'react';
 
 import {Svgs} from '../constants';
 import {makeStyleFromTheme} from 'mattermost-redux/utils/theme_utils';
