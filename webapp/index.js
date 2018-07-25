@@ -1,7 +1,7 @@
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-const React = window.react;
+import React from 'react';
 
 import Icon from './components/icon.jsx';
 import PostTypeZoom from './components/post_type_zoom';
@@ -20,4 +20,4 @@ class PluginClass {
     }
 }
 
-global.window.plugins['zoom'] = new PluginClass();
+global.window.registerPlugin('zoom', new PluginClass());

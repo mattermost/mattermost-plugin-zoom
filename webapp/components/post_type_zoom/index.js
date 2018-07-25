@@ -1,5 +1,5 @@
-const {connect} = window['react-redux'];
-const {bindActionCreators} = window.redux;
+import {connect} from 'react-redux';
+import {bindActionCreators} from 'redux';
 
 import {getBool} from 'mattermost-redux/selectors/entities/preferences';
 import {displayUsernameForUser} from '../../utils/user_utils';

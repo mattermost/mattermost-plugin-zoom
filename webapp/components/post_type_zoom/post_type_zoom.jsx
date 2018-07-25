@@ -1,4 +1,4 @@
-const React = window.react;
+import React from 'react';
 
 import {Svgs} from '../../constants';
 import {formatDate} from '../../utils/date_utils';
