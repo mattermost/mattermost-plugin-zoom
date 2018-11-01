@@ -1,13 +1,17 @@
 {
-    "id": "zoom",
+    "id": "com.mattermost.zoom",
     "name": "Zoom",
     "description": "Zoom audio and video conferencing plugin for Mattermost 5.2+.",
-    "version": "1.0.1",
-    "backend": {
-        "executable": "server/plugin.exe"
+    "version": "1.0.2",
+    "server": {
+        "executables": {
+            "linux-amd64": "server/dist/plugin-linux-amd64",
+            "darwin-amd64": "server/dist/plugin-darwin-amd64",
+            "windows-amd64": "server/dist/plugin-windows-amd64.exe"
+        }
     },
     "webapp": {
-        "bundle_path": "webapp/zoom_bundle.js"
+        "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
         "settings": [
