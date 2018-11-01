@@ -3,10 +3,10 @@
 
 package main
 
-import (
-	"github.com/mattermost/mattermost-server/plugin"
-)
-
-func main() {
-	plugin.ClientMain(&Plugin{})
+var manifest = struct {
+	Id      string
+	Version string
+}{
+	Id:      "com.mattermost.zoom",
+	Version: "1.0.2",
 }
