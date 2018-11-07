@@ -1,39 +1,42 @@
+var path = require('path');
+
 module.exports = {
-    entry: './index.js',
-    output: {
-        filename: 'dist/zoom_bundle.js'
+    entry: [
+        './src/index.js',
+    ],
+    resolve: {
+        modules: [
+            'src',
+            'node_modules',
+        ],
+        extensions: ['*', '.js', '.jsx'],
     },
     module: {
-        loaders: [
+        rules: [
             {
-                test: /\.(js|jsx)?$/,
-                loader: 'babel-loader',
-                exclude: /(node_modules|non_npm_dependencies)/,
-                query: {
-                    presets: [
-                        'react',
-                        ['es2015', {modules: false}],
-                        'stage-0'
-                    ],
-                    plugins: ['transform-runtime']
-                }
-            },
-            {
-                test: /\.css$/,
-                use: [
-                    {
-                        loader: 'style-loader'
+                test: /\.(js|jsx)$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['env', 'react'],
+                        plugins: [
+                            'transform-class-properties',
+                            'transform-object-rest-spread',
+                        ],
                     },
-                    {
-                        loader: 'css-loader'
-                    }
-                ]
-            }
-        ]
+                },
+            },
+        ],
     },
     externals: {
         react: 'React',
         redux: 'Redux',
         'react-redux': 'ReactRedux',
-    }
+    },
+    output: {
+        path: path.join(__dirname, '/dist'),
+        publicPath: '/',
+        filename: 'main.js',
+    },
 };
