@@ -86,26 +86,26 @@ func (ce *ClientError) Error() string {
 func (c *Client) request(method string, path string, data interface{}, ret interface{}) *ClientError {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return &ClientError{0, err.Error()}
+		return &ClientError{http.StatusInternalServerError, err.Error()}
 	}
 
 	rq, err := http.NewRequest(method, c.BaseUrl+path, bytes.NewReader(jsonData))
 	if err != nil {
-		return &ClientError{0, err.Error()}
+		return &ClientError{http.StatusInternalServerError, err.Error()}
 	}
 	rq.Header.Set("Content-Type", "application/json")
 	rq.Close = true
 
 	token, err := c.generateJWT()
 	if err != nil {
-		return &ClientError{0, err.Error()}
+		return &ClientError{http.StatusInternalServerError, err.Error()}
 	}
 	rq.Header.Set("Authorization", "BEARER "+token)
 
 	if rp, err := c.HttpClient.Do(rq); err != nil {
-		return &ClientError{0, fmt.Sprintf("Unable to make request to %v: %v", c.BaseUrl+path, err.Error())}
+		return &ClientError{http.StatusInternalServerError, fmt.Sprintf("Unable to make request to %v: %v", c.BaseUrl+path, err.Error())}
 	} else if rp == nil {
-		return &ClientError{0, fmt.Sprintf("Received nil response when making request to %v", c.BaseUrl+path)}
+		return &ClientError{http.StatusInternalServerError, fmt.Sprintf("Received nil response when making request to %v", c.BaseUrl+path)}
 	} else if rp.StatusCode >= 300 {
 		defer closeBody(rp)
 		buf := new(bytes.Buffer)
