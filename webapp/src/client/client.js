@@ -3,9 +3,11 @@
 
 import request from 'superagent';
 
+import id from '../manifest';
+
 export default class Client {
     constructor() {
-        this.url = '/plugins/zoom';
+        this.url = '/plugins/' + id;
     }
 
     startMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
