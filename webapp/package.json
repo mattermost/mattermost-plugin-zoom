@@ -1,6 +1,6 @@
 {
   "name": "zoom",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Zoom audio and video conferencing plugin for Mattermost",
   "author": "Mattermost",
   "license": "Apache-2.0",

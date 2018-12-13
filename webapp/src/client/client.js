@@ -3,7 +3,7 @@
 
 import request from 'superagent';
 
-import id from '../manifest';
+import {id} from '../manifest';
 
 export default class Client {
     constructor() {
