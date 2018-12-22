@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/schema"
 	"github.com/mattermost/mattermost-server/model"
@@ -26,37 +27,28 @@ type Plugin struct {
 
 	zoomClient *zd.Client
 
-	ZoomURL       string
-	ZoomAPIURL    string
-	APIKey        string
-	APISecret     string
-	WebhookSecret string
+	// configurationLock synchronizes access to the configuration.
+	configurationLock sync.RWMutex
+
+	// configuration is the active plugin configuration. Consult getConfiguration and
+	// setConfiguration for usage.
+	configuration *configuration
 }
 
 func (p *Plugin) OnActivate() error {
-	if err := p.IsConfigurationValid(); err != nil {
+	config := p.getConfiguration()
+	if err := config.IsValid(); err != nil {
 		return err
 	}
 
-	p.zoomClient = zd.NewClient(p.ZoomAPIURL, p.APIKey, p.APISecret)
-
-	return nil
-}
-
-func (p *Plugin) IsConfigurationValid() error {
-	if len(p.APIKey) == 0 {
-		return fmt.Errorf("APIKey is not configured.")
-	} else if len(p.APISecret) == 0 {
-		return fmt.Errorf("APISecret is not configured.")
-	} else if len(p.WebhookSecret) == 0 {
-		return fmt.Errorf("WebhookSecret is not configured.")
-	}
+	p.zoomClient = zd.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
 
 	return nil
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	if err := p.IsConfigurationValid(); err != nil {
+	config := p.getConfiguration()
+	if err := config.IsValid(); err != nil {
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
 		return
 	}
@@ -72,7 +64,9 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 }
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(p.WebhookSecret)) != 1 {
+	config := p.getConfiguration()
+
+	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -140,8 +134,9 @@ type StartMeetingRequest struct {
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
-	userId := r.Header.Get("Mattermost-User-Id")
+	config := p.getConfiguration()
 
+	userId := r.Header.Get("Mattermost-User-Id")
 	if userId == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
@@ -193,7 +188,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	zoomUrl := strings.TrimSpace(p.ZoomURL)
+	zoomUrl := strings.TrimSpace(config.ZoomURL)
 	if len(zoomUrl) == 0 {
 		zoomUrl = "https://zoom.us"
 	}
