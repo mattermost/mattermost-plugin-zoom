@@ -36,13 +36,16 @@ func (c *configuration) Clone() *configuration {
 	return &clone
 }
 
+// IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
 	if len(c.APIKey) == 0 {
 		return fmt.Errorf("APIKey is not configured.")
 	}
+
 	if len(c.APISecret) == 0 {
 		return fmt.Errorf("APISecret is not configured.")
 	}
+
 	if len(c.WebhookSecret) == 0 {
 		return fmt.Errorf("WebhookSecret is not configured.")
 	}
