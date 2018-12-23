@@ -11,12 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
 	"github.com/mattermost/mattermost-server/plugin/plugintest/mock"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -112,12 +111,13 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return((*model.AppError)(nil))
 
-			p := Plugin{
+			p := Plugin{}
+			p.setConfiguration(&configuration{
 				ZoomAPIURL:    ts.URL,
 				APIKey:        "theapikey",
 				APISecret:     "theapisecret",
 				WebhookSecret: "thewebhooksecret",
-			}
+			})
 			p.SetAPI(api)
 			err := p.OnActivate()
 			assert.Nil(t, err)
