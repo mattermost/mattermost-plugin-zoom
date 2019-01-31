@@ -110,7 +110,7 @@ func (c *Client) request(method string, path string, data interface{}, ret inter
 		defer closeBody(rp)
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(rp.Body)
-		return &ClientError{rp.StatusCode, fmt.Sprintf("response_body=%v", c.BaseUrl+path)}
+		return &ClientError{rp.StatusCode, buf.String()}
 	} else {
 		defer closeBody(rp)
 		buf := new(bytes.Buffer)
