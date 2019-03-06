@@ -1,4 +1,4 @@
-# mattermost-plugin-zoom [![Build Status](https://travis-ci.org/mattermost/mattermost-plugin-zoom.svg?branch=master)](https://travis-ci.org/mattermost/mattermost-plugin-zoom)
+# mattermost-plugin-zoom ![CircleCI branch](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-zoom/master.svg)
 
 This plugin will add UI for users to start new Zoom meetings in a Mattermost channel. Posts are created when a meeting starts and edited when a meeting ends.
 

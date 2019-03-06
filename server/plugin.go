@@ -212,11 +212,11 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if post, err := p.API.CreatePost(post); err != nil {
+	if createdPost, err := p.API.CreatePost(post); err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
 		return
 	} else {
-		err = p.API.KVSet(fmt.Sprintf("%v%v", POST_MEETING_KEY, meetingId), []byte(post.Id))
+		err = p.API.KVSet(fmt.Sprintf("%v%v", POST_MEETING_KEY, meetingId), []byte(createdPost.Id))
 		if err != nil {
 			http.Error(w, err.Error(), err.StatusCode)
 			return
