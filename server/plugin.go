@@ -7,25 +7,35 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/gorilla/schema"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 
+	"github.com/gorilla/schema"
 	zd "github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+	"github.com/pkg/errors"
 )
 
 const (
 	POST_MEETING_KEY = "post_meeting_"
+
+	botUserName    = "zoom"
+	botDisplayName = "Zoom"
+	botDescription = "Created by the Zoom plugin."
 )
 
 type Plugin struct {
 	plugin.MattermostPlugin
 
 	zoomClient *zd.Client
+
+	// botUserID of the created bot account.
+	botUserID string
 
 	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
@@ -39,6 +49,30 @@ func (p *Plugin) OnActivate() error {
 	config := p.getConfiguration()
 	if err := config.IsValid(); err != nil {
 		return err
+	}
+
+	botUserID, err := p.Helpers.EnsureBot(&model.Bot{
+		Username:    botUserName,
+		DisplayName: botDisplayName,
+		Description: botDescription,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to ensure bot account")
+	}
+	p.botUserID = botUserID
+
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		return errors.Wrap(err, "couldn't get bundle path")
+	}
+
+	profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile.png"))
+	if err != nil {
+		return errors.Wrap(err, "couldn't read profile image")
+	}
+
+	if appErr := p.API.SetProfileImage(botUserID, profileImage); appErr != nil {
+		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
 	p.zoomClient = zd.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
@@ -196,19 +230,16 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	meetingUrl := fmt.Sprintf("%s/j/%v", zoomUrl, meetingId)
 
 	post := &model.Post{
-		UserId:    user.Id,
+		UserId:    p.botUserID,
 		ChannelId: req.ChannelId,
 		Message:   fmt.Sprintf("Meeting started at %s.", meetingUrl),
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
-			"meeting_id":        meetingId,
-			"meeting_link":      meetingUrl,
-			"meeting_status":    zd.WEBHOOK_STATUS_STARTED,
-			"meeting_personal":  personal,
-			"meeting_topic":     req.Topic,
-			"from_webhook":      "true",
-			"override_username": "Zoom",
-			"override_icon_url": "https://s3.amazonaws.com/mattermost-plugin-media/Zoom+App.png",
+			"meeting_id":       meetingId,
+			"meeting_link":     meetingUrl,
+			"meeting_status":   zd.WEBHOOK_STATUS_STARTED,
+			"meeting_personal": personal,
+			"meeting_topic":    req.Topic,
 		},
 	}
 
