@@ -8,10 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
-
-	zd "github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/pkg/errors"
 )
 
@@ -26,7 +25,7 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	zoomClient *zd.Client
+	zoomClient *zoom.Client
 
 	// botUserID of the created bot account.
 	botUserID string
@@ -69,7 +68,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.zoomClient = zd.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
+	p.zoomClient = zoom.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
 
 	return nil
 }

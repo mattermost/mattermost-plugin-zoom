@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/schema"
-	zd "github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 )
@@ -46,7 +46,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var webhook zd.Webhook
+	var webhook zoom.Webhook
 	decoder := schema.NewDecoder()
 
 	// Try to decode to standard webhook
@@ -60,8 +60,8 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	// TODO: handle recording webhook
 }
 
-func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zd.Webhook) {
-	if webhook.Status != zd.WEBHOOK_STATUS_ENDED {
+func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zoom.Webhook) {
+	if webhook.Status != zoom.WEBHOOK_STATUS_ENDED {
 		return
 	}
 
@@ -84,7 +84,7 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 	}
 
 	post.Message = "Meeting has ended."
-	post.Props["meeting_status"] = zd.WEBHOOK_STATUS_ENDED
+	post.Props["meeting_status"] = zoom.WEBHOOK_STATUS_ENDED
 
 	if _, appErr := p.API.UpdatePost(post); appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
@@ -149,8 +149,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	if meetingID == 0 {
 		personal = false
 
-		meeting := &zd.Meeting{
-			Type:  zd.MEETING_TYPE_INSTANT,
+		meeting := &zoom.Meeting{
+			Type:  zoom.MEETING_TYPE_INSTANT,
 			Topic: req.Topic,
 		}
 
@@ -177,7 +177,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		Props: map[string]interface{}{
 			"meeting_id":       meetingID,
 			"meeting_link":     meetingURL,
-			"meeting_status":   zd.WEBHOOK_STATUS_STARTED,
+			"meeting_status":   zoom.WEBHOOK_STATUS_STARTED,
 			"meeting_personal": personal,
 			"meeting_topic":    req.Topic,
 		},
