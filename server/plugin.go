@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	POST_MEETING_KEY = "post_meeting_"
+	postMeetingKey = "post_meeting_"
 
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
@@ -111,16 +111,15 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var webhook zd.Webhook
-
 	decoder := schema.NewDecoder()
 
 	// Try to decode to standard webhook
-	if err := decoder.Decode(&webhook, r.PostForm); err == nil {
-		p.handleStandardWebhook(w, r, &webhook)
-		return
-	} else {
+	if err := decoder.Decode(&webhook, r.PostForm); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
+
+	p.handleStandardWebhook(w, r, &webhook)
 
 	// TODO: handle recording webhook
 }
@@ -130,48 +129,54 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 		return
 	}
 
-	postId := ""
-	key := fmt.Sprintf("%v%v", POST_MEETING_KEY, webhook.ID)
-	if b, err := p.API.KVGet(key); err != nil {
-		http.Error(w, err.Error(), err.StatusCode)
+	key := fmt.Sprintf("%v%v", postMeetingKey, webhook.ID)
+	b, appErr := p.API.KVGet(key)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
-	} else if b == nil {
-		return
-	} else {
-		postId = string(b)
 	}
 
-	post, err := p.API.GetPost(postId)
-	if err != nil {
-		http.Error(w, err.Error(), err.StatusCode)
+	if b == nil {
+		return
+	}
+	postID := string(b)
+
+	post, appErr := p.API.GetPost(postID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	post.Message = "Meeting has ended."
 	post.Props["meeting_status"] = zd.WEBHOOK_STATUS_ENDED
 
-	if _, err := p.API.UpdatePost(post); err != nil {
-		http.Error(w, err.Error(), err.StatusCode)
+	if _, appErr := p.API.UpdatePost(post); appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
-	p.API.KVDelete(key)
+	if appErr := p.API.KVDelete(key); appErr != nil {
+		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
+		return
+	}
 
-	w.Write([]byte(post.ToJson()))
+	if _, err := w.Write([]byte(post.ToJson())); err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
 }
 
 type StartMeetingRequest struct {
-	ChannelId string `json:"channel_id"`
+	ChannelID string `json:"channel_id"`
 	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
-	MeetingId int    `json:"meeting_id"`
+	MeetingID int    `json:"meeting_id"`
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 
-	userId := r.Header.Get("Mattermost-User-Id")
-	if userId == "" {
+	userID := r.Header.Get("Mattermost-User-Id")
+	if userID == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -180,33 +185,33 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	var user *model.User
-	var err *model.AppError
-	user, err = p.API.GetUser(userId)
-	if err != nil {
-		http.Error(w, err.Error(), err.StatusCode)
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
 	}
 
-	if _, err := p.API.GetChannelMember(req.ChannelId, user.Id); err != nil {
+	if _, appErr := p.API.GetChannelMember(req.ChannelID, userID); appErr != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
-	meetingId := req.MeetingId
+	meetingID := req.MeetingID
 	personal := req.Personal
 
-	if meetingId == 0 && req.Personal {
-		if ru, err := p.zoomClient.GetUser(user.Email); err != nil {
-			http.Error(w, err.Error(), err.StatusCode)
+	if meetingID == 0 && req.Personal {
+		ru, clientErr := p.zoomClient.GetUser(user.Email)
+		if clientErr != nil {
+			http.Error(w, clientErr.Error(), clientErr.StatusCode)
 			return
-		} else {
-			meetingId = ru.Pmi
 		}
+		meetingID = ru.Pmi
 	}
 
-	if meetingId == 0 {
+	if meetingID == 0 {
 		personal = false
 
 		meeting := &zd.Meeting{
@@ -214,45 +219,47 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			Topic: req.Topic,
 		}
 
-		if rm, err := p.zoomClient.CreateMeeting(meeting, user.Email); err != nil {
-			http.Error(w, err.Error(), err.StatusCode)
+		rm, clientErr := p.zoomClient.CreateMeeting(meeting, user.Email)
+		if clientErr != nil {
+			http.Error(w, clientErr.Error(), clientErr.StatusCode)
 			return
-		} else {
-			meetingId = rm.ID
 		}
+		meetingID = rm.ID
 	}
 
-	zoomUrl := strings.TrimSpace(config.ZoomURL)
-	if len(zoomUrl) == 0 {
-		zoomUrl = "https://zoom.us"
+	zoomURL := strings.TrimSpace(config.ZoomURL)
+	if len(zoomURL) == 0 {
+		zoomURL = "https://zoom.us"
 	}
 
-	meetingUrl := fmt.Sprintf("%s/j/%v", zoomUrl, meetingId)
+	meetingURL := fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
-		ChannelId: req.ChannelId,
-		Message:   fmt.Sprintf("Meeting started at %s.", meetingUrl),
+		ChannelId: req.ChannelID,
+		Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
-			"meeting_id":       meetingId,
-			"meeting_link":     meetingUrl,
+			"meeting_id":       meetingID,
+			"meeting_link":     meetingURL,
 			"meeting_status":   zd.WEBHOOK_STATUS_STARTED,
 			"meeting_personal": personal,
 			"meeting_topic":    req.Topic,
 		},
 	}
 
-	if createdPost, err := p.API.CreatePost(post); err != nil {
-		http.Error(w, err.Error(), err.StatusCode)
+	createdPost, appErr := p.API.CreatePost(post)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
-	} else {
-		err = p.API.KVSet(fmt.Sprintf("%v%v", POST_MEETING_KEY, meetingId), []byte(createdPost.Id))
-		if err != nil {
-			http.Error(w, err.Error(), err.StatusCode)
-			return
-		}
 	}
 
-	w.Write([]byte(fmt.Sprintf("%v", meetingId)))
+	if appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id)); appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	if _, err := w.Write([]byte(fmt.Sprintf("%v", meetingID))); err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/mattermost/mattermost-server/plugin/plugintest"
 	"github.com/mattermost/mattermost-server/plugin/plugintest/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -31,15 +32,20 @@ func TestPlugin(t *testing.T) {
 
 			str, _ := json.Marshal(user)
 
-			w.Write([]byte(str))
+			if _, err := w.Write(str); err != nil {
+				require.NoError(t, err)
+			}
 		} else if r.URL.Path == "/users/theuseremail/meetings/" {
 			meeting := &zoom.Meeting{
 				ID: 234,
 			}
 
-			str, _ := json.Marshal(meeting)
+			str, err := json.Marshal(meeting)
+			require.NoError(t, err)
 
-			w.Write([]byte(str))
+			if _, err := w.Write(str); err != nil {
+				require.NoError(t, err)
+			}
 		}
 	}))
 	defer ts.Close()
@@ -61,7 +67,6 @@ func TestPlugin(t *testing.T) {
 
 	for name, tc := range map[string]struct {
 		Request            *http.Request
-		CreatePostError    *model.AppError
 		ExpectedStatusCode int
 	}{
 		"UnauthorizedMeetingRequest": {
@@ -95,19 +100,19 @@ func TestPlugin(t *testing.T) {
 			api.On("GetUser", "theuserid").Return(&model.User{
 				Id:    "theuserid",
 				Email: "theuseremail",
-			}, (*model.AppError)(nil))
+			}, nil)
 
-			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, (*model.AppError)(nil))
+			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
 
-			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, (*model.AppError)(nil))
-			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, (*model.AppError)(nil))
-			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, (*model.AppError)(nil))
+			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
+			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
+			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 
-			api.On("KVSet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
-			api.On("KVSet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123), mock.AnythingOfType("[]uint8")).Return((*model.AppError)(nil))
+			api.On("KVSet", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8")).Return(nil)
+			api.On("KVSet", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8")).Return(nil)
 
-			api.On("KVGet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return([]byte("thepostid"), (*model.AppError)(nil))
-			api.On("KVGet", fmt.Sprintf("%v%v", POST_MEETING_KEY, 123)).Return([]byte("thepostid"), (*model.AppError)(nil))
+			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
+			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return((*model.AppError)(nil))
 
