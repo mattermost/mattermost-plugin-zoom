@@ -38,6 +38,7 @@ type Plugin struct {
 	configuration *configuration
 }
 
+// OnActivate checks if the configurations is valid and ensures the bot account exists
 func (p *Plugin) OnActivate() error {
 	config := p.getConfiguration()
 	if err := config.IsValid(); err != nil {
