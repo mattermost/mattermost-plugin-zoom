@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -95,6 +96,8 @@ func TestPlugin(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
+			botUserID := "yei0BahL3cohya8vuaboShaeSi"
+
 			api := &plugintest.API{}
 
 			api.On("GetUser", "theuserid").Return(&model.User{
@@ -114,7 +117,12 @@ func TestPlugin(t *testing.T) {
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
 
-			api.On("KVDelete", fmt.Sprintf("%v%v", POST_MEETING_KEY, 234)).Return((*model.AppError)(nil))
+			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
+
+			path, err := filepath.Abs("..")
+			require.Nil(t, err)
+			api.On("GetBundlePath").Return(path, nil)
+			api.On("SetProfileImage", botUserID, mock.Anything).Return(nil)
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
@@ -124,8 +132,13 @@ func TestPlugin(t *testing.T) {
 				WebhookSecret: "thewebhooksecret",
 			})
 			p.SetAPI(api)
-			err := p.OnActivate()
-			assert.Nil(t, err)
+
+			helpers := &plugintest.Helpers{}
+			helpers.On("EnsureBot", mock.AnythingOfType("*model.Bot")).Return(botUserID, nil)
+			p.SetHelpers(helpers)
+
+			err = p.OnActivate()
+			require.Nil(t, err)
 
 			w := httptest.NewRecorder()
 			p.ServeHTTP(&plugin.Context{}, w, tc.Request)
