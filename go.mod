@@ -1,4 +1,4 @@
-module github.com/mattermost/mattermost-plugin-zoom/server
+module github.com/mattermost/mattermost-plugin-zoom
 
 go 1.12
 
