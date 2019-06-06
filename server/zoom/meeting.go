@@ -5,10 +5,11 @@ package zoom
 
 import (
 	"fmt"
+	"net/http"
 )
 
 const (
-	MEETING_TYPE_INSTANT = 1
+	MeetingTypeInstant = 1
 )
 
 // The Meeting object defined at https://zoom.github.io/api/#the-meeting-object.
@@ -54,7 +55,7 @@ type Settings struct {
 	AlternativeHosts    string `json:"alternative_hosts"`
 }
 
-func (c *Client) CreateMeeting(meeting *Meeting, userId string) (*Meeting, *ClientError) {
+func (c *Client) CreateMeeting(meeting *Meeting, userID string) (*Meeting, *ClientError) {
 	var ret Meeting
-	return &ret, c.request("POST", fmt.Sprintf("/users/%v/meetings", userId), meeting, &ret)
+	return &ret, c.request(http.MethodPost, fmt.Sprintf("/users/%v/meetings", userID), meeting, &ret)
 }

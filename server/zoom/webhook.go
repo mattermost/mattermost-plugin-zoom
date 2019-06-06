@@ -8,16 +8,16 @@ import (
 )
 
 const (
-	WEBHOOK_STATUS_STARTED          = "STARTED"
-	WEBHOOK_STATUS_ENDED            = "ENDED"
-	RECORDING_WEBHOOK_TYPE_COMPLETE = "RECORDING_MEETING_COMPLETED"
+	WebhookStatusStarted         = "STARTED"
+	WebhookStatusEnded           = "ENDED"
+	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 )
 
 type Webhook struct {
 	ID     int    `schema:"id"`
 	UUID   string `schema:"uuid"`
 	Status string `schema:"status"`
-	HostId string `schema:"host_id"`
+	HostID string `schema:"host_id"`
 }
 
 type RecordingWebhook struct {

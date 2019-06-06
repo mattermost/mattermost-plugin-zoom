@@ -5,6 +5,7 @@ package zoom
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -26,7 +27,7 @@ type User struct {
 	PicURL            string    `json:"pic_url"`
 }
 
-func (c *Client) GetUser(userId string) (*User, *ClientError) {
+func (c *Client) GetUser(userID string) (*User, *ClientError) {
 	var ret User
-	return &ret, c.request("GET", fmt.Sprintf("/users/%v", userId), "", &ret)
+	return &ret, c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", &ret)
 }

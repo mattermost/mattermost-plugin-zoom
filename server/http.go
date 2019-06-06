@@ -61,7 +61,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zoom.Webhook) {
-	if webhook.Status != zoom.WEBHOOK_STATUS_ENDED {
+	if webhook.Status != zoom.WebhookStatusStarted {
 		return
 	}
 
@@ -84,7 +84,7 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 	}
 
 	post.Message = "Meeting has ended."
-	post.Props["meeting_status"] = zoom.WEBHOOK_STATUS_ENDED
+	post.Props["meeting_status"] = zoom.WebhookStatusEnded
 
 	if _, appErr := p.API.UpdatePost(post); appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
@@ -150,7 +150,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		personal = false
 
 		meeting := &zoom.Meeting{
-			Type:  zoom.MEETING_TYPE_INSTANT,
+			Type:  zoom.MeetingTypeInstant,
 			Topic: req.Topic,
 		}
 
@@ -177,7 +177,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		Props: map[string]interface{}{
 			"meeting_id":       meetingID,
 			"meeting_link":     meetingURL,
-			"meeting_status":   zoom.WEBHOOK_STATUS_STARTED,
+			"meeting_status":   zoom.WebhookStatusStarted,
 			"meeting_personal": personal,
 			"meeting_topic":    req.Topic,
 		},

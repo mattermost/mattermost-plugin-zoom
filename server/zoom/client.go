@@ -6,60 +6,70 @@ package zoom
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/mattermost/mattermost-server/model"
+	"github.com/pkg/errors"
 )
 
 const (
-	ZOOM_API_URI     = "api.zoom.us"
-	ZOOM_API_VERSION = "/v2"
-	JWT_ALG          = "HS256"
+	zoomAPIKey     = "api.zoom.us"
+	zoomAPIVersion = "v2"
+	jwlAlgorithm   = "HS256"
 )
 
+type ClientError struct {
+	StatusCode int
+	Err        error
+}
+
+func (ce *ClientError) Error() string {
+	return ce.Err.Error()
+}
+
+// Client represents a Zoom API client
 type Client struct {
-	ApiKey     string
-	ApiSecret  string
-	HttpClient *http.Client
-	BaseUrl    string
+	apiKey     string
+	apiSecret  string
+	httpClient *http.Client
+	baseURL    string
 }
 
 // NewClient returns a new Zoom API client. An empty url will default to https://api.zoom.us/v2.
-func NewClient(zoomUrl, apiKey, apiSecret string) *Client {
-	if zoomUrl == "" {
-		zoomUrl = (&url.URL{
+func NewClient(zoomURL, apiKey, apiSecret string) *Client {
+	if zoomURL == "" {
+		zoomURL = (&url.URL{
 			Scheme: "https",
-			Host:   ZOOM_API_URI,
-			Path:   ZOOM_API_VERSION,
+			Host:   zoomAPIKey,
+			Path:   "/" + zoomAPIVersion,
 		}).String()
 	}
 
 	return &Client{
-		ApiKey:     apiKey,
-		ApiSecret:  apiSecret,
-		HttpClient: &http.Client{},
-		BaseUrl:    zoomUrl,
+		apiKey:     apiKey,
+		apiSecret:  apiSecret,
+		httpClient: &http.Client{},
+		baseURL:    zoomURL,
 	}
 }
 
 func (c *Client) generateJWT() (string, error) {
 	claims := jwt.MapClaims{}
 
-	claims["iss"] = c.ApiKey
+	claims["iss"] = c.apiKey
 	claims["exp"] = model.GetMillis() + (10 * 1000) // expire after 10s
 
-	alg := jwt.GetSigningMethod(JWT_ALG)
+	alg := jwt.GetSigningMethod(jwlAlgorithm)
 	if alg == nil {
-		return "", fmt.Errorf("Couldn't find signing method")
+		return "", errors.New("couldn't find signing method")
 	}
 
 	token := jwt.NewWithClaims(alg, claims)
 
-	out, err := token.SignedString([]byte(c.ApiSecret))
+	out, err := token.SignedString([]byte(c.apiSecret))
 	if err != nil {
 		return "", err
 	}
@@ -67,57 +77,63 @@ func (c *Client) generateJWT() (string, error) {
 	return out, nil
 }
 
-func closeBody(r *http.Response) {
-	if r.Body != nil {
-		ioutil.ReadAll(r.Body)
-		r.Body.Close()
-	}
-}
-
-type ClientError struct {
-	StatusCode int
-	Err        string
-}
-
-func (ce *ClientError) Error() string {
-	return ce.Err
-}
-
 func (c *Client) request(method string, path string, data interface{}, ret interface{}) *ClientError {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return &ClientError{http.StatusInternalServerError, err.Error()}
+		return &ClientError{http.StatusInternalServerError, err}
 	}
 
-	rq, err := http.NewRequest(method, c.BaseUrl+path, bytes.NewReader(jsonData))
+	rq, err := http.NewRequest(method, c.baseURL+path, bytes.NewReader(jsonData))
 	if err != nil {
-		return &ClientError{http.StatusInternalServerError, err.Error()}
+		return &ClientError{http.StatusInternalServerError, err}
 	}
 	rq.Header.Set("Content-Type", "application/json")
 	rq.Close = true
 
 	token, err := c.generateJWT()
 	if err != nil {
-		return &ClientError{http.StatusInternalServerError, err.Error()}
+		return &ClientError{http.StatusInternalServerError, err}
 	}
 	rq.Header.Set("Authorization", "BEARER "+token)
 
-	if rp, err := c.HttpClient.Do(rq); err != nil {
-		return &ClientError{http.StatusInternalServerError, fmt.Sprintf("Unable to make request to %v: %v", c.BaseUrl+path, err.Error())}
-	} else if rp == nil {
-		return &ClientError{http.StatusInternalServerError, fmt.Sprintf("Received nil response when making request to %v", c.BaseUrl+path)}
-	} else if rp.StatusCode >= 300 {
-		defer closeBody(rp)
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(rp.Body)
-		return &ClientError{rp.StatusCode, buf.String()}
-	} else {
-		defer closeBody(rp)
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(rp.Body)
-		if err := json.Unmarshal(buf.Bytes(), &ret); err != nil {
-			return &ClientError{rp.StatusCode, err.Error()}
+	rp, err := c.httpClient.Do(rq)
+	if err != nil {
+		return &ClientError{
+			http.StatusInternalServerError,
+			errors.WithMessagef(err, "Unable to make request to %v", c.baseURL+path),
 		}
-		return nil
+	}
+
+	if rp == nil {
+		return &ClientError{
+			http.StatusInternalServerError,
+			errors.Errorf("Received nil response when making request to %v", c.baseURL+path),
+		}
+	}
+
+	defer closeBody(rp)
+	buf := new(bytes.Buffer)
+	if _, err = buf.ReadFrom(rp.Body); err != nil {
+		return &ClientError{
+			http.StatusInternalServerError,
+			errors.Errorf("Failed to read response from %v", c.baseURL+path),
+		}
+	}
+
+	if rp.StatusCode >= 300 {
+		return &ClientError{rp.StatusCode, errors.New(buf.String())}
+	}
+
+	if err := json.Unmarshal(buf.Bytes(), &ret); err != nil {
+		return &ClientError{rp.StatusCode, err}
+	}
+
+	return nil
+}
+
+func closeBody(r *http.Response) {
+	if r.Body != nil {
+		ioutil.ReadAll(r.Body)
+		r.Body.Close()
 	}
 }
