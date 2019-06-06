@@ -15,7 +15,7 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 
-	zd "github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+	zd "github.com/mattermost/mattermost-plugin-zoom/server/server/zoom"
 )
 
 const (

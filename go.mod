@@ -13,7 +13,6 @@ require (
 	github.com/hashicorp/go-hclog v0.0.0-20180910232447-e45cbeb79f04 // indirect
 	github.com/hashicorp/go-plugin v0.0.0-20180814222501-a4620f9913d1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
-	github.com/mattermost/mattermost-plugin-zoom v1.0.3
 	github.com/mattermost/mattermost-server v5.6.1+incompatible
 	github.com/mattermost/viper v1.0.4 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
