@@ -15,7 +15,7 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 
-	zd "github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	zoomClient *zd.Client
+	zoomClient *zoom.Client
 
 	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
@@ -41,7 +41,7 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	p.zoomClient = zd.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
+	p.zoomClient = zoom.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
 
 	return nil
 }
@@ -76,7 +76,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var webhook zd.Webhook
+	var webhook zoom.Webhook
 
 	decoder := schema.NewDecoder()
 
@@ -91,8 +91,8 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	// TODO: handle recording webhook
 }
 
-func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zd.Webhook) {
-	if webhook.Status != zd.WEBHOOK_STATUS_ENDED {
+func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zoom.Webhook) {
+	if webhook.Status != zoom.WEBHOOK_STATUS_ENDED {
 		return
 	}
 
@@ -114,7 +114,7 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 	}
 
 	post.Message = "Meeting has ended."
-	post.Props["meeting_status"] = zd.WEBHOOK_STATUS_ENDED
+	post.Props["meeting_status"] = zoom.WEBHOOK_STATUS_ENDED
 
 	if _, err := p.API.UpdatePost(post); err != nil {
 		http.Error(w, err.Error(), err.StatusCode)
@@ -175,8 +175,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	if meetingId == 0 {
 		personal = false
 
-		meeting := &zd.Meeting{
-			Type:  zd.MEETING_TYPE_INSTANT,
+		meeting := &zoom.Meeting{
+			Type:  zoom.MEETING_TYPE_INSTANT,
 			Topic: req.Topic,
 		}
 
@@ -203,7 +203,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		Props: map[string]interface{}{
 			"meeting_id":        meetingId,
 			"meeting_link":      meetingUrl,
-			"meeting_status":    zd.WEBHOOK_STATUS_STARTED,
+			"meeting_status":    zoom.WEBHOOK_STATUS_STARTED,
 			"meeting_personal":  personal,
 			"meeting_topic":     req.Topic,
 			"from_webhook":      "true",
