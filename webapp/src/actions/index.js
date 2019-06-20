@@ -14,7 +14,7 @@ export function startMeeting(channelId) {
             if (error.response && error.response.text) {
                 const e = JSON.parse(error.response.text);
                 if (e && e.message) {
-                    m = 'Zoom error: ' + e.message;
+                    m += '\nZoom error: ' + e.message;
                 }
             }
             const post = {
@@ -37,13 +37,8 @@ export function startMeeting(channelId) {
             };
 
             dispatch({
-                type: PostTypes.RECEIVED_POSTS,
-                data: {
-                    order: [],
-                    posts: {
-                        [post.id]: post,
-                    },
-                },
+                type: PostTypes.RECEIVED_NEW_POST,
+                data: post,
                 channelId,
             });
 
