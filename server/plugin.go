@@ -60,6 +60,10 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "couldn't get bundle path")
 	}
 
+	if err = p.API.RegisterCommand(getCommand()); err != nil {
+		return errors.WithMessage(err, "OnActivate: failed to register command")
+	}
+
 	profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile.png"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't read profile image")
