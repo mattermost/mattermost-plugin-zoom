@@ -79,7 +79,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			personal = true
 			ru, clientErr := p.zoomClient.GetUser(user.Email)
 			if clientErr != nil {
-				p.postCommandResponse(args, "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom email address.")
+				p.postCommandResponse(args, "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.")
 				return &model.CommandResponse{}, nil
 			}
 			meetingID = ru.Pmi
@@ -91,7 +91,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 			rm, clientErr := p.zoomClient.CreateMeeting(meeting, user.Email)
 			if clientErr != nil {
-				p.postCommandResponse(args, "We could not create and start a meeting in Zoom. Please ensure that your Mattermost email address matches your Zoom email address.")
+				p.postCommandResponse(args, "We could not create and start a meeting in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.")
 				return &model.CommandResponse{}, nil
 			}
 			meetingID = rm.ID
