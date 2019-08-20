@@ -125,12 +125,12 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	msg, err := executeCommand(c, args)
+	msg, err := p.executeCommand(c, args)
 	if err != nil {
-		p.LogWarn("failed to execute command", "error", err.Error())
+		p.API.LogWarn("failed to execute command", "error", err.Error())
 	}
-	if msg != "" {
-		p.postCommandResponse(args, msg)
+	if msg.Text != "" {
+		p.postCommandResponse(args, msg.Text)
 	}
 	return &model.CommandResponse{}, nil
 }
