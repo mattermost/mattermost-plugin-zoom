@@ -31,7 +31,7 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 	_ = p.API.SendEphemeralPost(args.UserId, post)
 }
 
-func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	config := p.getConfiguration()
 
 	split := strings.Fields(args.Command)
@@ -51,14 +51,12 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 	userID := args.UserId
 	user, appErr := p.API.GetUser(userID)
-
 	if appErr != nil {
 		p.postCommandResponse(args, fmt.Sprintf("We could not retrieve user (userId: %v)", args.UserId))
 		return &model.CommandResponse{}, nil
 	}
 
 	if action == "start" {
-
 		if _, appErr = p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
 			p.postCommandResponse(args, fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId))
 			return &model.CommandResponse{}, nil
@@ -119,12 +117,19 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 		_, appErr := p.API.CreatePost(post)
 		if appErr != nil {
-			p.postCommandResponse(args, appErr.Error())
+			p.postCommandResponse(args, "Failed to post message. Please try again.")
 			return &model.CommandResponse{}, nil
 		}
-	} else {
-		p.postCommandResponse(args, fmt.Sprintf("Unknown action %v", action))
 	}
-
 	return &model.CommandResponse{}, nil
 }
+
+func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+	msg, err := executeCommand(c, args)
+	if err != nil {
+		p.LogWarn("failed to execute command", "error", err.Error())
+	}
+	if msg != "" {
+		p.postCommandResponse(args, msg)
+	}
+	return &model.CommandResponse{}, nil
