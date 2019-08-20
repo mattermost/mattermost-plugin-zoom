@@ -133,3 +133,4 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		p.postCommandResponse(args, msg)
 	}
 	return &model.CommandResponse{}, nil
+}
