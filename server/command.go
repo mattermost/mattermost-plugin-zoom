@@ -46,7 +46,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		action = split[1]
 	} else {
 		p.postCommandResponse(args, "Please specify an action for /zoom command.")
-		return &model.CommandResponse{}, nil
+		return "Please specify an action for /zoom command.", nil
 	}
 
 	userID := args.UserId
