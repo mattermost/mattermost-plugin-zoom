@@ -31,7 +31,7 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 	_ = p.API.SendEphemeralPost(args.UserId, post)
 }
 
-func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
 	config := p.getConfiguration()
 
 	split := strings.Fields(args.Command)
