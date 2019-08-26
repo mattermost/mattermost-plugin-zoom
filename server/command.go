@@ -45,20 +45,17 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	if len(split) > 1 {
 		action = split[1]
 	} else {
-		p.postCommandResponse(args, "Please specify an action for /zoom command.")
 		return "Please specify an action for /zoom command.", nil
 	}
 
 	userID := args.UserId
 	user, appErr := p.API.GetUser(userID)
 	if appErr != nil {
-		p.postCommandResponse(args, fmt.Sprintf("We could not retrieve user (userId: %v)", args.UserId))
 		return fmt.Sprintf("We could not retrieve user (userId: %v)", args.UserId), nil
 	}
 
 	if action == "start" {
 		if _, appErr = p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
-			p.postCommandResponse(args, fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId))
 			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 		}
 
@@ -68,7 +65,6 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		// Determine if the user is sending command in DM or channel
 		channel, tmpErr := p.API.GetChannel(args.ChannelId)
 		if tmpErr != nil {
-			p.postCommandResponse(args, fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId))
 			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 		}
 
@@ -77,7 +73,6 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			personal = true
 			ru, clientErr := p.zoomClient.GetUser(user.Email)
 			if clientErr != nil {
-				p.postCommandResponse(args, "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.")
 				return "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
 			}
 			meetingID = ru.Pmi
@@ -89,7 +84,6 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 			rm, clientErr := p.zoomClient.CreateMeeting(meeting, user.Email)
 			if clientErr != nil {
-				p.postCommandResponse(args, "We could not create and start a meeting in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.")
 				return "We could not create and start a meeting in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
 			}
 			meetingID = rm.ID
@@ -117,7 +111,6 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		_, appErr := p.API.CreatePost(post)
 		if appErr != nil {
-			p.postCommandResponse(args, "Failed to post message. Please try again.")
 			return "Failed to post message. Please try again.", nil
 		}
 	}
