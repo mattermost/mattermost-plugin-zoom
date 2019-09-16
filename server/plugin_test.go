@@ -122,6 +122,7 @@ func TestPlugin(t *testing.T) {
 			require.Nil(t, err)
 			api.On("GetBundlePath").Return(path, nil)
 			api.On("SetProfileImage", botUserID, mock.Anything).Return(nil)
+			api.On("RegisterCommand", mock.AnythingOfType("*model.Command")).Return(nil)
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
