@@ -113,8 +113,9 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		if appErr != nil {
 			return "Failed to post message. Please try again.", nil
 		}
+		return "", nil
 	}
-	return "", nil
+	return fmt.Sprintf("Unknown action %v", action), nil
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
