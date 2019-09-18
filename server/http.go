@@ -134,33 +134,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meetingID := req.MeetingID
-	personal := req.Personal
-
-	if meetingID == 0 && req.Personal {
-		ru, clientErr := p.zoomClient.GetUser(user.Email)
-		if clientErr != nil {
-			http.Error(w, clientErr.Error(), clientErr.StatusCode)
-			return
-		}
-		meetingID = ru.Pmi
+	ru, clientErr := p.zoomClient.GetUser(user.Email)
+	if clientErr != nil {
+		http.Error(w, clientErr.Error(), clientErr.StatusCode)
+		return
 	}
-
-	if meetingID == 0 {
-		personal = false
-
-		meeting := &zoom.Meeting{
-			Type:  zoom.MeetingTypeInstant,
-			Topic: req.Topic,
-		}
-
-		rm, clientErr := p.zoomClient.CreateMeeting(meeting, user.Email)
-		if clientErr != nil {
-			http.Error(w, clientErr.Error(), clientErr.StatusCode)
-			return
-		}
-		meetingID = rm.ID
-	}
+	meetingID := ru.Pmi
 
 	zoomURL := strings.TrimSpace(config.ZoomURL)
 	if len(zoomURL) == 0 {
@@ -178,7 +157,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			"meeting_id":       meetingID,
 			"meeting_link":     meetingURL,
 			"meeting_status":   zoom.WebhookStatusStarted,
-			"meeting_personal": personal,
+			"meeting_personal": true,
 			"meeting_topic":    req.Topic,
 		},
 	}

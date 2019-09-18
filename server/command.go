@@ -59,35 +59,12 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 		}
 
-		meetingID := 0
-		personal := false
-
-		// Determine if the user is sending command in DM or channel
-		channel, tmpErr := p.API.GetChannel(args.ChannelId)
-		if tmpErr != nil {
-			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
+		// create a personal zoom meeting
+		ru, clientErr := p.zoomClient.GetUser(user.Email)
+		if clientErr != nil {
+			return "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
 		}
-
-		if channel.Type == "D" {
-			// create a personal zoom meeting
-			personal = true
-			ru, clientErr := p.zoomClient.GetUser(user.Email)
-			if clientErr != nil {
-				return "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
-			}
-			meetingID = ru.Pmi
-		} else {
-			// create a channel zoom meeting
-			meeting := &zoom.Meeting{
-				Type: zoom.MeetingTypeInstant,
-			}
-
-			rm, clientErr := p.zoomClient.CreateMeeting(meeting, user.Email)
-			if clientErr != nil {
-				return "We could not create and start a meeting in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
-			}
-			meetingID = rm.ID
-		}
+		meetingID := ru.Pmi
 
 		zoomURL := strings.TrimSpace(config.ZoomURL)
 		if len(zoomURL) == 0 {
@@ -105,7 +82,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 				"meeting_id":       meetingID,
 				"meeting_link":     meetingURL,
 				"meeting_status":   zoom.WebhookStatusStarted,
-				"meeting_personal": personal,
+				"meeting_personal": true,
 			},
 		}
 
