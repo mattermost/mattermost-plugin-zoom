@@ -35,23 +35,9 @@ func TestPlugin(t *testing.T) {
 			if _, err := w.Write(str); err != nil {
 				require.NoError(t, err)
 			}
-		} else if r.URL.Path == "/users/theuseremail/meetings/" {
-			meeting := &zoom.Meeting{
-				ID: 234,
-			}
-
-			str, err := json.Marshal(meeting)
-			require.NoError(t, err)
-
-			if _, err := w.Write(str); err != nil {
-				require.NoError(t, err)
-			}
 		}
 	}))
 	defer ts.Close()
-
-	validMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
-	validMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
 	noAuthMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 
@@ -72,10 +58,6 @@ func TestPlugin(t *testing.T) {
 		"UnauthorizedMeetingRequest": {
 			Request:            noAuthMeetingRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
-		},
-		"ValidMeetingRequest": {
-			Request:            validMeetingRequest,
-			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidPersonalMeetingRequest": {
 			Request:            personalMeetingRequest,
