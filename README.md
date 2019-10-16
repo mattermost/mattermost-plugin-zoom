@@ -51,10 +51,22 @@ Once activated, you will see a video icon in the channel header. Clicking the ic
 
 ![image](https://user-images.githubusercontent.com/177788/42196048-af54d2b8-7e30-11e8-80a0-5e160ae06f03.png)
 
+Optional Webhook Configuration
+---
+
+After a call has completed, Zoom can send a webhook to Mattermost with some basic information about the call (Success, Date, Duration) and this will update the meeting link within Mattermost. 
+
+![image](https://user-images.githubusercontent.com/915956/66890114-c5424480-ef99-11e9-87b9-8e1f6ca75474.png)
+
+Use this webhook URL format to send a webhook when a [Meeting has Ended](https://marketplace.zoom.us/docs/api-reference/webhook-reference/meeting-events/meeting-ending) over to Mattermost:  `https://SITEURL/plugins/zoom/webhook?secret=WEBHOOKSECRET` 
+
+
 Note
 ----
-   Users will need to sign-up for their own Zoom account using the same email address that they use for Mattermost. If the user attempts to start a Zoom meeting without a Zoom account, they will see the following error message: "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom email address."
-   In addition, the user must be added to the admin's Zoom account to quickly start a meeting without having to share a personal meeting ID.
+
+Users will need to sign-up for their own Zoom account using the same email address that they use for Mattermost. If the user attempts to start a Zoom meeting without a Zoom account, they will see the following error message: "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom email address."
+
+In addition, the user must be added to the admin's Zoom account to quickly start a meeting without having to share a personal meeting ID.
 
 
 ## Development
