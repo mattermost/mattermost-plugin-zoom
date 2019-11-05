@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-hclog v0.9.2 // indirect
 	github.com/hashicorp/go-plugin v1.0.1 // indirect
 	github.com/lib/pq v1.1.1 // indirect
-	github.com/mattermost/mattermost-server v5.14.0+incompatible
+	github.com/mattermost/mattermost-server v0.0.0-20191019085930-e13dad9fd4b6 // 5.14.5
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
@@ -23,8 +23,4 @@ require (
 	google.golang.org/grpc v1.22.0 // indirect
 )
 
-replace (
-	git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
-	// Workaround for https://github.com/golang/go/issues/30831 and fallout.
-	github.com/golang/lint => github.com/golang/lint v0.0.0-20190227174305-8f45f776aaf1
-)
+replace willnorris.com/go/imageproxy => willnorris.com/go/imageproxy v0.8.1-0.20190422234945-d4246a08fdec
