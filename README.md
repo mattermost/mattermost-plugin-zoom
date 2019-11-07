@@ -2,9 +2,6 @@
 
 Start and join voice calls, video calls and use screen sharing with your team members via Zoom.
 
-Once enabled, clicking a video icon in a Mattermost channel invites team members to join a Zoom call, hosted using the credentials of the user who initiated the call.
-
-
 Zoom Plugin
 ================================
 
