@@ -11,7 +11,8 @@
     "fix": "eslint --ignore-pattern node_modules --ignore-pattern dist --ext .js --ext .jsx . --quiet --fix"
   },
   "dependencies": {
-    "mattermost-redux": "5.12.0",
+    "core-js": "3.1.4",
+    "mattermost-redux": "github:mattermost/mattermost-redux#40e5bd5a18daa919c62a06b360aa27f2e6ed3e13",
     "prop-types": "15.7.2",
     "react": "16.8.6",
     "react-intl": "2.9.0",
