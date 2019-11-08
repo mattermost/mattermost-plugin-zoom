@@ -21,7 +21,7 @@ export const doPost = async (url, body, headers = {}) => {
         method: 'post',
         body: JSON.stringify(body),
         headers,
-    }
+    };
 
     const response = await fetch(url, Client4.getOptions(options));
 
@@ -36,4 +36,4 @@ export const doPost = async (url, body, headers = {}) => {
         status_code: response.status,
         url,
     });
-}
+};
