@@ -25,19 +25,14 @@ export const doPost = async (url, body, headers = {}) => {
 
     const response = await fetch(url, Client4.getOptions(options));
 
-    let data = await response.json();
     if (response.ok) {
-        return data;
+        return response.json();
     }
 
-    // Error received is either a regular string, or json with the error message in data.message
-    let message = data || '';
-    if (data && data.message) {
-        message = data.message;
-    }
+    const text = await response.text();
 
     throw new ClientError(Client4.url, {
-        message,
+        message: text || '',
         status_code: response.status,
         url,
     });
