@@ -21,11 +21,17 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	ZoomURL       string
-	ZoomAPIURL    string
-	APIKey        string
-	APISecret     string
-	WebhookSecret string
+	ZoomURL           string
+	ZoomAPIURL        string
+	EnableLegacyAuth  bool
+	APIKey            string
+	APISecret         string
+	EnableOAuth       bool
+	OAuthClientID     string
+	OAuthClientSecret string
+	OAuthRedirectUrl  string
+	EncryptionKey     string
+	WebhookSecret     string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -37,12 +43,29 @@ func (c *configuration) Clone() *configuration {
 
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
-	if len(c.APIKey) == 0 {
-		return errors.New("APIKey is not configured")
-	}
 
-	if len(c.APISecret) == 0 {
-		return errors.New("APISecret is not configured")
+	if c.EnableLegacyAuth {
+		if len(c.APIKey) == 0 {
+			return errors.New("APIKey is not configured")
+		}
+
+		if len(c.APISecret) == 0 {
+			return errors.New("APISecret is not configured")
+		}
+	} else if c.EnableOAuth {
+		if len(c.OAuthClientSecret) == 0 {
+			return errors.New("OAuthClientSecret is not configured")
+		}
+
+		if len(c.OAuthClientID) == 0 {
+			return errors.New("OAuthClientID is not configured")
+		}
+
+		if len(c.EncryptionKey) == 0 {
+			return errors.New("Please generate EncryptionKey from Zoom plugin settings")
+		}
+	} else {
+		return errors.New("Authorization is not properly configured for Zoom")
 	}
 
 	if len(c.WebhookSecret) == 0 {
@@ -50,6 +73,16 @@ func (c *configuration) IsValid() error {
 	}
 
 	return nil
+}
+
+// enabledOAuth checks if config has necessary fields to authenticate with zoom
+// using OAuth
+
+func (c *configuration) enableOAuth() bool {
+	return c.EnableOAuth == true &&
+		c.OAuthClientSecret != "" &&
+		c.OAuthClientID != "" &&
+		c.EncryptionKey != ""
 }
 
 // getConfiguration retrieves the active configuration under lock, making it safe to use
