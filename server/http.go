@@ -76,7 +76,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
 	authedUserID := r.Header.Get("Mattermost-User-ID")
 	if authedUserID == "" {
-		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	state := r.URL.Query().Get("state")
 	stateComponents := strings.Split(state, "_")
 
-	if len(stateComponents) != 3 {
+	if len(stateComponents) != zoomStateLength {
 		log.Printf("stateComponents: %v, state: %v", stateComponents, state)
 		http.Error(w, "invalid state", http.StatusBadRequest)
 
@@ -104,7 +104,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
 
 	if storedState, err := p.API.KVGet(key); err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, "missing stored state", http.StatusBadRequest)
 		return
 	} else if string(storedState) != state {
@@ -124,7 +123,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -143,14 +141,11 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := p.storeZoomUserInfo(zoomUserInfo); err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
 		return
 	}
 
-	if err := p.storeZoomToUserIDMapping(zoomUser.Email, userID); err != nil {
-		fmt.Println(err.Error())
-	}
+	p.storeZoomToUserIDMapping(zoomUser.Email, userID)
 
 	_, appErr := p.postMeeting(zoomUser.Pmi, channelID, "")
 	if appErr != nil {

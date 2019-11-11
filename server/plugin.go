@@ -30,9 +30,10 @@ const (
 
 	zoomDefaultUrl    = "https://zoom.us"
 	zoomDefaultAPIUrl = "https://api.zoom.com/v2"
-	ZoomTokenKey      = "_zoomtoken"
-	ZoomEmailKey      = "_zoomemail"
+	zoomTokenKey      = "_zoomtoken"
+	zoomEmailKey      = "_zoomemail"
 
+	zoomStateLength   = 3
 	zoomOAuthmessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth/connect?channelID=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address."
 )
@@ -176,7 +177,7 @@ func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
 		return err
 	}
 
-	if err := p.API.KVSet(info.UserID+ZoomTokenKey, jsonInfo); err != nil {
+	if err := p.API.KVSet(info.UserID + zoomTokenKey, jsonInfo); err != nil {
 		return err
 	}
 
@@ -188,7 +189,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 
 	var userInfo ZoomUserInfo
 
-	if infoBytes, err := p.API.KVGet(userID + ZoomTokenKey); err != nil || infoBytes == nil {
+	if infoBytes, err := p.API.KVGet(userID + zoomTokenKey); err != nil || infoBytes == nil {
 		return nil, errors.New("Must connect user account to GitHub first.")
 	} else if err := json.Unmarshal(infoBytes, &userInfo); err != nil {
 		return nil, errors.New("Unable to parse token.")
@@ -206,14 +207,14 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 }
 
 func (p *Plugin) storeZoomToUserIDMapping(zoomEmail, userID string) error {
-	if err := p.API.KVSet(zoomEmail+ZoomEmailKey, []byte(userID)); err != nil {
+	if err := p.API.KVSet(zoomEmail + zoomEmailKey, []byte(userID)); err != nil {
 		return fmt.Errorf("Encountered error saving github username mapping")
 	}
 	return nil
 }
 
 func (p *Plugin) getZoomToUserIDMapping(zoomEmail string) string {
-	userID, _ := p.API.KVGet(zoomEmail + ZoomEmailKey)
+	userID, _ := p.API.KVGet(zoomEmail + zoomEmailKey)
 	return string(userID)
 }
 
@@ -286,8 +287,6 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
 		return nil, errors.New("error unmarshalling zoom user")
 	}
-
-	log.Println(zoomUser)
 
 	return &zoomUser, nil
 }
