@@ -10,11 +10,11 @@ export function startMeeting(channelId) {
         try {
             await Client.startMeeting(channelId, true);
         } catch (error) {
-            let message;
+            let m;
             if (error.response && error.response.text) {
                 const e = JSON.parse(error.response.text);
                 if (e && e.message) {
-                    message = '\nZoom error: ' + e.message;
+                    m = '\nZoom error: ' + e.message;
                 }
             }
             const post = {
@@ -29,7 +29,7 @@ export function startMeeting(channelId) {
                 root_id: '',
                 parent_id: '',
                 original_id: '',
-                message: message,
+                message: m,
                 type: 'system_ephemeral',
                 props: {},
                 hashtags: '',
