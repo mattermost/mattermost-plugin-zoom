@@ -112,6 +112,7 @@ func TestPlugin(t *testing.T) {
 				APIKey:        "theapikey",
 				APISecret:     "theapisecret",
 				WebhookSecret: "thewebhooksecret",
+				EnableLegacyAuth: true,
 			})
 			p.SetAPI(api)
 

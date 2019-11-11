@@ -69,7 +69,6 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	log.Println("redirect url is", url)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
