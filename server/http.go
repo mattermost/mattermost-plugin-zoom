@@ -282,40 +282,29 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("Mattermost-User-Id")
 	if userID == "" {
-		// TODO: remove this
-		log.Println("unable to find matter most user id")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
 
 	var req startMeetingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
-		// TODO: remove this
-		log.Println("unable to decode meeting request")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	user, appErr := p.API.GetUser(userID)
 	if appErr != nil {
-		// TODO: remove this
-		log.Println("unable to fetch user from API")
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	if _, appErr = p.API.GetChannelMember(req.ChannelID, userID); appErr != nil {
-		// TODO: remove this
-		log.Println("unable to associate channel")
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
 	if authErr != nil {
-		// TODO: remove this
-		log.Println("unable to authenticate user", authErr)
 		http.Error(w, authErr.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -324,22 +313,16 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	createdPost, appErr := p.postMeeting(meetingID, req.ChannelID, req.Topic)
 	if appErr != nil {
-		// TODO: remove this
-		log.Println("errors postMeeting", appErr.Error())
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	if appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id)); appErr != nil {
-		// TODO: remove this
-		log.Println(appErr.Error())
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	if _, err := w.Write([]byte(fmt.Sprintf("%v", meetingID))); err != nil {
-		// TODO: remove this
-		log.Println("failed to write response", "error", err.Error())
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
