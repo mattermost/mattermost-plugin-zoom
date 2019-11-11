@@ -10,12 +10,11 @@ export function startMeeting(channelId) {
         try {
             await Client.startMeeting(channelId, true);
         } catch (error) {
-            let m = 'We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom email address.';
-            m += '\n If OAuth is enabled, please use the following link to authenticate:';
+            let message;
             if (error.response && error.response.text) {
                 const e = JSON.parse(error.response.text);
                 if (e && e.message) {
-                    m += '\nZoom error: ' + e.message;
+                    message = '\nZoom error: ' + e.message;
                 }
             }
             const post = {
@@ -30,7 +29,7 @@ export function startMeeting(channelId) {
                 root_id: '',
                 parent_id: '',
                 original_id: '',
-                message: m,
+                message: message,
                 type: 'system_ephemeral',
                 props: {},
                 hashtags: '',

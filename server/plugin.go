@@ -35,7 +35,7 @@ const (
 
 	zoomStateLength   = 3
 	zoomOAuthmessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth/connect?channelID=%s)"
-	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address."
+	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
 type Plugin struct {
@@ -205,7 +205,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 
 func (p *Plugin) storeZoomToUserIDMapping(zoomEmail, userID string) error {
 	if err := p.API.KVSet(zoomEmail+zoomEmailKey, []byte(userID)); err != nil {
-		return fmt.Errorf("Encountered error saving github username mapping")
+		return fmt.Errorf("Encountered error saving Zoom username mapping")
 	}
 	return nil
 }
@@ -239,7 +239,8 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 		// use personal credentials
 		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
 		if clientErr != nil {
-			return nil, &AuthError{Message: zoomEmailMismatch, Err: clientErr}
+			includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, userEmail)
+			return nil, &AuthError{Message: includeEmailInErr, Err: clientErr}
 		}
 	}
 	return zoomUser, nil
