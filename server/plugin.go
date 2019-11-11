@@ -123,7 +123,6 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 
 	redirectUrl := fmt.Sprintf("%s/plugins/zoom/oauth/complete", siteUrl)
 
-
 	return &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -152,7 +151,7 @@ type ZoomUserInfo struct {
 
 type AuthError struct {
 	Message string `json:"message"`
-	err     error  `json:"err"`
+	Err     error  `json:"err"`
 }
 
 func (ae *AuthError) Error() string {
@@ -175,7 +174,7 @@ func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
 		return err
 	}
 
-	if err := p.API.KVSet(info.UserID + zoomTokenKey, jsonInfo); err != nil {
+	if err := p.API.KVSet(info.UserID+zoomTokenKey, jsonInfo); err != nil {
 		return err
 	}
 
@@ -205,7 +204,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 }
 
 func (p *Plugin) storeZoomToUserIDMapping(zoomEmail, userID string) error {
-	if err := p.API.KVSet(zoomEmail + zoomEmailKey, []byte(userID)); err != nil {
+	if err := p.API.KVSet(zoomEmail+zoomEmailKey, []byte(userID)); err != nil {
 		return fmt.Errorf("Encountered error saving github username mapping")
 	}
 	return nil
@@ -230,17 +229,17 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 			*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
 
 		if apiErr != nil || zoomUserInfo == nil {
-			return nil, &AuthError{Message: oauthMsg, err: apiErr}
+			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
 		zoomUser, err = p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
 		if err != nil || zoomUser == nil {
-			return nil, &AuthError{Message: oauthMsg, err: apiErr}
+			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
 	} else if config.EnableLegacyAuth {
 		// use personal credentials
 		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
 		if clientErr != nil {
-			return nil, &AuthError{Message: zoomEmailMismatch, err: clientErr}
+			return nil, &AuthError{Message: zoomEmailMismatch, Err: clientErr}
 		}
 	}
 	return zoomUser, nil

@@ -58,7 +58,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
 		if authErr != nil {
-			return authErr.Message, authErr.err
+			return authErr.Message, authErr.Err
 		}
 
 		meetingID := zoomUser.Pmi
