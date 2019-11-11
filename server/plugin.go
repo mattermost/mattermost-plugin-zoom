@@ -123,8 +123,6 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 
 	redirectUrl := fmt.Sprintf("%s/plugins/zoom/oauth/complete", siteUrl)
 
-	// TODO remove this hard coded url
-	redirectUrl = "https://aea67a23.ngrok.io/plugins/zoom/oauth/complete"
 
 	return &oauth2.Config{
 		ClientID:     clientID,
