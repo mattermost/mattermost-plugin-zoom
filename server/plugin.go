@@ -30,8 +30,7 @@ const (
 
 	zoomDefaultUrl    = "https://zoom.us"
 	zoomDefaultAPIUrl = "https://api.zoom.com/v2"
-	zoomTokenKey      = "_zoomtoken"
-	zoomEmailKey      = "_zoomemail"
+	zoomTokenKey      = "zoomtoken_"
 
 	zoomStateLength   = 3
 	zoomOAuthmessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth/connect?channelID=%s)"
@@ -174,7 +173,7 @@ func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
 		return err
 	}
 
-	if err := p.API.KVSet(info.UserID+zoomTokenKey, jsonInfo); err != nil {
+	if err := p.API.KVSet(zoomTokenKey + info.UserID, jsonInfo); err != nil {
 		return err
 	}
 
@@ -186,7 +185,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 
 	var userInfo ZoomUserInfo
 
-	if infoBytes, err := p.API.KVGet(userID + zoomTokenKey); err != nil || infoBytes == nil {
+	if infoBytes, err := p.API.KVGet(zoomTokenKey + userID); err != nil || infoBytes == nil {
 		return nil, errors.New("Must connect user account to GitHub first.")
 	} else if err := json.Unmarshal(infoBytes, &userInfo); err != nil {
 		return nil, errors.New("Unable to parse token.")
@@ -201,18 +200,6 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 	userInfo.OAuthToken.AccessToken = unencryptedToken
 
 	return &userInfo, nil
-}
-
-func (p *Plugin) storeZoomToUserIDMapping(zoomEmail, userID string) error {
-	if err := p.API.KVSet(zoomEmail+zoomEmailKey, []byte(userID)); err != nil {
-		return fmt.Errorf("Encountered error saving Zoom username mapping")
-	}
-	return nil
-}
-
-func (p *Plugin) getZoomToUserIDMapping(zoomEmail string) string {
-	userID, _ := p.API.KVGet(zoomEmail + zoomEmailKey)
-	return string(userID)
 }
 
 func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {

@@ -144,8 +144,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	p.storeZoomToUserIDMapping(zoomUser.Email, userID)
-
 	_, appErr := p.postMeeting(zoomUser.Pmi, channelID, "")
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)

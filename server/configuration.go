@@ -44,6 +44,10 @@ func (c *configuration) Clone() *configuration {
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
 
+	if c.EnableLegacyAuth && c.EnableOAuth {
+		return errors.New("Only enable One of the OAuth or Password based authentication")
+	}
+
 	if c.EnableLegacyAuth {
 		if len(c.APIKey) == 0 {
 			return errors.New("APIKey is not configured")

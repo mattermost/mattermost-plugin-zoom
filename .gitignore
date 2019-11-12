@@ -24,6 +24,3 @@ webapp/dist
 # Mac
 *.swp
 .DS_Store
-
-# IDE
-.idea
