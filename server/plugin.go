@@ -173,7 +173,7 @@ func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
 		return err
 	}
 
-	if err := p.API.KVSet(zoomTokenKey + info.UserID, jsonInfo); err != nil {
+	if err := p.API.KVSet(zoomTokenKey+info.UserID, jsonInfo); err != nil {
 		return err
 	}
 

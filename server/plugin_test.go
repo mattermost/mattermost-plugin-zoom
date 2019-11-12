@@ -108,10 +108,10 @@ func TestPlugin(t *testing.T) {
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
-				ZoomAPIURL:    ts.URL,
-				APIKey:        "theapikey",
-				APISecret:     "theapisecret",
-				WebhookSecret: "thewebhooksecret",
+				ZoomAPIURL:       ts.URL,
+				APIKey:           "theapikey",
+				APISecret:        "theapisecret",
+				WebhookSecret:    "thewebhooksecret",
 				EnableLegacyAuth: true,
 			})
 			p.SetAPI(api)
