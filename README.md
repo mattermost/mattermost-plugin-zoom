@@ -5,7 +5,7 @@ Start and join voice calls, video calls and use screen sharing with your team me
 Usage
 -----
 
-Once enabled, clicking a video icon in a Mattermost channel invites team members to join a Zoom call, hosted using the credentials of the user who initiated the call.
+Once enabled, clicking the video icon in a Mattermost channel invites team members to join a Zoom call, hosted using the credentials of the user who initiated the call.
 
 ![Screenshot](https://user-images.githubusercontent.com/177788/42196048-af54d2b8-7e30-11e8-80a0-5e160ae06f03.png)
 
@@ -43,7 +43,7 @@ To generate an **API Key** and **API Secret** requires a [Pro, Business, Educati
 
 ![image](https://github.com/mattermost/docs/blob/master/source/images/zoom_system-console_management.png)
 
-Once activated, you will see a video icon in the channel header. Clicking the icon will open a drop-down menu with three actions you can take: **Start Zoom Meeting Now**, **Start Zoom Meeting with Topic**, and **Share Zoom Meeting**.
+Once activated, you will see a video icon in the channel header. Clicking the icon will create a new Zoom meeting, and create a post with a link to the meeting. Anyone in the channel can see the post and can join by clicking on the link.
 
 ![image](https://user-images.githubusercontent.com/177788/42196048-af54d2b8-7e30-11e8-80a0-5e160ae06f03.png)
 
