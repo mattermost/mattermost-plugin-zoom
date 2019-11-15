@@ -48,28 +48,28 @@ func (c *configuration) IsValid() error {
 		return errors.New("Only enable One of the OAuth or Password based authentication")
 	}
 
-	if c.EnableLegacyAuth {
-		if len(c.APIKey) == 0 {
+	switch {
+	case c.EnableLegacyAuth:
+		switch {
+		case len(c.APIKey) == 0:
 			return errors.New("APIKey is not configured")
-		}
 
-		if len(c.APISecret) == 0 {
+		case len(c.APISecret) == 0:
 			return errors.New("APISecret is not configured")
 		}
-	} else if c.EnableOAuth {
-		if len(c.OAuthClientSecret) == 0 {
+	case c.EnableOAuth:
+		switch {
+		case len(c.OAuthClientSecret) == 0:
 			return errors.New("OAuthClientSecret is not configured")
-		}
 
-		if len(c.OAuthClientID) == 0 {
+		case len(c.OAuthClientID) == 0:
 			return errors.New("OAuthClientID is not configured")
-		}
 
-		if len(c.EncryptionKey) == 0 {
+		case len(c.EncryptionKey) == 0:
 			return errors.New("Please generate EncryptionKey from Zoom plugin settings")
 		}
-	} else {
-		return errors.New("Authorization is not properly configured for Zoom")
+	default:
+		return errors.New("Please select either OAuth or Password based authentication")
 	}
 
 	if len(c.WebhookSecret) == 0 {
