@@ -79,16 +79,6 @@ func (c *configuration) IsValid() error {
 	return nil
 }
 
-// enabledOAuth checks if config has necessary fields to authenticate with zoom
-// using OAuth
-
-func (c *configuration) enableOAuth() bool {
-	return c.EnableOAuth == true &&
-		c.OAuthClientSecret != "" &&
-		c.OAuthClientID != "" &&
-		c.EncryptionKey != ""
-}
-
 // getConfiguration retrieves the active configuration under lock, making it safe to use
 // concurrently. The active configuration may change underneath the client of this method, but
 // the struct returned by this API call is considered immutable.

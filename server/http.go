@@ -31,9 +31,9 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.handleWebhook(w, r)
 	case "/api/v1/meetings":
 		p.handleStartMeeting(w, r)
-	case "/oauth/connect":
+	case "/oauth2/connect":
 		p.connectUserToZoom(w, r)
-	case "/oauth/complete":
+	case "/oauth2/complete":
 		p.completeUserOAuthToZoom(w, r)
 	default:
 		http.NotFound(w, r)
@@ -102,10 +102,16 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
 
-	if storedState, err := p.API.KVGet(key); err != nil {
+	var storedState []byte
+	var appErr *model.AppError
+	storedState, appErr = p.API.KVGet(key)
+	if appErr != nil {
+		fmt.Println(appErr)
 		http.Error(w, "missing stored state", http.StatusBadRequest)
 		return
-	} else if string(storedState) != state {
+	}
+
+	if string(storedState) != state {
 		http.Error(w, "invalid state", http.StatusBadRequest)
 		return
 	}
@@ -144,7 +150,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	_, appErr := p.postMeeting(zoomUser.Pmi, channelID, "")
+	_, appErr = p.postMeeting(zoomUser.Pmi, channelID, "")
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return

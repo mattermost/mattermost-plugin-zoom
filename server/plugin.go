@@ -33,7 +33,7 @@ const (
 	zoomTokenKey      = "zoomtoken_"
 
 	zoomStateLength   = 3
-	zoomOAuthmessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth/connect?channelID=%s)"
+	zoomOAuthmessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
@@ -57,6 +57,10 @@ type Plugin struct {
 func (p *Plugin) OnActivate() error {
 	config := p.getConfiguration()
 	if err := config.IsValid(); err != nil {
+		return err
+	}
+
+	if _, err := p.getSiteUrl(); err != nil {
 		return err
 	}
 
@@ -93,12 +97,18 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
+func (p *Plugin) getSiteUrl() (string, error) {
+	var siteUrl string
+	if siteUrlRef := p.API.GetConfig().ServiceSettings.SiteURL; siteUrlRef != nil || *siteUrlRef == "" {
+		siteUrl = *siteUrlRef
+	} else {
+		return "", errors.New("error fetching siteUrl")
+	}
+	return siteUrl, nil
+}
+
 func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 	config := p.getConfiguration()
-
-	if !config.enableOAuth() {
-		return nil, errors.New("please set OAuthClientID, OAuthClientSecret and EncryptionKey")
-	}
 
 	clientID := config.OAuthClientID
 	clientSecret := config.OAuthClientSecret
@@ -115,12 +125,15 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 	authUrl := fmt.Sprintf("%v/oauth/authorize", zoomUrl)
 	tokenUrl := fmt.Sprintf("%v/oauth/token", zoomUrl)
 
-	siteUrl := *p.API.GetConfig().ServiceSettings.SiteURL
-	if siteUrl == "" {
-		return nil, errors.New("error fetching siteUrl")
+	siteUrl, err := p.getSiteUrl()
+	if err != nil {
+		return nil, err
 	}
 
-	redirectUrl := fmt.Sprintf("%s/plugins/zoom/oauth/complete", siteUrl)
+	redirectUrl := fmt.Sprintf("%s/plugins/zoom/oauth2/complete", siteUrl)
+
+	// TODO remove this hard coded url
+	redirectUrl = "https://aea67a23.ngrok.io/plugins/zoom/oauth2/complete"
 
 	return &oauth2.Config{
 		ClientID:     clientID,
@@ -209,7 +222,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 	config := p.getConfiguration()
 
 	// use OAuth
-	if config.enableOAuth() {
+	if config.EnableOAuth {
 		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthmessage,
