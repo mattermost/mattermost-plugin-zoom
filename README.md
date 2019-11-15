@@ -36,7 +36,7 @@ Zoom Setup Guide
   - Enter the **Company Name** and **Developer Contact Information** for your app.
   - Go to the **App Credentials** tab on the left. Here you'll find your **API Key** and **API Secret**.
   - Paste the **API Key** and **API Secret** into the fields in the System Console, and hit **Save**.
- 
+   
 ![create app screen](https://github.com/mattermost/docs/raw/master/source/images/zoom_api_key.png)
 
 To generate an **API Key** and **API Secret** requires a [Pro, Business, Education, or API Zoom plan](https://zoom.us/pricing).
