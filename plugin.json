@@ -51,7 +51,7 @@
             },
             {
                 "key": "EncryptionKey",
-                "display_name": "At Rest Encryption Key",
+                "display_name": "At Rest Token Encryption Key",
                 "type": "generated",
                 "help_text": "The AES encryption key used to encrypt stored access tokens.",
                 "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth Token. Regenerating the key invalidates your existing Zoom OAuth."
