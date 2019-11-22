@@ -11,12 +11,15 @@ export function startMeeting(channelId) {
             await Client.startMeeting(channelId, true);
         } catch (error) {
             let m;
-            if (error.response && error.response.text) {
-                const e = JSON.parse(error.response.text);
+            if (error.message && error.message[0] === '{') {
+                const e = JSON.parse(error.message);
+
+                // Error is from Zoom API
                 if (e && e.message) {
                     m = '\nZoom error: ' + e.message;
                 }
             }
+
             const post = {
                 id: 'zoomPlugin' + Date.now(),
                 create_at: Date.now(),
