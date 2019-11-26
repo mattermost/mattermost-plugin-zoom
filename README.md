@@ -47,7 +47,8 @@ To generate an **API Key** and **API Secret** requires a [Pro, Business, Educati
   - Click **Create**.
   - Enter the **Company Name** and **Developer Contact Information** for your app.
   - Go to the **App Credentials** tab on the left. Here you'll find your **Client ID** and **Client Secret**.
-  - Enter a Valid **Redirect URL for OAuth** and add the same url under **Whitelist URL**.
+  - Enter a Valid **Redirect URL for OAuth** (`https://<SiteUrl>/plugins/zoom/oauth2/complete`) and add the same url under **Whitelist URL**.
+    * `SiteUrl` should be your mattermost server url
   - Paste the **Client ID** and **Client Secret** into the fields in the System Console, and hit **Save**.
   - Generate an **Encryption Key** to save the encryped tokens.
 
