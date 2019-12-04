@@ -31,7 +31,7 @@
                 "placeholder": "https://api.zoom.us/v2"
             },
             {
-                "Key": "EnableOAuth",
+                "key": "EnableOAuth",
                 "display_name": "Enable OAuth",
                 "type": "bool",
                 "help_text": "When true, OAuth will be used as authentication means with Zoom. \n Please enable only either one of OAuth based or Password base authentication.",
@@ -57,7 +57,7 @@
                 "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth Token. Regenerating the key invalidates your existing Zoom OAuth."
             },
             {
-                "Key": "EnableLegacyAuth",
+                "key": "EnableLegacyAuth",
                 "display_name": "Enable Password based authentication",
                 "type": "bool",
                 "help_text": "When true, user's email and password will be used to authenticate with Zoom. \n Please enable only either one of OAuth based or Password base authentication.",
