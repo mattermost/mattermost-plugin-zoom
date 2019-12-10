@@ -129,6 +129,10 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 
+	if configuration.EnableLegacyAuth && configuration.EnableOAuth {
+		return errors.New("Only enable One of the OAuth or Password based authentication")
+	}
+
 	p.setConfiguration(configuration)
 
 	return nil

@@ -196,7 +196,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 	var userInfo ZoomUserInfo
 
 	if infoBytes, err := p.API.KVGet(zoomTokenKey + userID); err != nil || infoBytes == nil {
-		return nil, errors.New("Must connect user account to GitHub first.")
+		return nil, errors.New("Must connect user account to Zoom first.")
 	} else if err := json.Unmarshal(infoBytes, &userInfo); err != nil {
 		return nil, errors.New("Unable to parse token.")
 	}
