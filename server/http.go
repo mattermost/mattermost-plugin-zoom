@@ -173,7 +173,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := w.Write([]byte(fmt.Sprintf("%v", meetingID))); err != nil {
+	if _, err := w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
