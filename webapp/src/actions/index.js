@@ -10,13 +10,13 @@ export function startMeeting(channelId) {
         try {
             await Client.startMeeting(channelId, true);
         } catch (error) {
-            let m = 'We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom email address.';
+            let m;
             if (error.message && error.message[0] === '{') {
                 const e = JSON.parse(error.message);
 
                 // Error is from Zoom API
                 if (e && e.message) {
-                    m += '\nZoom error: ' + e.message;
+                    m = '\nZoom error: ' + e.message;
                 }
             }
 
