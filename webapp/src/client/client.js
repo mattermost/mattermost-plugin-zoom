@@ -12,7 +12,8 @@ export default class Client {
     }
 
     startMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
-        return doPost(`${this.url}/api/v1/meetings`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
+        const res = await doPost(`${this.url}/api/v1/meetings`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
+        return res.meeting_url;
     }
 }
 

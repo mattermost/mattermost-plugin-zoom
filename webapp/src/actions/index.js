@@ -8,7 +8,8 @@ import Client from '../client';
 export function startMeeting(channelId) {
     return async (dispatch, getState) => {
         try {
-            await Client.startMeeting(channelId, true);
+            const meetingURL = await Client.startMeeting(channelId, true);
+            window.open(meetingURL);
         } catch (error) {
             let m;
             if (error.message && error.message[0] === '{') {
