@@ -44,8 +44,8 @@ func (c *configuration) Clone() *configuration {
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
 
-	if c.EnableLegacyAuth && c.EnableOAuth {
-		return errors.New("Only enable One of the OAuth or Password based authentication")
+	if _, err := isValidAuthConfig(c); err != nil {
+		return err
 	}
 
 	switch {
@@ -129,8 +129,8 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 
-	if configuration.EnableLegacyAuth && configuration.EnableOAuth {
-		return errors.New("Only enable One of the OAuth or Password based authentication")
+	if _, err := isValidAuthConfig(configuration); err != nil {
+		return errors.Wrap(err, "failed to validate authentication configuration")
 	}
 
 	p.setConfiguration(configuration)
