@@ -83,15 +83,3 @@ func closeBody(r *http.Response) {
 		r.Body.Close()
 	}
 }
-
-func isValidAuthConfig(configuration *configuration) (bool, error) {
-	switch {
-	case configuration.EnableLegacyAuth && configuration.EnableOAuth:
-		return false, errors.New("Only enable One of the OAuth or Password based authentication")
-
-	case !configuration.EnableLegacyAuth && !configuration.EnableOAuth:
-		return false, errors.New("Please enable authentication")
-	default:
-		return true, nil
-	}
-}

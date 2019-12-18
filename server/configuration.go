@@ -137,3 +137,16 @@ func (p *Plugin) OnConfigurationChange() error {
 
 	return nil
 }
+
+// function to validate authentication config
+func isValidAuthConfig(configuration *configuration) (bool, error) {
+	switch {
+	case configuration.EnableLegacyAuth && configuration.EnableOAuth:
+		return false, errors.New(
+			"Only one authentication scheme (OAuth or Password) is allowed to be enabled at the same time.")
+	case !configuration.EnableLegacyAuth && !configuration.EnableOAuth:
+		return false, errors.New("Please enable authentication")
+	default:
+		return true, nil
+	}
+}
