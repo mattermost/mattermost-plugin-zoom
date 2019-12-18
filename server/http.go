@@ -251,13 +251,7 @@ type startMeetingRequest struct {
 
 func (p *Plugin) postMeeting(meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
 
-	config := p.getConfiguration()
-	zoomURL := strings.TrimSpace(config.ZoomURL)
-	if len(zoomURL) == 0 {
-		zoomURL = "https://zoom.us"
-	}
-
-	meetingURL := fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
+	meetingURL := p.getMeetingURL(meetingID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
@@ -320,7 +314,19 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	meetingURL := p.getMeetingURL(meetingID)
+
 	if _, err := w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
+}
+
+func (p *Plugin) getMeetingURL(meetingID int) string {
+	config := p.getConfiguration()
+	zoomURL := strings.TrimSpace(config.ZoomURL)
+	if len(zoomURL) == 0 {
+		zoomURL = "https://zoom.us"
+	}
+
+	return fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
 }
