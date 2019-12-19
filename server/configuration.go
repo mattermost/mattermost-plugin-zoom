@@ -128,8 +128,12 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
-
 	if _, err := isValidAuthConfig(configuration); err != nil {
+
+		if apiErr := p.API.DisablePlugin(PLUGIN_ID); apiErr != nil {
+			return errors.Wrap(apiErr, "failed to disable plugin on invalid configuration change")
+		}
+
 		return errors.Wrap(err, "failed to validate authentication configuration")
 	}
 
