@@ -11,7 +11,7 @@ import (
 	"net/url"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/mattermost/mattermost-server/model"
+	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 )
 
