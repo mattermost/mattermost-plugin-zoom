@@ -130,7 +130,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 	if _, err := isValidAuthConfig(configuration); err != nil {
 
-		if apiErr := p.API.DisablePlugin(PLUGIN_ID); apiErr != nil {
+		if apiErr := p.API.DisablePlugin(manifest.Id); apiErr != nil {
 			return errors.Wrap(apiErr, "failed to disable plugin on invalid configuration change")
 		}
 

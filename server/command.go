@@ -10,7 +10,6 @@ import (
 
 const (
 	COMMAND_HELP = `* |/zoom start| - Start a zoom meeting.`
-	PLUGIN_ID    = "zoom"
 )
 
 func getCommand() *model.Command {
