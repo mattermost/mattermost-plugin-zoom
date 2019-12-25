@@ -15,6 +15,7 @@ export default class Icon extends React.PureComponent {
             <span
                 style={style.iconStyle}
                 aria-hidden='true'
+                aria-label='Camera Icon'
                 dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA}}
             />
         );
