@@ -13,10 +13,12 @@ import PostTypeZoom from './post_type_zoom.jsx';
 function mapStateToProps(state, ownProps) {
     const post = ownProps.post || {};
     const user = state.entities.users.profiles[post.user_id] || {};
+    const meetingCreator = state.entities.users.profiles[post.props.meeting_creator] || {};
 
     return {
         ...ownProps,
-        creatorName: displayUsernameForUser(user, state.entities.general.config),
+        creatorName: displayUsernameForUser(meetingCreator, state.entities.general.config) ||
+                     displayUsernameForUser(user, state.entities.general.config),
         useMilitaryTime: getBool(state, 'display_settings', 'use_military_time', false),
     };
 }
