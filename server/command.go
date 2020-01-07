@@ -63,7 +63,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		meetingID := zoomUser.Pmi
 
-		_, appErr := p.postMeeting(userID, meetingID, args.ChannelId, "")
+		_, appErr := p.postMeeting(user.Username, meetingID, args.ChannelId, "")
 		if appErr != nil {
 			return "Failed to post message. Please try again.", nil
 		}
