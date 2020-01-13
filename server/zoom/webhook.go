@@ -11,6 +11,7 @@ const (
 	WebhookStatusStarted         = "STARTED"
 	WebhookStatusEnded           = "ENDED"
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
+	RecentlyCreated              = "RECENTLY_CREATED"
 )
 
 type Webhook struct {
