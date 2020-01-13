@@ -91,6 +91,7 @@ func TestPlugin(t *testing.T) {
 			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
 			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
+			api.On("GetPostsSince", "thechannelid", mock.AnythingOfType("int64")).Return(&model.PostList{}, nil)
 
 			api.On("KVSet", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8")).Return(nil)
 			api.On("KVSet", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8")).Return(nil)
