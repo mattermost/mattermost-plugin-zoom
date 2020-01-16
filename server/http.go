@@ -304,7 +304,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if recentMeeting {
-			if _, err := w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, ""))); err != nil {
+			if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
 			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID)
