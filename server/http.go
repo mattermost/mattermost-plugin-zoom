@@ -150,7 +150,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	_, appErr = p.postMeeting(zoomUser.Pmi, channelID, "")
+	user, _ := p.API.GetUser(userID)
+
+	_, appErr = p.postMeeting(user.Username, zoomUser.Pmi, channelID, "")
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
@@ -249,7 +251,7 @@ type startMeetingRequest struct {
 	MeetingID int    `json:"meeting_id"`
 }
 
-func (p *Plugin) postMeeting(meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
+func (p *Plugin) postMeeting(creatorUsername string, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
 
 	meetingURL := p.getMeetingURL(meetingID)
 
@@ -259,11 +261,12 @@ func (p *Plugin) postMeeting(meetingID int, channelID string, topic string) (*mo
 		Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
-			"meeting_id":       meetingID,
-			"meeting_link":     meetingURL,
-			"meeting_status":   zoom.WebhookStatusStarted,
-			"meeting_personal": true,
-			"meeting_topic":    topic,
+			"meeting_id":               meetingID,
+			"meeting_link":             meetingURL,
+			"meeting_status":           zoom.WebhookStatusStarted,
+			"meeting_personal":         true,
+			"meeting_topic":            topic,
+			"meeting_creator_username": creatorUsername,
 		},
 	}
 
@@ -303,7 +306,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	meetingID := zoomUser.Pmi
 
-	createdPost, appErr := p.postMeeting(meetingID, req.ChannelID, req.Topic)
+	createdPost, appErr := p.postMeeting(user.Username, meetingID, req.ChannelID, req.Topic)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
