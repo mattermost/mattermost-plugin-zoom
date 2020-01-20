@@ -8,7 +8,9 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const COMMAND_HELP = `* |/zoom start| - Start a zoom meeting.`
+const (
+	COMMAND_HELP = `* |/zoom start| - Start a zoom meeting.`
+)
 
 func getCommand() *model.Command {
 	return &model.Command{
