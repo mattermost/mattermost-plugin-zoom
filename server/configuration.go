@@ -44,8 +44,8 @@ func (c *configuration) Clone() *configuration {
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
 
-	if c.EnableLegacyAuth && c.EnableOAuth {
-		return errors.New("Only enable One of the OAuth or Password based authentication")
+	if _, err := isValidAuthConfig(c); err != nil {
+		return err
 	}
 
 	switch {
@@ -128,12 +128,29 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
+	if _, err := isValidAuthConfig(configuration); err != nil {
 
-	if configuration.EnableLegacyAuth && configuration.EnableOAuth {
-		return errors.New("Only enable One of the OAuth or Password based authentication")
+		if apiErr := p.API.DisablePlugin(manifest.Id); apiErr != nil {
+			return errors.Wrap(apiErr, "failed to disable plugin on invalid configuration change")
+		}
+
+		return errors.Wrap(err, "failed to validate authentication configuration")
 	}
 
 	p.setConfiguration(configuration)
 
 	return nil
+}
+
+// function to validate authentication config
+func isValidAuthConfig(configuration *configuration) (bool, error) {
+	switch {
+	case configuration.EnableLegacyAuth && configuration.EnableOAuth:
+		return false, errors.New(
+			"Only one authentication scheme (OAuth or Password) is allowed to be enabled at the same time.")
+	case !configuration.EnableLegacyAuth && !configuration.EnableOAuth:
+		return false, errors.New("Please enable authentication")
+	default:
+		return true, nil
+	}
 }

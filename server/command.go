@@ -8,7 +8,9 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const COMMAND_HELP = `* |/zoom start| - Start a zoom meeting.`
+const (
+	COMMAND_HELP = `* |/zoom start| - Start a zoom meeting.`
+)
 
 func getCommand() *model.Command {
 	return &model.Command{
@@ -73,7 +75,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		meetingID := zoomUser.Pmi
 
-		_, appErr = p.postMeeting(meetingID, args.ChannelId, "")
+		_, appErr = p.postMeeting(user.Username, meetingID, args.ChannelId, "")
 		if appErr != nil {
 			return "Failed to post message. Please try again.", nil
 		}
