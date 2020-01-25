@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/schema"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
@@ -298,6 +299,22 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if forceCreate := r.URL.Query().Get("force"); forceCreate == "" {
+		recentMeeting, recentMeetindID, cpmErr := p.checkPreviousMessages(req.ChannelID)
+		if cpmErr != nil {
+			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
+			return
+		}
+
+		if recentMeeting {
+			if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+				p.API.LogWarn("failed to write response", "error", err.Error())
+			}
+			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID)
+			return
+		}
+	}
+
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
 	if authErr != nil {
 		http.Error(w, authErr.Error(), http.StatusInternalServerError)
@@ -332,4 +349,42 @@ func (p *Plugin) getMeetingURL(meetingID int) string {
 	}
 
 	return fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
+}
+
+func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string) *model.Post {
+	meetingURL := p.getMeetingURL(meetingID)
+
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channelID,
+		Message:   "There is another recent meeting created on this channel.",
+		Type:      "custom_zoom",
+		Props: map[string]interface{}{
+			"type":             "custom_zoom",
+			"meeting_id":       meetingID,
+			"meeting_link":     meetingURL,
+			"meeting_status":   zoom.RecentlyCreated,
+			"meeting_personal": true,
+			"meeting_topic":    topic,
+		},
+	}
+
+	return p.API.SendEphemeralPost(userID, post)
+}
+
+func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, err *model.AppError) {
+	var zoomMeetingTimeWindow int64 = 30 // 30 seconds
+
+	postList, appErr := p.API.GetPostsSince(channelID, (time.Now().Unix()-zoomMeetingTimeWindow)*1000)
+	if appErr != nil {
+		return false, 0, appErr
+	}
+
+	for _, post := range postList.ToSlice() {
+		if meetingID, ok := post.Props["meeting_id"]; ok {
+			return true, int(meetingID.(float64)), nil
+		}
+	}
+
+	return false, 0, nil
 }

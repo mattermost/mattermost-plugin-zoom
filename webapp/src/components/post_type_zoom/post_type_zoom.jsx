@@ -41,6 +41,15 @@ export default class PostTypeZoom extends React.PureComponent {
          * Creator's name.
          */
         creatorName: PropTypes.string.isRequired,
+
+        /*
+         * Current Channel Id.
+         */
+        currentChannelId: PropTypes.string.isRequired,
+
+        actions: PropTypes.shape({
+            startMeeting: PropTypes.func.isRequired,
+        }).isRequired,
     };
 
     static defaultProps = {
@@ -130,6 +139,39 @@ export default class PostTypeZoom extends React.PureComponent {
                     <span style={style.summaryItem}>{'Date: ' + start}</span>
                     <br/>
                     <span style={style.summaryItem}>{'Meeting Length: ' + length + ' minute(s)'}</span>
+                </div>
+            );
+        } else if (props.meeting_status === 'RECENTLY_CREATED') {
+            preText = `${this.props.creatorName} already created a zoom call recently`;
+
+            subtitle = 'What do you want to do?';
+            content = (
+                <div>
+                    <div>
+                        <a
+                            className='btn btn-lg btn-primary'
+                            style={style.button}
+                            rel='noopener noreferrer'
+                            onClick={() => this.props.actions.startMeeting(this.props.currentChannelId, true)}
+                        >
+                            {'CREATE NEW MEETING'}
+                        </a>
+                    </div>
+                    <div>
+                        <a
+                            className='btn btn-lg btn-primary'
+                            style={style.button}
+                            rel='noopener noreferrer'
+                            target='_blank'
+                            href={props.meeting_link}
+                        >
+                            <i
+                                style={style.buttonIcon}
+                                dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
+                            />
+                            {'JOIN EXISTING MEETING'}
+                        </a>
+                    </div>
                 </div>
             );
         }
