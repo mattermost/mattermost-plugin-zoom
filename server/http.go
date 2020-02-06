@@ -132,7 +132,6 @@ func (p *Plugin) postMeeting(creatorUsername string, meetingID int, channelID st
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
-	config := p.getConfiguration()
 
 	userID := r.Header.Get("Mattermost-User-Id")
 	if userID == "" {
@@ -179,27 +178,6 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	meetingID := ru.Pmi
-
-	zoomURL := strings.TrimSpace(config.ZoomURL)
-	if len(zoomURL) == 0 {
-		zoomURL = "https://zoom.us"
-	}
-
-	meetingURL := fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
-
-	post := &model.Post{
-		UserId:    p.botUserID,
-		ChannelId: req.ChannelID,
-		Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
-		Type:      "custom_zoom",
-		Props: map[string]interface{}{
-			"meeting_id":       meetingID,
-			"meeting_link":     meetingURL,
-			"meeting_status":   zoom.WebhookStatusStarted,
-			"meeting_personal": true,
-			"meeting_topic":    req.Topic,
-		},
-	}
 
 	createdPost, appErr := p.postMeeting(user.Username, meetingID, req.ChannelID, req.Topic)
 	if appErr != nil {
