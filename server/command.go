@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
@@ -33,6 +34,8 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 }
 
 func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
+	config := p.getConfiguration()
+
 	split := strings.Fields(args.Command)
 	command := split[0]
 	action := ""
@@ -68,12 +71,32 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return "", nil
 		}
 
-		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
-		if authErr != nil {
-			return authErr.Message, authErr.Err
+		// create a personal zoom meeting
+		ru, clientErr := p.zoomClient.GetUser(user.Email)
+		if clientErr != nil {
+			return "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
+		}
+		meetingID := ru.Pmi
+
+		zoomURL := strings.TrimSpace(config.ZoomURL)
+		if len(zoomURL) == 0 {
+			zoomURL = "https://zoom.us"
 		}
 
-		meetingID := zoomUser.Pmi
+		meetingURL := fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
+
+		post := &model.Post{
+			UserId:    p.botUserID,
+			ChannelId: args.ChannelId,
+			Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
+			Type:      "custom_zoom",
+			Props: map[string]interface{}{
+				"meeting_id":       meetingID,
+				"meeting_link":     meetingURL,
+				"meeting_status":   zoom.WebhookStatusStarted,
+				"meeting_personal": true,
+			},
+		}
 
 		_, appErr = p.postMeeting(user.Username, meetingID, args.ChannelId, "")
 		if appErr != nil {

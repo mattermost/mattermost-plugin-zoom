@@ -21,17 +21,11 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	ZoomURL           string
-	ZoomAPIURL        string
-	EnableLegacyAuth  bool
-	APIKey            string
-	APISecret         string
-	EnableOAuth       bool
-	OAuthClientID     string
-	OAuthClientSecret string
-	OAuthRedirectUrl  string
-	EncryptionKey     string
-	WebhookSecret     string
+	ZoomURL       string
+	ZoomAPIURL    string
+	APIKey        string
+	APISecret     string
+	WebhookSecret string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -43,33 +37,12 @@ func (c *configuration) Clone() *configuration {
 
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
-
-	if _, err := isValidAuthConfig(c); err != nil {
-		return err
+	if len(c.APIKey) == 0 {
+		return errors.New("APIKey is not configured")
 	}
 
-	switch {
-	case c.EnableLegacyAuth:
-		switch {
-		case len(c.APIKey) == 0:
-			return errors.New("APIKey is not configured")
-
-		case len(c.APISecret) == 0:
-			return errors.New("APISecret is not configured")
-		}
-	case c.EnableOAuth:
-		switch {
-		case len(c.OAuthClientSecret) == 0:
-			return errors.New("OAuthClientSecret is not configured")
-
-		case len(c.OAuthClientID) == 0:
-			return errors.New("OAuthClientID is not configured")
-
-		case len(c.EncryptionKey) == 0:
-			return errors.New("Please generate EncryptionKey from Zoom plugin settings")
-		}
-	default:
-		return errors.New("Please select either OAuth or Password based authentication")
+	if len(c.APISecret) == 0 {
+		return errors.New("APISecret is not configured")
 	}
 
 	if len(c.WebhookSecret) == 0 {
