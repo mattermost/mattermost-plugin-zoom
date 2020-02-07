@@ -33,6 +33,7 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 }
 
 func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
+
 	split := strings.Fields(args.Command)
 	command := split[0]
 	action := ""
@@ -68,12 +69,12 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return "", nil
 		}
 
-		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
-		if authErr != nil {
-			return authErr.Message, authErr.Err
+		// create a personal zoom meeting
+		ru, clientErr := p.zoomClient.GetUser(user.Email)
+		if clientErr != nil {
+			return "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
 		}
-
-		meetingID := zoomUser.Pmi
+		meetingID := ru.Pmi
 
 		_, appErr = p.postMeeting(user.Username, meetingID, args.ChannelId, "")
 		if appErr != nil {

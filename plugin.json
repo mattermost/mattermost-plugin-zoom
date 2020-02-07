@@ -33,39 +33,6 @@
                 "placeholder": "https://api.zoom.us/v2"
             },
             {
-                "key": "EnableOAuth",
-                "display_name": "Enable OAuth",
-                "type": "bool",
-                "help_text": "When true, OAuth will be used as authentication means with Zoom. \n Please enable only either one of OAuth based or Password base authentication.",
-                "default": false
-            },
-            {
-                "key": "OAuthClientID",
-                "display_name": "Zoom OAuth Client ID",
-                "type": "text",
-                "help_text": "The Client ID for the OAuth app registered with Zoom. Leave blank if not using OAuth"
-            },
-            {
-                "key": "OAuthClientSecret",
-                "display_name": "Zoom OAuth Client Secret",
-                "type": "text",
-                "help_text": "The Client Secret for the OAuth app registered with Zoom. Leave blank if not using OAuth"
-            },
-            {
-                "key": "EncryptionKey",
-                "display_name": "At Rest Token Encryption Key",
-                "type": "generated",
-                "help_text": "The AES encryption key used to encrypt stored access tokens.",
-                "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth Token. Regenerating the key invalidates your existing Zoom OAuth."
-            },
-            {
-                "key": "EnableLegacyAuth",
-                "display_name": "Enable Password based authentication",
-                "type": "bool",
-                "help_text": "When true, user's email and password will be used to authenticate with Zoom. \n Please enable only either one of OAuth based or Password base authentication.",
-                "default": true
-            },
-            {
                 "key": "APIKey",
                 "display_name": "API Key",
                 "type": "text",
