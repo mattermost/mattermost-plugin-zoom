@@ -14,7 +14,7 @@ import PostTypeZoom from './post_type_zoom.jsx';
 function mapStateToProps(state, ownProps) {
     return {
         ...ownProps,
-        creatorName: ownProps.post.props.meeting_creator_username,
+        creatorName: ownProps.post.props.meeting_creator_username || "Someone",
         useMilitaryTime: getBool(state, 'display_settings', 'use_military_time', false),
         currentChannelId: getCurrentChannelId(state),
     };
