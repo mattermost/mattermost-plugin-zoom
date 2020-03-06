@@ -182,19 +182,22 @@ export default class PostTypeZoom extends React.PureComponent {
         }
 
         return (
-            <div>
-                {preText}
-                <div style={style.attachment}>
-                    <div style={style.content}>
-                        <div style={style.container}>
-                            <h1 style={style.title}>
-                                {title}
-                            </h1>
-                            {subtitle}
-                            <div>
-                                <div style={style.body}>
-                                    {content}
-                                </div>
+            <div className='attachment attachment--pretext'>
+                <div className='attachment__thumb-pretext'>
+                    {preText}
+                </div>
+                <div className='attachment__content'>
+                    <div className='clearfix attachment__container'>
+                        <h5
+                            className='mt-1'
+                            style={style.title}
+                        >
+                            {title}
+                        </h5>
+                        {subtitle}
+                        <div>
+                            <div style={style.body}>
+                                {content}
                             </div>
                         </div>
                     </div>
@@ -206,24 +209,6 @@ export default class PostTypeZoom extends React.PureComponent {
 
 const getStyle = makeStyleFromTheme((theme) => {
     return {
-        attachment: {
-            marginLeft: '-20px',
-            position: 'relative',
-        },
-        content: {
-            borderRadius: '4px',
-            borderStyle: 'solid',
-            borderWidth: '1px',
-            borderColor: '#BDBDBF',
-            margin: '5px 0 5px 20px',
-            padding: '2px 5px',
-        },
-        container: {
-            borderLeftStyle: 'solid',
-            borderLeftWidth: '4px',
-            padding: '10px',
-            borderLeftColor: '#89AECB',
-        },
         body: {
             overflowX: 'auto',
             overflowY: 'hidden',
@@ -231,12 +216,7 @@ const getStyle = makeStyleFromTheme((theme) => {
             width: '100%',
         },
         title: {
-            fontSize: '16px',
             fontWeight: '600',
-            height: '22px',
-            lineHeight: '18px',
-            margin: '5px 0 1px 0',
-            padding: '0',
         },
         button: {
             fontFamily: 'Open Sans',
