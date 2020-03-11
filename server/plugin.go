@@ -243,6 +243,14 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 	return zoomUser, nil
 }
 
+func (p *Plugin) disconnect(userID string) error {
+	err := p.API.KVDelete(zoomTokenKey + userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 
 	config := p.getConfiguration()
@@ -254,16 +262,21 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	}
 
 	client := conf.Client(ctx, token)
+	zoomAPIURL := config.ZoomAPIURL
+
+	if zoomAPIURL == "" {
+		zoomAPIURL = zoomDefaultAPIUrl
+	}
 
 	apiUrl := config.ZoomAPIURL
 	if apiUrl == "" {
 		apiUrl = zoomDefaultAPIUrl
 	}
 
-	url := fmt.Sprintf("%v/users/me", config.ZoomAPIURL)
+	url := fmt.Sprintf("%v/users/me", apiUrl)
 	res, err := client.Get(url)
 	if err != nil || res == nil {
-		return nil, errors.New("error fetching zoom user")
+		return nil, errors.New("error fetching zoom user, err=" + err.Error())
 	}
 
 	defer closeBody(res)

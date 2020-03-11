@@ -317,7 +317,10 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
 	if authErr != nil {
-		http.Error(w, authErr.Error(), http.StatusInternalServerError)
+		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			p.API.LogWarn("failed to write response", "error", err.Error())
+		}
+		p.postConnect(req.ChannelID, userID)
 		return
 	}
 
@@ -367,6 +370,20 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 			"meeting_personal": true,
 			"meeting_topic":    topic,
 		},
+	}
+
+	return p.API.SendEphemeralPost(userID, post)
+}
+
+func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
+	oauthMsg := fmt.Sprintf(
+		zoomOAuthmessage,
+		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channelID,
+		Message:   oauthMsg,
 	}
 
 	return p.API.SendEphemeralPost(userID, post)

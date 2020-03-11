@@ -18,7 +18,7 @@ func getCommand() *model.Command {
 		DisplayName:      "Zoom",
 		Description:      "Integration with Zoom.",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start",
+		AutoCompleteDesc: "Available commands: start, disconnect",
 		AutoCompleteHint: "[command]",
 	}
 }
@@ -81,6 +81,15 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		}
 		return "", nil
 	}
+
+	if action == "disconnect" {
+		err := p.disconnect(userID)
+		if err != nil {
+			return "Failed to disconnect the user, err=" + err.Error(), nil
+		}
+		return "User disconnected from Zoom.", nil
+	}
+
 	return fmt.Sprintf("Unknown action %v", action), nil
 }
 
