@@ -68,7 +68,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return "", nil
 		}
 
-		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
+		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId, strings.Contains(c.UserAgent, "Mattermost"))
 		if authErr != nil {
 			return authErr.Message, authErr.Err
 		}

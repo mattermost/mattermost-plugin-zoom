@@ -32,9 +32,10 @@ const (
 	zoomDefaultAPIUrl = "https://api.zoom.com/v2"
 	zoomTokenKey      = "zoomtoken_"
 
-	zoomStateLength   = 3
-	zoomOAuthmessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
-	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
+	zoomStateLength         = 3
+	zoomOAuthmessage        = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+	zoomOAuthDesktopMessage = "[Click here to link your Zoom account.](%s/plugins/zoom/external/oauth2/connect?channelID=%s&userID=%s)"
+	zoomEmailMismatch       = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
 type Plugin struct {
@@ -212,7 +213,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 	return &userInfo, nil
 }
 
-func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {
+func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string, isDesktop bool) (*zoom.User, *AuthError) {
 	var zoomUser *zoom.User
 	var clientErr *zoom.ClientError
 	var err error
@@ -221,9 +222,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 	// use OAuth
 	if config.EnableOAuth {
 		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
-		oauthMsg := fmt.Sprintf(
-			zoomOAuthmessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+		oauthMsg := p.getOAuthMsg(channelID, isDesktop, userID)
 
 		if apiErr != nil || zoomUserInfo == nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}

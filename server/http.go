@@ -34,6 +34,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.handleStartMeeting(w, r)
 	case "/oauth2/connect":
 		p.connectUserToZoom(w, r)
+	case "/external/oauth2/connect":
+		p.connectExternalUserToZoom(w, r)
 	case "/oauth2/complete":
 		p.completeUserOAuthToZoom(w, r)
 	default:
@@ -73,12 +75,45 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
-func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
-	authedUserID := r.Header.Get("Mattermost-User-ID")
-	if authedUserID == "" {
-		http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
+func (p *Plugin) connectExternalUserToZoom(w http.ResponseWriter, r *http.Request) {
+	channelID := r.URL.Query().Get("channelID")
+
+	if channelID == "" {
+		http.Error(w, "Missing channel ID", http.StatusBadRequest)
 		return
 	}
+
+	userID := r.URL.Query().Get("userID")
+
+	if userID == "" {
+		http.Error(w, "Missing user ID", http.StatusBadRequest)
+		return
+	}
+
+	conf, err := p.getOAuthConfig()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
+	state := fmt.Sprintf("%v_%v", key, channelID)
+
+	appErr := p.API.KVSet(key, []byte(state))
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+	}
+
+	url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	http.Redirect(w, r, url, http.StatusFound)
+}
+
+func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
+	// authedUserID := r.Header.Get("Mattermost-User-ID")
+	// if authedUserID == "" {
+	// 	http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	ctx := context.Background()
 	conf, err := p.getOAuthConfig()
@@ -122,10 +157,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	p.API.KVDelete(state)
 
-	if userID != authedUserID {
-		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
-		return
-	}
+	// if userID != authedUserID {
+	// 	http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
+	// 	return
+	// }
 
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
@@ -315,12 +350,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID, strings.Contains(r.UserAgent(), "Mattermost"))
 	if authErr != nil {
 		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
-		p.postConnect(req.ChannelID, userID)
+		p.postConnect(req.ChannelID, userID, strings.Contains(r.UserAgent(), "Mattermost"))
 		return
 	}
 
@@ -375,10 +410,8 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 	return p.API.SendEphemeralPost(userID, post)
 }
 
-func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
-	oauthMsg := fmt.Sprintf(
-		zoomOAuthmessage,
-		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+func (p *Plugin) postConnect(channelID string, userID string, isDesktop bool) *model.Post {
+	oauthMsg := p.getOAuthMsg(channelID, isDesktop, userID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
@@ -387,6 +420,18 @@ func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
 	}
 
 	return p.API.SendEphemeralPost(userID, post)
+}
+
+func (p *Plugin) getOAuthMsg(channelID string, isDesktop bool, userID string) string {
+	msg := fmt.Sprintf(
+		zoomOAuthmessage,
+		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+	if isDesktop {
+		msg = fmt.Sprintf(
+			zoomOAuthDesktopMessage,
+			*p.API.GetConfig().ServiceSettings.SiteURL, channelID, userID)
+	}
+	return msg
 }
 
 func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, err *model.AppError) {
