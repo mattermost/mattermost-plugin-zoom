@@ -107,12 +107,20 @@ func TestPlugin(t *testing.T) {
 			api.On("SetProfileImage", botUserID, mock.Anything).Return(nil)
 			api.On("RegisterCommand", mock.AnythingOfType("*model.Command")).Return(nil)
 
+			siteUrl := "localhost"
+			api.On("GetConfig").Return(&model.Config{
+				ServiceSettings: model.ServiceSettings{
+					SiteURL: &siteUrl,
+				},
+			})
+
 			p := Plugin{}
 			p.setConfiguration(&configuration{
-				ZoomAPIURL:    ts.URL,
-				APIKey:        "theapikey",
-				APISecret:     "theapisecret",
-				WebhookSecret: "thewebhooksecret",
+				ZoomAPIURL:       ts.URL,
+				APIKey:           "theapikey",
+				APISecret:        "theapisecret",
+				WebhookSecret:    "thewebhooksecret",
+				EnableLegacyAuth: true,
 			})
 			p.SetAPI(api)
 
