@@ -22,7 +22,11 @@ import (
 )
 
 const (
-	postMeetingKey = "post_meeting_"
+	postMeetingKey  = "post_meeting_"
+	desktopOAuthKey = "desktop_oath_"
+
+	desktopOAuthLifespan = 5 * 60
+	oauthStateLifespan   = 5 * 60
 
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
@@ -33,8 +37,9 @@ const (
 	zoomTokenKey      = "zoomtoken_"
 
 	zoomStateLength         = 3
+	zoomStateLengthDesktop  = 4
 	zoomOAuthmessage        = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
-	zoomOAuthDesktopMessage = "[Click here to link your Zoom account.](%s/plugins/zoom/external/oauth2/connect?channelID=%s&userID=%s)"
+	zoomOAuthDesktopMessage = "[Click here to link your Zoom account.](%s/plugins/zoom/external/oauth2/connect?key=%s)"
 	zoomEmailMismatch       = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 

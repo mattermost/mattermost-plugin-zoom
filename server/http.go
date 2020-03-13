@@ -76,17 +76,17 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) connectExternalUserToZoom(w http.ResponseWriter, r *http.Request) {
-	channelID := r.URL.Query().Get("channelID")
-
-	if channelID == "" {
-		http.Error(w, "Missing channel ID", http.StatusBadRequest)
+	desktopKey := r.URL.Query().Get("key")
+	infoBytes, appErr := p.API.KVGet(desktopOAuthKey + desktopKey)
+	if appErr != nil {
+		http.Error(w, "User not found", http.StatusInternalServerError)
 		return
 	}
+	oauthInfo := OAuthInfo{}
 
-	userID := r.URL.Query().Get("userID")
-
-	if userID == "" {
-		http.Error(w, "Missing user ID", http.StatusBadRequest)
+	err := json.Unmarshal(infoBytes, &oauthInfo)
+	if err != nil {
+		http.Error(w, "Problem unmarshalling information", http.StatusInternalServerError)
 		return
 	}
 
@@ -96,12 +96,13 @@ func (p *Plugin) connectExternalUserToZoom(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
-	state := fmt.Sprintf("%v_%v", key, channelID)
+	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], oauthInfo.UserID)
+	state := fmt.Sprintf("%v_%v_%v", key, oauthInfo.ChannelID, desktopKey)
 
-	appErr := p.API.KVSet(key, []byte(state))
-	if appErr != nil {
-		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+	err = p.API.KVSetWithExpiry(key, []byte(state), oauthStateLifespan)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
@@ -109,11 +110,6 @@ func (p *Plugin) connectExternalUserToZoom(w http.ResponseWriter, r *http.Reques
 }
 
 func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
-	// authedUserID := r.Header.Get("Mattermost-User-ID")
-	// if authedUserID == "" {
-	// 	http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
-	// 	return
-	// }
 
 	ctx := context.Background()
 	conf, err := p.getOAuthConfig()
@@ -134,8 +130,39 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if len(stateComponents) != zoomStateLength {
 		log.Printf("stateComponents: %v, state: %v", stateComponents, state)
 		http.Error(w, "invalid state", http.StatusBadRequest)
-
+		return
 	}
+
+	var authedUserID string
+	if len(stateComponents) == zoomStateLengthDesktop {
+		value, appErr := p.API.KVGet(desktopOAuthKey + stateComponents[3])
+		if appErr != nil {
+			http.Error(w, "User not found", http.StatusInternalServerError)
+			return
+		}
+		p.API.KVDelete(desktopOAuthKey + stateComponents[3])
+		oauthInfo := OAuthInfo{}
+
+		err := json.Unmarshal(value, &oauthInfo)
+		if err != nil {
+			http.Error(w, "Problem unmarshalling information", http.StatusInternalServerError)
+			return
+		}
+		authedUserID = oauthInfo.UserID
+		if stateComponents[2] != oauthInfo.ChannelID {
+			http.Error(w, "Channel does not match", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if len(stateComponents) == zoomStateLength {
+		authedUserID := r.Header.Get("Mattermost-User-ID")
+		if authedUserID == "" {
+			http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
+			return
+		}
+	}
+
 	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
 
 	var storedState []byte
@@ -157,10 +184,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	p.API.KVDelete(state)
 
-	// if userID != authedUserID {
-	// 	http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
-	// 	return
-	// }
+	if userID != authedUserID {
+		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
+		return
+	}
 
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
@@ -427,11 +454,30 @@ func (p *Plugin) getOAuthMsg(channelID string, isDesktop bool, userID string) st
 		zoomOAuthmessage,
 		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
 	if isDesktop {
+		key := p.getOAuthKey(channelID, userID)
 		msg = fmt.Sprintf(
 			zoomOAuthDesktopMessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, channelID, userID)
+			*p.API.GetConfig().ServiceSettings.SiteURL, key)
 	}
 	return msg
+}
+
+type OAuthInfo struct {
+	ChannelID string
+	UserID    string
+}
+
+func (p *Plugin) getOAuthKey(channelID, userID string) string {
+	key := model.NewId()
+	value, err := json.Marshal(OAuthInfo{channelID, userID})
+	if err != nil {
+		return ""
+	}
+	err = p.API.KVSetWithExpiry(desktopOAuthKey+key, value, desktopOAuthLifespan)
+	if err != nil {
+		return ""
+	}
+	return key
 }
 
 func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, err *model.AppError) {
