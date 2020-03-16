@@ -143,7 +143,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		p.API.KVDelete(desktopOAuthKey + stateComponents[3])
 		oauthInfo := OAuthInfo{}
 
-		err := json.Unmarshal(value, &oauthInfo)
+		err = json.Unmarshal(value, &oauthInfo)
 		if err != nil {
 			http.Error(w, "Problem unmarshalling information", http.StatusInternalServerError)
 			return
@@ -156,7 +156,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 
 	if len(stateComponents) == zoomStateLength {
-		authedUserID := r.Header.Get("Mattermost-User-ID")
+		authedUserID = r.Header.Get("Mattermost-User-ID")
 		if authedUserID == "" {
 			http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
 			return

@@ -23,7 +23,7 @@ import (
 
 const (
 	postMeetingKey  = "post_meeting_"
-	desktopOAuthKey = "desktop_oath_"
+	desktopOAuthKey = "desktop_oauth_"
 
 	desktopOAuthLifespan = 5 * 60
 	oauthStateLifespan   = 5 * 60
