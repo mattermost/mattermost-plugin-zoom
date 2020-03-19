@@ -38,7 +38,7 @@ const (
 
 	zoomStateLength         = 3
 	zoomStateLengthDesktop  = 4
-	zoomOAuthmessage        = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+	zoomOAuthMessage        = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 	zoomOAuthDesktopMessage = "[Click here to link your Zoom account.](%s/plugins/zoom/external/oauth2/connect?key=%s)"
 	zoomEmailMismatch       = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
@@ -104,13 +104,11 @@ func (p *Plugin) OnActivate() error {
 }
 
 func (p *Plugin) getSiteUrl() (string, error) {
-	var siteUrl string
-	if siteUrlRef := p.API.GetConfig().ServiceSettings.SiteURL; siteUrlRef != nil || *siteUrlRef == "" {
-		siteUrl = *siteUrlRef
-	} else {
+	siteUrlRef := p.API.GetConfig().ServiceSettings.SiteURL
+	if siteUrlRef == nil || *siteUrlRef == "" {
 		return "", errors.New("error fetching siteUrl")
 	}
-	return siteUrl, nil
+	return *siteUrlRef, nil
 }
 
 func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
@@ -160,7 +158,7 @@ type ZoomUserInfo struct {
 	// Zoom OAuth Token, ttl 15 years
 	OAuthToken *oauth2.Token
 
-	// Mattermorst userID
+	// Mattermost userID
 	UserID string
 }
 
@@ -201,9 +199,13 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 
 	var userInfo ZoomUserInfo
 
-	if infoBytes, err := p.API.KVGet(zoomTokenKey + userID); err != nil || infoBytes == nil {
+	infoBytes, appErr := p.API.KVGet(zoomTokenKey + userID)
+	if appErr != nil || infoBytes == nil {
 		return nil, errors.New("Must connect user account to Zoom first.")
-	} else if err := json.Unmarshal(infoBytes, &userInfo); err != nil {
+	}
+
+	err := json.Unmarshal(infoBytes, &userInfo)
+	if err != nil {
 		return nil, errors.New("Unable to parse token.")
 	}
 

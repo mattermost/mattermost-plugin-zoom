@@ -53,12 +53,11 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	channelID := r.URL.Query().Get("channelID")
 
 	if channelID == "" {
-		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		http.Error(w, "channelID missing", http.StatusBadRequest)
 		return
 	}
 
 	conf, err := p.getOAuthConfig()
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -91,7 +90,6 @@ func (p *Plugin) connectExternalUserToZoom(w http.ResponseWriter, r *http.Reques
 	}
 
 	conf, err := p.getOAuthConfig()
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -451,7 +449,7 @@ func (p *Plugin) postConnect(channelID string, userID string, isDesktop bool) *m
 
 func (p *Plugin) getOAuthMsg(channelID string, isDesktop bool, userID string) string {
 	msg := fmt.Sprintf(
-		zoomOAuthmessage,
+		zoomOAuthMessage,
 		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
 	if isDesktop {
 		key := p.getOAuthKey(channelID, userID)
