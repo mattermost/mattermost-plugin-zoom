@@ -59,13 +59,13 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 		}
 
-		recentMeeting, recentMeetingID, appErr := p.checkPreviousMessages(args.ChannelId)
+		recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
 		if appErr != nil {
 			return fmt.Sprintf("Error checking previous messages"), nil
 		}
 
 		if recentMeeting {
-			p.postConfirm(recentMeetingID, args.ChannelId, "", userID)
+			p.postConfirm(recentMeetingID, args.ChannelId, "", userID, creatorName)
 			return "", nil
 		}
 
