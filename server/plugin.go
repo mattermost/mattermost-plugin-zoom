@@ -99,7 +99,7 @@ func (p *Plugin) OnActivate() error {
 
 func (p *Plugin) getSiteUrl() (string, error) {
 	siteUrlRef := p.API.GetConfig().ServiceSettings.SiteURL
-	if siteUrlRef != nil || *siteUrlRef == "" {
+	if siteUrlRef == nil || *siteUrlRef == "" {
 		return "", errors.New("error fetching siteUrl")
 	}
 
