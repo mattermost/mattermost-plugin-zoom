@@ -49,14 +49,12 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	channelID := r.URL.Query().Get("channelID")
-
 	if channelID == "" {
-		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		http.Error(w, "channelID missing", http.StatusBadRequest)
 		return
 	}
 
 	conf, err := p.getOAuthConfig()
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -82,7 +80,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	ctx := context.Background()
 	conf, err := p.getOAuthConfig()
-
 	if err != nil {
 		http.Error(w, "error in oauth config", http.StatusInternalServerError)
 	}
@@ -377,7 +374,7 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 
 func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
 	oauthMsg := fmt.Sprintf(
-		zoomOAuthmessage,
+		zoomOAuthMessage,
 		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
 
 	post := &model.Post{
