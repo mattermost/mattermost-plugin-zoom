@@ -297,7 +297,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if forceCreate := r.URL.Query().Get("force"); forceCreate == "" {
-		recentMeeting, recentMeetindID, cpmErr := p.checkPreviousMessages(req.ChannelID)
+		recentMeeting, recentMeetindID, creatorName, cpmErr := p.checkPreviousMessages(req.ChannelID)
 		if cpmErr != nil {
 			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
 			return
@@ -307,7 +307,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
-			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID)
+			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID, creatorName)
 			return
 		}
 	}
@@ -351,7 +351,7 @@ func (p *Plugin) getMeetingURL(meetingID int) string {
 	return fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
 }
 
-func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string) *model.Post {
+func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string, creatorName string) *model.Post {
 	meetingURL := p.getMeetingURL(meetingID)
 
 	post := &model.Post{
@@ -360,12 +360,13 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 		Message:   "There is another recent meeting created on this channel.",
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
-			"type":             "custom_zoom",
-			"meeting_id":       meetingID,
-			"meeting_link":     meetingURL,
-			"meeting_status":   zoom.RecentlyCreated,
-			"meeting_personal": true,
-			"meeting_topic":    topic,
+			"type":                     "custom_zoom",
+			"meeting_id":               meetingID,
+			"meeting_link":             meetingURL,
+			"meeting_status":           zoom.RecentlyCreated,
+			"meeting_personal":         true,
+			"meeting_topic":            topic,
+			"meeting_creator_username": creatorName,
 		},
 	}
 
@@ -386,19 +387,19 @@ func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
 	return p.API.SendEphemeralPost(userID, post)
 }
 
-func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, err *model.AppError) {
+func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, creatorName string, err *model.AppError) {
 	var zoomMeetingTimeWindow int64 = 30 // 30 seconds
 
 	postList, appErr := p.API.GetPostsSince(channelID, (time.Now().Unix()-zoomMeetingTimeWindow)*1000)
 	if appErr != nil {
-		return false, 0, appErr
+		return false, 0, "", appErr
 	}
 
 	for _, post := range postList.ToSlice() {
 		if meetingID, ok := post.Props["meeting_id"]; ok {
-			return true, int(meetingID.(float64)), nil
+			return true, int(meetingID.(float64)), post.Props["meeting_creator_username"].(string), nil
 		}
 	}
 
-	return false, 0, nil
+	return false, 0, "", nil
 }
