@@ -6,6 +6,7 @@ package main
 import (
 	"reflect"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/pkg/errors"
 )
 
@@ -91,6 +92,7 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 	}
 
 	p.configuration = configuration
+	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 }
 
 // OnConfigurationChange is invoked when configuration changes may have been made.
