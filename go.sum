@@ -495,5 +495,4 @@ honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 willnorris.com/go/gifresize v1.0.0/go.mod h1:eBM8gogBGCcaH603vxSpnfjwXIpq6nmnj/jauBDKtAk=
-willnorris.com/go/imageproxy v0.8.1-0.20190422234945-d4246a08fdec/go.mod h1:CKIesng3W4D4npJaypowqkxF33s3AH7EuohbR1miBGw=
 willnorris.com/go/imageproxy v0.9.0/go.mod h1:SVC/wfHtCS4kjk3llMeuV4KlTN3a8XTgFWI8o7i3Avg=
