@@ -7,17 +7,17 @@ import {ClientError} from 'mattermost-redux/client/client4';
 import {id} from '../manifest';
 
 export default class Client {
-    constructor() {
-        this.url = '/plugins/' + id;
+    setServerRoute(url) {
+        this.url = url + '/plugins/' + id;
     }
 
-    startMeeting = async (channelId, baseURL, personal = true, topic = '', meetingId = 0, force = false) => {
-        const res = await doPost(`${baseURL}${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
+    startMeeting = async (channelId, personal = true, topic = '', meetingId = 0, force = false) => {
+        const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
         return res.meeting_url;
     }
 
-    forceStartMeeting = async (channelId, baseURL, personal = true, topic = '', meetingId = 0) => {
-        const meetingUrl = await this.startMeeting(channelId, baseURL, personal, topic, meetingId, true);
+    forceStartMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
+        const meetingUrl = await this.startMeeting(channelId, personal, topic, meetingId, true);
         return meetingUrl;
     }
 }

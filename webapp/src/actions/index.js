@@ -2,7 +2,6 @@
 // See License for license information.
 
 import {PostTypes} from 'mattermost-redux/action_types';
-import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
 import Client from '../client';
 
@@ -10,7 +9,7 @@ export function startMeeting(channelId, force = false) {
     return async (dispatch, getState) => {
         try {
             const startFunction = force ? Client.forceStartMeeting : Client.startMeeting;
-            const meetingURL = await startFunction(channelId, getServerRoute(getState()), true);
+            const meetingURL = await startFunction(channelId, true);
             if (meetingURL) {
                 window.open(meetingURL);
             }
@@ -56,18 +55,3 @@ export function startMeeting(channelId, force = false) {
         return {data: true};
     };
 }
-
-export const getServerRoute = (state) => {
-    const config = getConfig(state);
-
-    let basePath = '';
-    if (config && config.SiteURL) {
-        basePath = new URL(config.SiteURL).pathname;
-
-        if (basePath && basePath[basePath.length - 1] === '/') {
-            basePath = basePath.substr(0, basePath.length - 1);
-        }
-    }
-
-    return basePath;
-};
