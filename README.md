@@ -1,4 +1,9 @@
-# Mattermost Zoom Plugin ![CircleCI branch](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-zoom/master.svg)
+# Mattermost Zoom Plugin 
+
+![CircleCI branch](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-zoom/master.svg)
+
+**Maintainer:** [@larkox](https://github.com/larkox)
+**Co-Maintainer:** [@mickmister](https://github.com/mickmister)
 
 Start and join voice calls, video calls and use screen sharing with your team members via Zoom.
 
