@@ -72,5 +72,6 @@ type Meeting struct {
 
 func (c *Client) GetMeeting(meetingID int) (*Meeting, *ClientError) {
 	var ret Meeting
-	return &ret, c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &ret)
+	err := c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &ret)
+	return &ret, err
 }
