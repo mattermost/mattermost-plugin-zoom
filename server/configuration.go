@@ -6,6 +6,7 @@ package main
 import (
 	"reflect"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/pkg/errors"
 )
 
@@ -102,6 +103,7 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 	p.setConfiguration(configuration)
+	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 
 	return nil
 }
