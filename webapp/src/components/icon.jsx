@@ -3,11 +3,12 @@
 
 import React from 'react';
 import {FormattedMessage} from 'react-intl';
-
-import {Svgs} from '../constants';
+import {makeStyleFromTheme} from 'mattermost-redux/utils/theme_utils';
 
 export default class Icon extends React.PureComponent {
     render() {
+        const style = getStyle();
+
         return (
             <FormattedMessage
                 id='zoom.camera.ariaLabel'
@@ -15,12 +16,22 @@ export default class Icon extends React.PureComponent {
             >
                 {(ariaLabel) => (
                     <span
-                        className='icon icon--standard'
+                        style={style.iconStyle}
                         aria-label={ariaLabel}
-                        dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA}}
-                    />
+                    >
+                        <i className='icon icon-brand-zoom'/>
+                    </span>
                 )}
             </FormattedMessage>
         );
     }
 }
+
+const getStyle = makeStyleFromTheme(() => {
+    return {
+        iconStyle: {
+            position: 'relative',
+            top: '-1px',
+        },
+    };
+});
