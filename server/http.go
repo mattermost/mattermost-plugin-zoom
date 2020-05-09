@@ -7,11 +7,11 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gorilla/schema"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -42,42 +42,55 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad request body", http.StatusBadRequest)
+	if r.Header.Get("Content-Type") != "application/json" {
+		res := fmt.Sprintf("Expected Content-Type 'application/json' for webhook request, received '%s'.", r.Header.Get("Content-Type"))
+		http.Error(w, res, http.StatusBadRequest)
 		return
 	}
 
-	var webhook zoom.Webhook
-	decoder := schema.NewDecoder()
-
-	// Try to decode to standard webhook
-	if err := decoder.Decode(&webhook, r.PostForm); err != nil {
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	p.handleStandardWebhook(w, r, &webhook)
-
-	// TODO: handle recording webhook
-}
-
-func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zoom.Webhook) {
-	if webhook.Status != zoom.WebhookStatusEnded {
+	var webhook zoom.Webhook
+	err = json.Unmarshal(b, &webhook)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	key := fmt.Sprintf("%v%v", postMeetingKey, webhook.ID)
+	if webhook.Event == zoom.EventTypeMeetingEnded {
+		var meetingWebhook zoom.MeetingWebhook
+		err = json.Unmarshal(b, &meetingWebhook)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		p.handleMeetingEnded(w, r, &meetingWebhook)
+		return
+	}
+
+	// TODO: handle recording webhook
+
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
+	key := fmt.Sprintf("%v%v", postMeetingKey, webhook.Payload.Object.ID)
 	b, appErr := p.API.KVGet(key)
-	if appErr != nil {
+	if appErr != nil && !strings.Contains(appErr.Error(), "not found") {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	if b == nil {
+		http.Error(w, "Stored meeting not found", http.StatusNotFound)
 		return
 	}
-	postID := string(b)
 
+	postID := string(b)
 	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
@@ -87,17 +100,21 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 	post.Message = "Meeting has ended."
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
 
-	if _, appErr := p.API.UpdatePost(post); appErr != nil {
+	_, appErr = p.API.UpdatePost(post)
+	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
-	if appErr := p.API.KVDelete(key); appErr != nil {
+	appErr = p.API.KVDelete(key)
+	if appErr != nil {
 		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
 		return
 	}
 
-	if _, err := w.Write([]byte(post.ToJson())); err != nil {
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(post.ToJson()))
+	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
@@ -140,7 +157,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req startMeetingRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -151,12 +169,14 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, appErr = p.API.GetChannelMember(req.ChannelID, userID); appErr != nil {
+	_, appErr = p.API.GetChannelMember(req.ChannelID, userID)
+	if appErr != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
-	if forceCreate := r.URL.Query().Get("force"); forceCreate == "" {
+	forceCreate := r.URL.Query().Get("force")
+	if forceCreate == "" {
 		recentMeeting, recentMeetindID, creatorName, cpmErr := p.checkPreviousMessages(req.ChannelID)
 		if cpmErr != nil {
 			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
@@ -164,7 +184,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if recentMeeting {
-			if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			_, err := w.Write([]byte(`{"meeting_url": ""}`))
+			if err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
 			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID, creatorName)
@@ -185,14 +206,15 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id)); appErr != nil {
+	appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id))
+	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	meetingURL := p.getMeetingURL(meetingID)
-
-	if _, err := w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
+	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
