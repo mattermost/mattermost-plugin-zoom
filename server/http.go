@@ -57,30 +57,31 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	var webhook zoom.Webhook
 	err = json.Unmarshal(b, &webhook)
 	if err != nil {
+		p.API.LogError("Error unmarshaling webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if webhook.Event == zoom.EventTypeMeetingEnded {
-		var meetingWebhook zoom.MeetingWebhook
-		err = json.Unmarshal(b, &meetingWebhook)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		p.handleMeetingEnded(w, r, &meetingWebhook)
+	if webhook.Event != zoom.EventTypeMeetingEnded {
+		// TODO: handle recording webhook
+		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
-	// TODO: handle recording webhook
-
-	w.WriteHeader(http.StatusNotImplemented)
+	var meetingWebhook zoom.MeetingWebhook
+	err = json.Unmarshal(b, &meetingWebhook)
+	if err != nil {
+		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	p.handleMeetingEnded(w, r, &meetingWebhook)
 }
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
 	key := fmt.Sprintf("%v%v", postMeetingKey, webhook.Payload.Object.ID)
 	b, appErr := p.API.KVGet(key)
-	if appErr != nil && !strings.Contains(appErr.Error(), "not found") {
+	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
@@ -112,7 +113,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte(post.ToJson()))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
@@ -175,8 +175,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	forceCreate := r.URL.Query().Get("force")
-	if forceCreate == "" {
+	if r.URL.Query().Get("force") == "" {
 		recentMeeting, recentMeetindID, creatorName, cpmErr := p.checkPreviousMessages(req.ChannelID)
 		if cpmErr != nil {
 			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
@@ -184,7 +183,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if recentMeeting {
-			_, err := w.Write([]byte(`{"meeting_url": ""}`))
+			_, err = w.Write([]byte(`{"meeting_url": ""}`))
 			if err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
