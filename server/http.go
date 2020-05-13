@@ -63,7 +63,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if webhook.Event != zoom.EventTypeMeetingEnded {
-		// TODO: handle recording webhook
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
