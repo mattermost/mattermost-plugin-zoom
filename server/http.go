@@ -109,12 +109,12 @@ type startMeetingRequest struct {
 	MeetingID int    `json:"meeting_id"`
 }
 
-func (p *Plugin) postMeeting(creatorUsername string, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
+func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
 
 	meetingURL := p.getMeetingURL(meetingID)
 
 	post := &model.Post{
-		UserId:    p.botUserID,
+		UserId:    creator.Id,
 		ChannelId: channelID,
 		Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
 		Type:      "custom_zoom",
@@ -124,7 +124,7 @@ func (p *Plugin) postMeeting(creatorUsername string, meetingID int, channelID st
 			"meeting_status":           zoom.WebhookStatusStarted,
 			"meeting_personal":         true,
 			"meeting_topic":            topic,
-			"meeting_creator_username": creatorUsername,
+			"meeting_creator_username": creator.Username,
 		},
 	}
 
@@ -179,7 +179,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	meetingID := ru.Pmi
 
-	createdPost, appErr := p.postMeeting(user.Username, meetingID, req.ChannelID, req.Topic)
+	createdPost, appErr := p.postMeeting(user, meetingID, req.ChannelID, req.Topic)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
