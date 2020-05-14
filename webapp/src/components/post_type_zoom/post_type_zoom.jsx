@@ -79,7 +79,7 @@ export default class PostTypeZoom extends React.PureComponent {
         let content;
         let subtitle;
         if (props.meeting_status === 'STARTED') {
-            preText = `I have started a meeting`;
+            preText = 'I have started a meeting';
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
             }
@@ -127,7 +127,7 @@ export default class PostTypeZoom extends React.PureComponent {
                 );
             }
         } else if (props.meeting_status === 'ENDED') {
-            preText = `I have ended the meeting`;
+            preText = 'I have ended the meeting';
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has ended the meeting`;
             }
