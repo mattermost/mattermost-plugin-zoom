@@ -47,6 +47,11 @@ export default class PostTypeZoom extends React.PureComponent {
          */
         currentChannelId: PropTypes.string.isRequired,
 
+        /*
+         * Whether the post was sent from a bot. Used for backwards compatibility.
+         */
+        fromBot: PropTypes.bool.isRequired,
+
         actions: PropTypes.shape({
             startMeeting: PropTypes.func.isRequired,
         }).isRequired,
@@ -74,7 +79,10 @@ export default class PostTypeZoom extends React.PureComponent {
         let content;
         let subtitle;
         if (props.meeting_status === 'STARTED') {
-            preText = `${this.props.creatorName} has started a meeting`;
+            preText = `I have started a meeting`;
+            if (this.props.fromBot) {
+                preText = `${this.props.creatorName} has started a meeting`;
+            }
             content = (
                 <a
                     className='btn btn-lg btn-primary'
@@ -119,7 +127,10 @@ export default class PostTypeZoom extends React.PureComponent {
                 );
             }
         } else if (props.meeting_status === 'ENDED') {
-            preText = `${this.props.creatorName} has ended the meeting`;
+            preText = `I have ended the meeting`;
+            if (this.props.fromBot) {
+                preText = `${this.props.creatorName} has ended the meeting`;
+            }
 
             if (props.meeting_personal) {
                 subtitle = 'Personal Meeting ID (PMI) : ' + props.meeting_id;
