@@ -36,6 +36,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.connectUserToZoom(w, r)
 	case "/oauth2/complete":
 		p.completeUserOAuthToZoom(w, r)
+	case "/deauthorization":
+		p.deauthorizeUser(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -139,6 +141,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	zoomUserInfo := &ZoomUserInfo{
 		ZoomEmail:  zoomUser.Email,
+		ZoomID:     zoomUser.ID,
 		UserID:     userID,
 		OAuthToken: tok,
 	}
@@ -407,4 +410,33 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 	}
 
 	return false, 0, "", nil
+}
+
+func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
+	var req zoom.DeauthorizationEvent
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rawInfo, appErr := p.API.KVGet(zoomTokenKeyByZoomID + req.Payload.UserID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var info ZoomUserInfo
+	err := json.Unmarshal(rawInfo, &info)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	p.disconnect(info.UserID)
+
+	p.dm(info.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
+
+	if req.Payload.UserDataRetention == "true" {
+		p.zoomClient.CompleteCompliance(req.Payload)
+	}
 }

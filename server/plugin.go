@@ -28,9 +28,10 @@ const (
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
-	zoomDefaultUrl    = "https://zoom.us"
-	zoomDefaultAPIUrl = "https://api.zoom.com/v2"
-	zoomTokenKey      = "zoomtoken_"
+	zoomDefaultUrl       = "https://zoom.us"
+	zoomDefaultAPIUrl    = "https://api.zoom.com/v2"
+	zoomTokenKey         = "zoomtoken_"
+	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
 
 	zoomStateLength   = 3
 	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
@@ -155,6 +156,9 @@ type ZoomUserInfo struct {
 
 	// Mattermost userID
 	UserID string
+
+	// Zoom userID
+	ZoomID string
 }
 
 type AuthError struct {
@@ -183,6 +187,10 @@ func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
 	}
 
 	if err := p.API.KVSet(zoomTokenKey+info.UserID, jsonInfo); err != nil {
+		return err
+	}
+
+	if err := p.API.KVSet(zoomTokenKeyByZoomID+info.ZoomID, jsonInfo); err != nil {
 		return err
 	}
 
@@ -247,9 +255,24 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 }
 
 func (p *Plugin) disconnect(userID string) error {
-	err := p.API.KVDelete(zoomTokenKey + userID)
+	rawInfo, appErr := p.API.KVGet(zoomTokenKey + userID)
+	if appErr != nil {
+		return appErr
+	}
+
+	var info ZoomUserInfo
+	err := json.Unmarshal(rawInfo, &info)
 	if err != nil {
 		return err
+	}
+
+	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
+	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + info.ZoomID)
+	if errByMattermostID != nil {
+		return errByMattermostID
+	}
+	if errByZoomID != nil {
+		return errByZoomID
 	}
 	return nil
 }
@@ -300,4 +323,24 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	}
 
 	return &zoomUser, nil
+}
+
+func (p *Plugin) dm(userID string, message string) error {
+	channel, err := p.API.GetDirectChannel(userID, p.botUserID)
+	if err != nil {
+		p.API.LogInfo("Couldn't get bot's DM channel", "user_id", userID)
+		return err
+	}
+
+	post := &model.Post{
+		Message:   message,
+		ChannelId: channel.Id,
+		UserId:    p.botUserID,
+	}
+
+	_, err = p.API.CreatePost(post)
+	if err != nil {
+		return err
+	}
+	return nil
 }
