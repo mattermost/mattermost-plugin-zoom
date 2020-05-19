@@ -342,6 +342,11 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) getMeetingURL(meetingID int) string {
+	meeting, err := p.zoomClient.GetMeeting(meetingID)
+	if err == nil {
+		return meeting.JoinURL
+	}
+
 	config := p.getConfiguration()
 	zoomURL := strings.TrimSpace(config.ZoomURL)
 	if len(zoomURL) == 0 {
