@@ -4,9 +4,11 @@
 package main
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"golang.org/x/oauth2"
 )
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -29,15 +32,153 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.handleWebhook(w, r)
 	case "/api/v1/meetings":
 		p.handleStartMeeting(w, r)
+	case "/oauth2/connect":
+		p.connectUserToZoom(w, r)
+	case "/oauth2/complete":
+		p.completeUserOAuthToZoom(w, r)
+	case "/deauthorization":
+		p.deauthorizeUser(w, r)
 	default:
 		http.NotFound(w, r)
 	}
 }
 
-func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	config := p.getConfiguration()
+func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-ID")
+	if userID == "" {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
 
-	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
+	channelID := r.URL.Query().Get("channelID")
+	if channelID == "" {
+		http.Error(w, "channelID missing", http.StatusBadRequest)
+		return
+	}
+
+	conf, err := p.getOAuthConfig()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
+	state := fmt.Sprintf("%v_%v", key, channelID)
+
+	appErr := p.API.KVSet(key, []byte(state))
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+	}
+
+	url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	http.Redirect(w, r, url, http.StatusFound)
+}
+
+func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
+	authedUserID := r.Header.Get("Mattermost-User-ID")
+	if authedUserID == "" {
+		http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
+		return
+	}
+
+	ctx := context.Background()
+	conf, err := p.getOAuthConfig()
+	if err != nil {
+		http.Error(w, "error in oauth config", http.StatusInternalServerError)
+	}
+
+	code := r.URL.Query().Get("code")
+	if len(code) == 0 {
+		http.Error(w, "missing authorization code", http.StatusBadRequest)
+		return
+	}
+
+	state := r.URL.Query().Get("state")
+	stateComponents := strings.Split(state, "_")
+
+	if len(stateComponents) != zoomStateLength {
+		log.Printf("stateComponents: %v, state: %v", stateComponents, state)
+		http.Error(w, "invalid state", http.StatusBadRequest)
+
+	}
+	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
+
+	var storedState []byte
+	var appErr *model.AppError
+	storedState, appErr = p.API.KVGet(key)
+	if appErr != nil {
+		fmt.Println(appErr)
+		http.Error(w, "missing stored state", http.StatusBadRequest)
+		return
+	}
+
+	if string(storedState) != state {
+		http.Error(w, "invalid state", http.StatusBadRequest)
+		return
+	}
+
+	userID := stateComponents[1]
+	channelID := stateComponents[2]
+
+	p.API.KVDelete(state)
+
+	if userID != authedUserID {
+		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
+		return
+	}
+
+	tok, err := conf.Exchange(ctx, code)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	zoomUser, err := p.getZoomUserWithToken(tok)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	zoomUserInfo := &ZoomUserInfo{
+		ZoomEmail:  zoomUser.Email,
+		ZoomID:     zoomUser.ID,
+		UserID:     userID,
+		OAuthToken: tok,
+	}
+
+	if err := p.storeZoomUserInfo(zoomUserInfo); err != nil {
+		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
+		return
+	}
+
+	user, _ := p.API.GetUser(userID)
+
+	_, appErr = p.postMeeting(user.Username, zoomUser.Pmi, channelID, "")
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	html := `
+<!DOCTYPE html>
+<html>
+	<head>
+		<script>
+			window.close();
+		</script>
+	</head>
+	<body>
+		<p>Completed connecting to Zoom. Please close this window.</p>
+	</body>
+</html>
+`
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(html))
+}
+
+func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
+	if !p.verifyWebhookSecret(r) {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -172,12 +313,16 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ru, clientErr := p.zoomClient.GetUser(user.Email)
-	if clientErr != nil {
-		http.Error(w, clientErr.Error(), clientErr.StatusCode)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
+	if authErr != nil {
+		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			p.API.LogWarn("failed to write response", "error", err.Error())
+		}
+		p.postConnect(req.ChannelID, userID)
 		return
 	}
-	meetingID := ru.Pmi
+
+	meetingID := zoomUser.Pmi
 
 	createdPost, appErr := p.postMeeting(user.Username, meetingID, req.ChannelID, req.Topic)
 	if appErr != nil {
@@ -234,6 +379,20 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 	return p.API.SendEphemeralPost(userID, post)
 }
 
+func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
+	oauthMsg := fmt.Sprintf(
+		zoomOAuthMessage,
+		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channelID,
+		Message:   oauthMsg,
+	}
+
+	return p.API.SendEphemeralPost(userID, post)
+}
+
 func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, creatorName string, err *model.AppError) {
 	var zoomMeetingTimeWindow int64 = 30 // 30 seconds
 
@@ -249,4 +408,48 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 	}
 
 	return false, 0, "", nil
+}
+
+func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
+	if !p.verifyWebhookSecret(r) {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req zoom.DeauthorizationEvent
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rawInfo, appErr := p.API.KVGet(zoomTokenKeyByZoomID + req.Payload.UserID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var info ZoomUserInfo
+	err := json.Unmarshal(rawInfo, &info)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	p.disconnect(info.UserID)
+
+	p.dm(info.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
+
+	if req.Payload.UserDataRetention == "true" {
+		p.zoomClient.CompleteCompliance(req.Payload)
+	}
+}
+
+func (p *Plugin) verifyWebhookSecret(r *http.Request) bool {
+	config := p.getConfiguration()
+
+	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
+		return false
+	}
+
+	return true
 }

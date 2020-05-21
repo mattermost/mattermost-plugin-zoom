@@ -49,3 +49,17 @@ type RecordingWebhookContent struct {
 		Status         string    `json:"status"`
 	} `json:"recording_files"`
 }
+
+type DeauthorizationEvent struct {
+	Event   string
+	Payload DeauthorizationPayload
+}
+
+type DeauthorizationPayload struct {
+	UserDataRetention   string `json:"user_data_retention"`
+	AccountID           string `json:"account_id"`
+	UserID              string `json:"user_id"`
+	Signature           string
+	DeauthorizationTime time.Time `json:"deauthorization_time"`
+	ClientID            string    `json:"client_id"`
+}
