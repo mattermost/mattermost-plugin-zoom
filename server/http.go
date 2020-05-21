@@ -178,9 +178,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 }
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	config := p.getConfiguration()
-
-	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
+	if !p.verifyWebhookSecret(r) {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -413,6 +411,11 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 }
 
 func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
+	if !p.verifyWebhookSecret(r) {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req zoom.DeauthorizationEvent
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -439,4 +442,14 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 	if req.Payload.UserDataRetention == "true" {
 		p.zoomClient.CompleteCompliance(req.Payload)
 	}
+}
+
+func (p *Plugin) verifyWebhookSecret(r *http.Request) bool {
+	config := p.getConfiguration()
+
+	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
+		return false
+	}
+
+	return true
 }
