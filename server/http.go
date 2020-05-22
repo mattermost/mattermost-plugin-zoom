@@ -42,7 +42,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("Content-Type") != "application/json" {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		res := fmt.Sprintf("Expected Content-Type 'application/json' for webhook request, received '%s'.", r.Header.Get("Content-Type"))
 		http.Error(w, res, http.StatusBadRequest)
 		return
