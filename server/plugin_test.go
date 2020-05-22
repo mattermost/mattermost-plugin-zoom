@@ -44,12 +44,12 @@ func TestPlugin(t *testing.T) {
 	personalMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
 	personalMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	validWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
-	validWebhookRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
+	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=STARTED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
 
-	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
+	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
 	for name, tc := range map[string]struct {
 		Request            *http.Request
@@ -63,13 +63,13 @@ func TestPlugin(t *testing.T) {
 			Request:            personalMeetingRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
-		"ValidWebhookRequest": {
-			Request:            validWebhookRequest,
+		"ValidStoppedWebhookRequest": {
+			Request:            validStoppedWebhookRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidStartedWebhookRequest": {
 			Request:            validStartedWebhookRequest,
-			ExpectedStatusCode: http.StatusOK,
+			ExpectedStatusCode: http.StatusNotImplemented,
 		},
 		"NoSecretWebhookRequest": {
 			Request:            noSecretWebhookRequest,
@@ -130,6 +130,8 @@ func TestPlugin(t *testing.T) {
 
 			err = p.OnActivate()
 			require.Nil(t, err)
+
+			tc.Request.Header.Add("Content-Type", "application/json")
 
 			w := httptest.NewRecorder()
 			p.ServeHTTP(&plugin.Context{}, w, tc.Request)
