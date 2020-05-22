@@ -334,7 +334,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
 	if authErr != nil {
-		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
 		p.postConnect(req.ChannelID, userID)
