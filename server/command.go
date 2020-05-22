@@ -18,7 +18,7 @@ func getCommand() *model.Command {
 		DisplayName:      "Zoom",
 		Description:      "Integration with Zoom.",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start",
+		AutoCompleteDesc: "Available commands: start, disconnect",
 		AutoCompleteHint: "[command]",
 	}
 }
@@ -33,7 +33,6 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 }
 
 func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
-
 	split := strings.Fields(args.Command)
 	command := split[0]
 	action := ""
@@ -69,19 +68,28 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return "", nil
 		}
 
-		// create a personal zoom meeting
-		ru, clientErr := p.zoomClient.GetUser(user.Email)
-		if clientErr != nil {
-			return "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address matches your Zoom login email address.", nil
+		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
+		if authErr != nil {
+			return authErr.Message, authErr.Err
 		}
-		meetingID := ru.Pmi
 
-		_, appErr = p.postMeeting(user.Username, meetingID, args.ChannelId, "")
+		meetingID := zoomUser.Pmi
+
+		_, appErr = p.postMeeting(user, meetingID, args.ChannelId, "")
 		if appErr != nil {
 			return "Failed to post message. Please try again.", nil
 		}
 		return "", nil
 	}
+
+	if action == "disconnect" {
+		err := p.disconnect(userID)
+		if err != nil {
+			return "Failed to disconnect the user, err=" + err.Error(), nil
+		}
+		return "User disconnected from Zoom.", nil
+	}
+
 	return fmt.Sprintf("Unknown action %v", action), nil
 }
 
