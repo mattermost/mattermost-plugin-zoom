@@ -12,13 +12,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 func TestPlugin(t *testing.T) {
@@ -44,12 +45,12 @@ func TestPlugin(t *testing.T) {
 	personalMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
 	personalMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
-	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
+	validWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
+	validWebhookRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=STARTED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
 
-	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
+	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader("id=234&uuid=1dnv2x3XRiMdoVIwzms5lA%3D%3D&status=ENDED&host_id=iQZt4-f1ZQp2tgWwx-p1mQ"))
 
 	for name, tc := range map[string]struct {
 		Request            *http.Request
@@ -63,13 +64,13 @@ func TestPlugin(t *testing.T) {
 			Request:            personalMeetingRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
-		"ValidStoppedWebhookRequest": {
-			Request:            validStoppedWebhookRequest,
+		"ValidWebhookRequest": {
+			Request:            validWebhookRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidStartedWebhookRequest": {
 			Request:            validStartedWebhookRequest,
-			ExpectedStatusCode: http.StatusNotImplemented,
+			ExpectedStatusCode: http.StatusOK,
 		},
 		"NoSecretWebhookRequest": {
 			Request:            noSecretWebhookRequest,
@@ -107,10 +108,10 @@ func TestPlugin(t *testing.T) {
 			api.On("SetProfileImage", botUserID, mock.Anything).Return(nil)
 			api.On("RegisterCommand", mock.AnythingOfType("*model.Command")).Return(nil)
 
-			siteUrl := "localhost"
+			siteURL := "localhost"
 			api.On("GetConfig").Return(&model.Config{
 				ServiceSettings: model.ServiceSettings{
-					SiteURL: &siteUrl,
+					SiteURL: &siteURL,
 				},
 			})
 
@@ -130,8 +131,6 @@ func TestPlugin(t *testing.T) {
 
 			err = p.OnActivate()
 			require.Nil(t, err)
-
-			tc.Request.Header.Add("Content-Type", "application/json")
 
 			w := httptest.NewRecorder()
 			p.ServeHTTP(&plugin.Context{}, w, tc.Request)
