@@ -270,12 +270,19 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 	meetingURL := p.getMeetingURL(meetingID)
 
+	slackAttachment := model.SlackAttachment{
+		Fallback:  fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Title:     topic,
+		TitleLink: meetingURL,
+		Text:      fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[:movie_camera:  Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+	}
+
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
-		Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
+			"attachments":              []*model.SlackAttachment{&slackAttachment},
 			"meeting_id":               meetingID,
 			"meeting_link":             meetingURL,
 			"meeting_status":           zoom.WebhookStatusStarted,
