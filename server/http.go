@@ -238,8 +238,19 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
+	start := time.Unix(0, post.CreateAt*int64(time.Millisecond))
+	length := int((post.UpdateAt - post.CreateAt) / 60)
+	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
+
+	slackAttachment := model.SlackAttachment{
+		Fallback: fmt.Sprintf("Meeting has ended: started at %s, lenght: %d minute(s).", startText, length),
+		Title:    "Meeting Summary",
+		Text:     fmt.Sprintf("Date: %s\n\nMeeting Length: %d minute(s)", startText, length),
+	}
+
 	post.Message = "Meeting has ended."
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
+	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
 	_, appErr = p.API.UpdatePost(post)
 	if appErr != nil {
@@ -282,6 +293,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
+		Message:   fmt.Sprintf("%s has started a meeting", creator.Username),
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
 			"attachments":              []*model.SlackAttachment{&slackAttachment},
