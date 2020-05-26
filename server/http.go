@@ -122,7 +122,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	appErr = p.API.KVDelete(state)
 	if appErr != nil {
 		p.API.LogWarn("failed to delete state from db", "error", appErr.Error())
-		return
 	}
 
 	if userID != authedUserID {
@@ -210,6 +209,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zoom.Webhook) {
 	if webhook.Status != zoom.WebhookStatusEnded {
+		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
@@ -241,7 +241,6 @@ func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, w
 
 	if appErr := p.API.KVDelete(key); appErr != nil {
 		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
-		return
 	}
 
 	if _, err := w.Write([]byte(post.ToJson())); err != nil {
@@ -285,7 +284,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req startMeetingRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var err error
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -309,7 +309,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if recentMeeting {
-			if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			_, err = w.Write([]byte(`{"meeting_url": ""}`))
+			if err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
 			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID, creatorName)
@@ -319,7 +320,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
 	if authErr != nil {
-		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+		_, err = w.Write([]byte(`{"meeting_url": ""}`))
+		if err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
 		p.postConnect(req.ChannelID, userID)
@@ -341,7 +343,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	meetingURL := p.getMeetingURL(meetingID)
 
-	if _, err := w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
+	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
