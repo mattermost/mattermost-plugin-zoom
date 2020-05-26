@@ -274,10 +274,9 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	}
 
 	slackAttachment := model.SlackAttachment{
-		Fallback:  fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
-		Title:     topic,
-		TitleLink: meetingURL,
-		Text:      fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[:movie_camera:  Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Title:    topic,
+		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[:movie_camera:  Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 	}
 
 	post := &model.Post{
