@@ -269,6 +269,9 @@ type startMeetingRequest struct {
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
 
 	meetingURL := p.getMeetingURL(meetingID)
+	if topic == "" {
+		topic = "Zoom meeting"
+	}
 
 	slackAttachment := model.SlackAttachment{
 		Fallback:  fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
