@@ -209,7 +209,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) handleStandardWebhook(w http.ResponseWriter, r *http.Request, webhook *zoom.Webhook) {
 	if webhook.Status != zoom.WebhookStatusEnded {
-		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 

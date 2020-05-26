@@ -60,7 +60,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
 		if appErr != nil {
-			return fmt.Sprintf("Error checking previous messages"), nil
+			return "Error checking previous messages", nil
 		}
 
 		if recentMeeting {
