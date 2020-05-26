@@ -270,7 +270,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 	meetingURL := p.getMeetingURL(meetingID)
 	if topic == "" {
-		topic = "Zoom meeting"
+		topic = "Zoom Meeting"
 	}
 
 	slackAttachment := model.SlackAttachment{
