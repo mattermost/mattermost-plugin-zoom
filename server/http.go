@@ -300,7 +300,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req startMeetingRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var err error
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
