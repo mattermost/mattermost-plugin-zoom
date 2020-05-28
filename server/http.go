@@ -239,13 +239,22 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	}
 
 	start := time.Unix(0, post.CreateAt*int64(time.Millisecond))
-	length := int((post.UpdateAt - post.CreateAt) / 60)
+	length := int(((model.GetMillis() - post.CreateAt) / 1000) / 60)
 	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
+	topic, ok := post.Props["meeting_topic"].(string)
+	if !ok {
+		topic = "Zoom Meeting"
+	}
 
 	slackAttachment := model.SlackAttachment{
-		Fallback: fmt.Sprintf("Meeting has ended: started at %s, lenght: %d minute(s).", startText, length),
-		Title:    "Meeting Summary",
-		Text:     fmt.Sprintf("Date: %s\n\nMeeting Length: %d minute(s)", startText, length),
+		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, lenght: %d minute(s).", post.Props["meeting_id"], startText, length),
+		Title:    topic,
+		Text: fmt.Sprintf(
+			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
+			post.Props["meeting_id"],
+			startText,
+			length,
+		),
 	}
 
 	post.Message = "I have ended the meeting."
@@ -287,7 +296,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	slackAttachment := model.SlackAttachment{
 		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 		Title:    topic,
-		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[:movie_camera:  Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 	}
 
 	post := &model.Post{
