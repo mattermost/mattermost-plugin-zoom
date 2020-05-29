@@ -246,12 +246,19 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		topic = "Zoom Meeting"
 	}
 
+	meetingId, ok := post.Props["meeting_id"].(int)
+	var meetingIdStr string
+	if !ok {
+		meetingIdStr = "unknown"
+	}
+	meetingIdStr = fmt.Sprintf("%d", meetingId)
+
 	slackAttachment := model.SlackAttachment{
 		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, lenght: %d minute(s).", post.Props["meeting_id"], startText, length),
 		Title:    topic,
 		Text: fmt.Sprintf(
-			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
-			post.Props["meeting_id"],
+			"Personal Meeting ID (PMI) : %s\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
+			meetingIdStr,
 			startText,
 			length,
 		),
