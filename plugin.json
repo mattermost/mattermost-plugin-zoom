@@ -35,9 +35,9 @@
             },
             {
                 "key": "EnableOAuth",
-                "display_name": "Enable OAuth",
+                "display_name": "Enable OAuth (Beta)",
                 "type": "bool",
-                "help_text": "When true, OAuth will be used as authentication means with Zoom. \n Please enable only either one of OAuth based or Password base authentication.",
+                "help_text": "When true, OAuth will be used as authentication means with Zoom. \n Only Enable OAuth OR Password based authentication. Not both. If you are currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting.",
                 "default": false
             },
             {
@@ -63,7 +63,7 @@
                 "key": "EnableLegacyAuth",
                 "display_name": "Enable Password based authentication",
                 "type": "bool",
-                "help_text": "When true, user's email and password will be used to authenticate with Zoom. \n Please enable only either one of OAuth based or Password base authentication.",
+                "help_text": "When true, user's email and password will be used to authenticate with Zoom. \n Only Enable OAuth OR Password based authentication. Not both.",
                 "default": true
             },
             {
@@ -86,6 +86,6 @@
                 "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin."
             }
         ],
-        "footer": "Use this webhook URL to set up the Zoom plugin. See [documentation](https://about.mattermost.com/default-zoom-documentation) to learn more.\n\n```https://SITEURL/plugins/zoom/webhook?secret=WEBHOOKSECRET```"
+        "footer": "Use this webhook URL to set up the Zoom plugin. See [documentation](https://app.gitbook.com/@mattermost/s/plugin-zoom) to learn more.\n\n```https://SITEURL/plugins/zoom/webhook?secret=WEBHOOKSECRET```"
     }
 }
