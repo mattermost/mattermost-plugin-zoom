@@ -22,6 +22,8 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
+const defaultMeetingTopic = "Zoom Meeting"
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 	if err := config.IsValid(); err != nil {
@@ -249,20 +251,20 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
 	topic, ok := post.Props["meeting_topic"].(string)
 	if !ok {
-		topic = "Zoom Meeting"
+		topic = defaultMeetingTopic
 	}
 
-	meetingId, ok := post.Props["meeting_id"].(float64)
+	meetingID, ok := post.Props["meeting_id"].(float64)
 	if !ok {
-		meetingId = 0
+		meetingID = 0
 	}
 
 	slackAttachment := model.SlackAttachment{
-		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, lenght: %d minute(s).", post.Props["meeting_id"], startText, length),
+		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, length: %d minute(s).", post.Props["meeting_id"], startText, length),
 		Title:    topic,
 		Text: fmt.Sprintf(
 			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
-			int(meetingId),
+			int(meetingID),
 			startText,
 			length,
 		),
@@ -300,7 +302,7 @@ type startMeetingRequest struct {
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
 	meetingURL := p.getMeetingURL(meetingID)
 	if topic == "" {
-		topic = "Zoom Meeting"
+		topic = defaultMeetingTopic
 	}
 
 	slackAttachment := model.SlackAttachment{
