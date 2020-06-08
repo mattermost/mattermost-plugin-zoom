@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -243,8 +244,33 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	post.Message = "Meeting has ended."
+	start := time.Unix(0, post.CreateAt*int64(time.Millisecond))
+	length := int(math.Ceil(float64((model.GetMillis()-post.CreateAt)/1000) / 60))
+	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
+	topic, ok := post.Props["meeting_topic"].(string)
+	if !ok {
+		topic = "Zoom Meeting"
+	}
+
+	meetingId, ok := post.Props["meeting_id"].(float64)
+	if !ok {
+		meetingId = 0
+	}
+
+	slackAttachment := model.SlackAttachment{
+		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, lenght: %d minute(s).", post.Props["meeting_id"], startText, length),
+		Title:    topic,
+		Text: fmt.Sprintf(
+			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
+			int(meetingId),
+			startText,
+			length,
+		),
+	}
+
+	post.Message = "I have ended the meeting."
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
+	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
 	_, appErr = p.API.UpdatePost(post)
 	if appErr != nil {
@@ -273,13 +299,23 @@ type startMeetingRequest struct {
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
 	meetingURL := p.getMeetingURL(meetingID)
+	if topic == "" {
+		topic = "Zoom Meeting"
+	}
+
+	slackAttachment := model.SlackAttachment{
+		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Title:    topic,
+		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+	}
 
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
-		Message:   fmt.Sprintf("Meeting started at %s.", meetingURL),
+		Message:   "I have started a meeting",
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
+			"attachments":              []*model.SlackAttachment{&slackAttachment},
 			"meeting_id":               meetingID,
 			"meeting_link":             meetingURL,
 			"meeting_status":           zoom.WebhookStatusStarted,
