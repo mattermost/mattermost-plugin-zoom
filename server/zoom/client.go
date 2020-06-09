@@ -6,7 +6,6 @@ package zoom
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -110,8 +109,8 @@ func (c *Client) request(method string, path string, data interface{}, ret inter
 			errors.Errorf("Received nil response when making request to %v", c.baseURL+path),
 		}
 	}
+	defer rp.Body.Close()
 
-	defer closeBody(rp)
 	buf := new(bytes.Buffer)
 	if _, err = buf.ReadFrom(rp.Body); err != nil {
 		return &ClientError{
@@ -129,11 +128,4 @@ func (c *Client) request(method string, path string, data interface{}, ret inter
 	}
 
 	return nil
-}
-
-func closeBody(r *http.Response) {
-	if r.Body != nil {
-		ioutil.ReadAll(r.Body)
-		r.Body.Close()
-	}
 }

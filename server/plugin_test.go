@@ -12,13 +12,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 func TestPlugin(t *testing.T) {
@@ -107,10 +108,10 @@ func TestPlugin(t *testing.T) {
 			api.On("SetProfileImage", botUserID, mock.Anything).Return(nil)
 			api.On("RegisterCommand", mock.AnythingOfType("*model.Command")).Return(nil)
 
-			siteUrl := "localhost"
+			siteURL := "localhost"
 			api.On("GetConfig").Return(&model.Config{
 				ServiceSettings: model.ServiceSettings{
-					SiteURL: &siteUrl,
+					SiteURL: &siteURL,
 				},
 			})
 

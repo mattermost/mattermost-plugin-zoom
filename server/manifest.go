@@ -1,9 +1,9 @@
 package main
 
 var manifest = struct {
-	Id      string
+	ID      string
 	Version string
 }{
-	Id:      "zoom",
+	ID:      "zoom",
 	Version: "1.4.0",
 }
