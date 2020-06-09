@@ -8,9 +8,8 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const (
-	COMMAND_HELP = `* |/zoom start| - Start a zoom meeting.`
-)
+const helpText = `* |/zoom start| - Start a zoom meeting
+* |/zoom disconnect| - Disconnect from zoom`
 
 func getCommand() *model.Command {
 	return &model.Command{
@@ -53,14 +52,15 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return fmt.Sprintf("We could not retrieve user (userId: %v)", args.UserId), nil
 	}
 
-	if action == "start" {
+	switch action {
+	case "start":
 		if _, appErr = p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
 			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 		}
 
 		recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
 		if appErr != nil {
-			return fmt.Sprintf("Error checking previous messages"), nil
+			return "Error checking previous messages", nil
 		}
 
 		if recentMeeting {
@@ -80,17 +80,18 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return "Failed to post message. Please try again.", nil
 		}
 		return "", nil
-	}
-
-	if action == "disconnect" {
+	case "disconnect":
 		err := p.disconnect(userID)
 		if err != nil {
 			return "Failed to disconnect the user, err=" + err.Error(), nil
 		}
 		return "User disconnected from Zoom.", nil
+	case "help", "":
+		text := "###### Mattermost Zoom Plugin - Slash Command Help\n" + strings.Replace(helpText, "|", "`", -1)
+		return text, nil
+	default:
+		return fmt.Sprintf("Unknown action %v", action), nil
 	}
-
-	return fmt.Sprintf("Unknown action %v", action), nil
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {

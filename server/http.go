@@ -15,11 +15,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"golang.org/x/oauth2"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
+
+const defaultMeetingTopic = "Zoom Meeting"
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
@@ -99,7 +102,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if len(stateComponents) != zoomStateLength {
 		log.Printf("stateComponents: %v, state: %v", stateComponents, state)
 		http.Error(w, "invalid state", http.StatusBadRequest)
-
 	}
 	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
 
@@ -120,7 +122,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	userID := stateComponents[1]
 	channelID := stateComponents[2]
 
-	p.API.KVDelete(state)
+	appErr = p.API.KVDelete(state)
+	if appErr != nil {
+		p.API.LogWarn("failed to delete state from db", "error", appErr.Error())
+	}
 
 	if userID != authedUserID {
 		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
@@ -175,7 +180,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 `
 
 	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(html))
+	if _, err := w.Write([]byte(html)); err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
 }
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -244,20 +251,20 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
 	topic, ok := post.Props["meeting_topic"].(string)
 	if !ok {
-		topic = "Zoom Meeting"
+		topic = defaultMeetingTopic
 	}
 
-	meetingId, ok := post.Props["meeting_id"].(float64)
+	meetingID, ok := post.Props["meeting_id"].(float64)
 	if !ok {
-		meetingId = 0
+		meetingID = 0
 	}
 
 	slackAttachment := model.SlackAttachment{
-		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, lenght: %d minute(s).", post.Props["meeting_id"], startText, length),
+		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, length: %d minute(s).", post.Props["meeting_id"], startText, length),
 		Title:    topic,
 		Text: fmt.Sprintf(
 			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
-			int(meetingId),
+			int(meetingID),
 			startText,
 			length,
 		),
@@ -293,10 +300,9 @@ type startMeetingRequest struct {
 }
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
-
 	meetingURL := p.getMeetingURL(meetingID)
 	if topic == "" {
-		topic = "Zoom Meeting"
+		topic = defaultMeetingTopic
 	}
 
 	slackAttachment := model.SlackAttachment{
@@ -325,7 +331,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
-
 	userID := r.Header.Get("Mattermost-User-Id")
 	if userID == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
@@ -333,8 +338,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req startMeetingRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
+	var err error
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -345,8 +350,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, appErr = p.API.GetChannelMember(req.ChannelID, userID)
-	if appErr != nil {
+	if _, appErr = p.API.GetChannelMember(req.ChannelID, userID); appErr != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -370,7 +374,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
 	if authErr != nil {
-		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+		_, err = w.Write([]byte(`{"meeting_url": ""}`))
+		if err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
 		p.postConnect(req.ChannelID, userID)
@@ -385,13 +390,13 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id))
-	if appErr != nil {
+	if appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id)); appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	meetingURL := p.getMeetingURL(meetingID)
+
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
@@ -491,21 +496,24 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.disconnect(info.UserID)
+	if err = p.disconnect(info.UserID); err != nil {
+		http.Error(w, "Unable to disconnect user from Zoom", http.StatusInternalServerError)
+		return
+	}
 
-	p.dm(info.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
+	err = p.dm(info.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
+	if err != nil {
+		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
+	}
 
 	if req.Payload.UserDataRetention == "true" {
-		p.zoomClient.CompleteCompliance(req.Payload)
+		if err := p.zoomClient.CompleteCompliance(req.Payload); err != nil {
+			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
+		}
 	}
 }
 
 func (p *Plugin) verifyWebhookSecret(r *http.Request) bool {
 	config := p.getConfiguration()
-
-	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) != 1 {
-		return false
-	}
-
-	return true
+	return subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) == 1
 }

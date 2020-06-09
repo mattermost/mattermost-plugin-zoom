@@ -8,8 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
-	"io/ioutil"
-	"net/http"
 )
 
 func pad(src []byte) []byte {
@@ -43,7 +41,7 @@ func encrypt(key []byte, text string) (string, error) {
 	}
 
 	cfb := cipher.NewCFBEncrypter(block, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(msg))
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], msg)
 	finalMsg := base64.URLEncoding.EncodeToString(ciphertext)
 	return finalMsg, nil
 }
@@ -75,11 +73,4 @@ func decrypt(key []byte, text string) (string, error) {
 	}
 
 	return string(unpadMsg), nil
-}
-
-func closeBody(r *http.Response) {
-	if r != nil && r.Body != nil {
-		ioutil.ReadAll(r.Body)
-		r.Body.Close()
-	}
 }
