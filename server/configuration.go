@@ -6,8 +6,9 @@ package main
 import (
 	"reflect"
 
-	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 // configuration captures the plugin's external configuration as exposed in the Mattermost server
@@ -30,7 +31,7 @@ type configuration struct {
 	EnableOAuth       bool
 	OAuthClientID     string
 	OAuthClientSecret string
-	OAuthRedirectUrl  string
+	OAuthRedirectURL  string
 	EncryptionKey     string
 	WebhookSecret     string
 }
@@ -44,7 +45,6 @@ func (c *configuration) Clone() *configuration {
 
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
-
 	if _, err := isValidAuthConfig(c); err != nil {
 		return err
 	}
@@ -53,28 +53,28 @@ func (c *configuration) IsValid() error {
 	case c.EnableLegacyAuth:
 		switch {
 		case len(c.APIKey) == 0:
-			return errors.New("APIKey is not configured")
+			return errors.New("please configure APIKey")
 
 		case len(c.APISecret) == 0:
-			return errors.New("APISecret is not configured")
+			return errors.New("please configure APISecret")
 		}
 	case c.EnableOAuth:
 		switch {
 		case len(c.OAuthClientSecret) == 0:
-			return errors.New("OAuthClientSecret is not configured")
+			return errors.New("please configure OAuthClientSecret")
 
 		case len(c.OAuthClientID) == 0:
-			return errors.New("OAuthClientID is not configured")
+			return errors.New("please configure OAuthClientID")
 
 		case len(c.EncryptionKey) == 0:
-			return errors.New("Please generate EncryptionKey from Zoom plugin settings")
+			return errors.New("please generate EncryptionKey from Zoom plugin settings")
 		}
 	default:
-		return errors.New("Please select either OAuth or Password based authentication")
+		return errors.New("please select either OAuth or Password based authentication")
 	}
 
 	if len(c.WebhookSecret) == 0 {
-		return errors.New("WebhookSecret is not configured")
+		return errors.New("please configure WebhookSecret")
 	}
 
 	return nil
@@ -130,8 +130,7 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 	if _, err := isValidAuthConfig(configuration); err != nil {
-
-		if apiErr := p.API.DisablePlugin(manifest.Id); apiErr != nil {
+		if apiErr := p.API.DisablePlugin(manifest.ID); apiErr != nil {
 			return errors.Wrap(apiErr, "failed to disable plugin on invalid configuration change")
 		}
 
@@ -149,9 +148,9 @@ func isValidAuthConfig(configuration *configuration) (bool, error) {
 	switch {
 	case configuration.EnableLegacyAuth && configuration.EnableOAuth:
 		return false, errors.New(
-			"Only one authentication scheme (OAuth or Password) is allowed to be enabled at the same time.")
+			"only one authentication scheme (OAuth or Password) is allowed to be enabled at the same time")
 	case !configuration.EnableLegacyAuth && !configuration.EnableOAuth:
-		return false, errors.New("Please enable authentication")
+		return false, errors.New("please enable authentication")
 	default:
 		return true, nil
 	}
