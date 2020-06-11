@@ -14,11 +14,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 const (
@@ -28,8 +29,8 @@ const (
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
-	zoomDefaultUrl       = "https://zoom.us"
-	zoomDefaultAPIUrl    = "https://api.zoom.com/v2"
+	zoomDefaultURL       = "https://zoom.us"
+	zoomDefaultAPIURL    = "https://api.zoom.com/v2"
 	zoomTokenKey         = "zoomtoken_"
 	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
 
@@ -61,7 +62,7 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	if _, err := p.getSiteUrl(); err != nil {
+	if _, err := p.getSiteURL(); err != nil {
 		return err
 	}
 
@@ -98,13 +99,13 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-func (p *Plugin) getSiteUrl() (string, error) {
-	siteUrlRef := p.API.GetConfig().ServiceSettings.SiteURL
-	if siteUrlRef == nil || *siteUrlRef == "" {
+func (p *Plugin) getSiteURL() (string, error) {
+	siteURLRef := p.API.GetConfig().ServiceSettings.SiteURL
+	if siteURLRef == nil || *siteURLRef == "" {
 		return "", errors.New("error fetching siteUrl")
 	}
 
-	return *siteUrlRef, nil
+	return *siteURLRef, nil
 }
 
 func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
@@ -112,34 +113,29 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 
 	clientID := config.OAuthClientID
 	clientSecret := config.OAuthClientSecret
-	zoomUrl := config.ZoomURL
-	zoomAPIUrl := config.ZoomAPIURL
-
-	if zoomUrl == "" {
-		zoomUrl = zoomDefaultUrl
-	}
-	if zoomAPIUrl == "" {
-		zoomAPIUrl = zoomDefaultAPIUrl
+	zoomURL := config.ZoomURL
+	if zoomURL == "" {
+		zoomURL = zoomDefaultURL
 	}
 
-	authUrl := fmt.Sprintf("%v/oauth/authorize", zoomUrl)
-	tokenUrl := fmt.Sprintf("%v/oauth/token", zoomUrl)
+	authURL := fmt.Sprintf("%v/oauth/authorize", zoomURL)
+	tokenURL := fmt.Sprintf("%v/oauth/token", zoomURL)
 
-	siteUrl, err := p.getSiteUrl()
+	siteURL, err := p.getSiteURL()
 	if err != nil {
 		return nil, err
 	}
 
-	redirectUrl := fmt.Sprintf("%s/plugins/zoom/oauth2/complete", siteUrl)
+	redirectURL := fmt.Sprintf("%s/plugins/zoom/oauth2/complete", siteURL)
 
 	return &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  authUrl,
-			TokenURL: tokenUrl,
+			AuthURL:  authURL,
+			TokenURL: tokenURL,
 		},
-		RedirectURL: redirectUrl,
+		RedirectURL: redirectURL,
 		Scopes: []string{
 			"user:read",
 			"meeting:write",
@@ -204,18 +200,18 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 
 	infoBytes, appErr := p.API.KVGet(zoomTokenKey + userID)
 	if appErr != nil || infoBytes == nil {
-		return nil, errors.New("Must connect user account to Zoom first.")
+		return nil, errors.New("must connect user account to Zoom first")
 	}
 
 	err := json.Unmarshal(infoBytes, &userInfo)
 	if err != nil {
-		return nil, errors.New("Unable to parse token.")
+		return nil, errors.New("unable to parse token")
 	}
 
 	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), userInfo.OAuthToken.AccessToken)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("Unable to decrypt access token.")
+		return nil, errors.New("unable to decrypt access token")
 	}
 
 	userInfo.OAuthToken.AccessToken = unencryptedToken
@@ -278,7 +274,6 @@ func (p *Plugin) disconnect(userID string) error {
 }
 
 func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
-
 	config := p.getConfiguration()
 	ctx := context.Background()
 
@@ -288,24 +283,18 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	}
 
 	client := conf.Client(ctx, token)
-	zoomAPIURL := config.ZoomAPIURL
-
-	if zoomAPIURL == "" {
-		zoomAPIURL = zoomDefaultAPIUrl
+	apiURL := config.ZoomAPIURL
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
 	}
 
-	apiUrl := config.ZoomAPIURL
-	if apiUrl == "" {
-		apiUrl = zoomDefaultAPIUrl
-	}
-
-	url := fmt.Sprintf("%v/users/me", apiUrl)
+	url := fmt.Sprintf("%v/users/me", apiURL)
 	res, err := client.Get(url)
 	if err != nil || res == nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
 	}
+	defer res.Body.Close()
 
-	defer closeBody(res)
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New("error fetching zoom user")
 	}

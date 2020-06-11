@@ -20,7 +20,7 @@ class Plugin {
             (channel) => {
                 startMeeting(channel.id)(store.dispatch, store.getState);
             },
-            'Start Zoom Meeting'
+            'Start Zoom Meeting',
         );
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         Client.setServerRoute(getServerRoute(store.getState()));
