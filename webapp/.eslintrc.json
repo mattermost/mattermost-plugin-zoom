@@ -32,7 +32,10 @@
     "beforeEach": true
   },
   "settings": {
-    "import/resolver": "webpack"
+    "import/resolver": "webpack",
+    "react": {
+      "version": "detect"
+    }
   },
   "rules": {
     "array-bracket-spacing": [
