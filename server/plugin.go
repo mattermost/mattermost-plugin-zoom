@@ -38,6 +38,8 @@ const (
 	zoomStateLength   = 4
 	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s&justConnect=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
+
+	trueString = "true"
 )
 
 type Plugin struct {
@@ -268,34 +270,39 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 	config := p.getConfiguration()
 
 	// use OAuth
-	if config.EnableOAuth && !config.AccountLevelApp {
+	switch {
+	case config.EnableOAuth && !config.AccountLevelApp:
 		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthMessage,
 			*p.API.GetConfig().ServiceSettings.SiteURL, channelID, "")
 
-		if apiErr != nil || zoomUserInfo == nil {
+		if apiErr != nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
+		}
+
+		if zoomUserInfo == nil {
+			return nil, &AuthError{Message: oauthMsg, Err: errors.New("not connected")}
 		}
 		zoomUser, err = p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
 		if err != nil || zoomUser == nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
-	} else if config.EnableOAuth && config.AccountLevelApp {
+	case config.EnableOAuth && config.AccountLevelApp:
 		// use personal credentials
 		token, err := p.getSuperUserToken()
 		if err != nil {
 			return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: err}
 		}
 		if token == nil {
-			return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: err}
+			return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: errors.New("zoom app not connected")}
 		}
 		zoomUser, err = p.getZoomUserWithSuperUserToken(userEmail, token)
 		if err != nil {
 			includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, userEmail)
 			return nil, &AuthError{Message: includeEmailInErr, Err: err}
 		}
-	} else if config.EnableLegacyAuth {
+	case config.EnableLegacyAuth:
 		// use personal credentials
 		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
 		if clientErr != nil {

@@ -13,6 +13,8 @@ const helpText = `* |/zoom start| - Start a zoom meeting`
 const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
 
+const alreadyConnectedString = "Already connected"
+
 func getCommand() *model.Command {
 	return &model.Command{
 		Trigger:          "zoom",
@@ -63,19 +65,19 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthMessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, args.ChannelId, "true")
+			*p.API.GetConfig().ServiceSettings.SiteURL, args.ChannelId, trueString)
 
 		if p.configuration.AccountLevelApp {
 			token, err := p.getSuperUserToken()
 			if err == nil && token != nil {
-				return "Already connected", nil
+				return alreadyConnectedString, nil
 			}
 			return oauthMsg, nil
 		}
 
 		_, err := p.getZoomUserInfo(userID)
 		if err == nil {
-			return "Already connected", nil
+			return alreadyConnectedString, nil
 		}
 
 		return oauthMsg, nil

@@ -122,7 +122,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "channelID missing", http.StatusBadRequest)
 		return
 	}
-	justConnect := stateComponents[3] == "true"
+	justConnect := stateComponents[3] == trueString
 
 	appErr = p.API.KVDelete(state)
 	if appErr != nil {
