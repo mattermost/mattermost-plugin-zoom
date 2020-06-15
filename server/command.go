@@ -8,7 +8,9 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const helpText = `* |/zoom start| - Start a zoom meeting
+const helpText = `* |/zoom start| - Start a zoom meeting`
+
+const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
 
 func getCommand() *model.Command {
@@ -17,7 +19,7 @@ func getCommand() *model.Command {
 		DisplayName:      "Zoom",
 		Description:      "Integration with Zoom.",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start, disconnect",
+		AutoCompleteDesc: "Available commands: start, help",
 		AutoCompleteHint: "[command]",
 	}
 }
@@ -53,6 +55,30 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	}
 
 	switch action {
+	case "connect":
+		if p.configuration.EnableLegacyAuth ||
+			(p.configuration.EnableOAuth && p.configuration.AccountLevelApp && !user.IsSystemAdmin()) {
+			return fmt.Sprintf("Unknown action %v", action), nil
+		}
+
+		oauthMsg := fmt.Sprintf(
+			zoomOAuthMessage,
+			*p.API.GetConfig().ServiceSettings.SiteURL, args.ChannelId, "true")
+
+		if p.configuration.AccountLevelApp {
+			token, err := p.getSuperUserToken()
+			if err == nil && token != nil {
+				return "Already connected", nil
+			}
+			return oauthMsg, nil
+		}
+
+		_, err := p.getZoomUserInfo(userID)
+		if err == nil {
+			return "Already connected", nil
+		}
+
+		return oauthMsg, nil
 	case "start":
 		if _, appErr = p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
 			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
@@ -81,6 +107,19 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		}
 		return "", nil
 	case "disconnect":
+		if p.configuration.EnableLegacyAuth ||
+			(p.configuration.EnableOAuth && p.configuration.AccountLevelApp && !user.IsSystemAdmin()) {
+			return fmt.Sprintf("Unknown action %v", action), nil
+		}
+
+		if p.configuration.AccountLevelApp {
+			err := p.removeSuperUserToken()
+			if err != nil {
+				return "Could not disconnect, err=" + err.Error(), nil
+			}
+			return "Successfully disconnected from Zoom.", nil
+		}
+
 		err := p.disconnect(userID)
 		if err != nil {
 			return "Failed to disconnect the user, err=" + err.Error(), nil
@@ -88,6 +127,10 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return "User disconnected from Zoom.", nil
 	case "help", "":
 		text := "###### Mattermost Zoom Plugin - Slash Command Help\n" + strings.Replace(helpText, "|", "`", -1)
+		if p.configuration.EnableOAuth && (!p.configuration.AccountLevelApp ||
+			p.configuration.AccountLevelApp && user.IsSystemAdmin()) {
+			text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
+		}
 		return text, nil
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil

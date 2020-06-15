@@ -55,10 +55,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	channelID := r.URL.Query().Get("channelID")
-	if channelID == "" {
-		http.Error(w, "channelID missing", http.StatusBadRequest)
-		return
-	}
+	justConnect := r.URL.Query().Get("justConnect")
 
 	conf, err := p.getOAuthConfig()
 	if err != nil {
@@ -66,7 +63,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
-	state := fmt.Sprintf("%v_%v", key, channelID)
+	state := fmt.Sprintf("%v_%v_%v", key, channelID, justConnect)
 
 	appErr := p.API.KVSet(key, []byte(state))
 	if appErr != nil {
@@ -121,6 +118,11 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	userID := stateComponents[1]
 	channelID := stateComponents[2]
+	if channelID == "" {
+		http.Error(w, "channelID missing", http.StatusBadRequest)
+		return
+	}
+	justConnect := stateComponents[3] == "true"
 
 	appErr = p.API.KVDelete(state)
 	if appErr != nil {
@@ -138,31 +140,41 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	zoomUser, err := p.getZoomUserWithToken(tok)
+	if p.configuration.AccountLevelApp {
+		err := p.setSuperUserToken(tok)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		zoomUser, err := p.getZoomUserWithToken(tok)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	zoomUserInfo := &ZoomUserInfo{
-		ZoomEmail:  zoomUser.Email,
-		ZoomID:     zoomUser.ID,
-		UserID:     userID,
-		OAuthToken: tok,
-	}
+		zoomUserInfo := &ZoomUserInfo{
+			ZoomEmail:  zoomUser.Email,
+			ZoomID:     zoomUser.ID,
+			UserID:     userID,
+			OAuthToken: tok,
+		}
 
-	if err := p.storeZoomUserInfo(zoomUserInfo); err != nil {
-		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
-		return
-	}
+		if err := p.storeZoomUserInfo(zoomUserInfo); err != nil {
+			http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
+			return
+		}
 
-	user, _ := p.API.GetUser(userID)
+		user, _ := p.API.GetUser(userID)
 
-	_, appErr = p.postMeeting(user, zoomUser.Pmi, channelID, "")
-	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
-		return
+		if !justConnect {
+			_, appErr = p.postMeeting(user, zoomUser.Pmi, channelID, "")
+			if appErr != nil {
+				http.Error(w, appErr.Error(), appErr.StatusCode)
+				return
+			}
+		}
 	}
 
 	html := `
@@ -179,6 +191,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 </html>
 `
 
+	if justConnect {
+		p.postEphemeral(userID, channelID, "Successfully connected to Zoom")
+	}
 	w.Header().Set("Content-Type", "text/html")
 	if _, err := w.Write([]byte(html)); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
@@ -378,7 +393,14 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
-		p.postConnect(req.ChannelID, userID)
+		if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+			p.postConnect(req.ChannelID, userID)
+			return
+		}
+
+		includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, user.Email)
+		p.postEphemeral(user.Id, req.ChannelID, includeEmailInErr)
+
 		return
 	}
 
@@ -443,12 +465,22 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
 	oauthMsg := fmt.Sprintf(
 		zoomOAuthMessage,
-		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+		*p.API.GetConfig().ServiceSettings.SiteURL, channelID, "")
 
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channelID,
 		Message:   oauthMsg,
+	}
+
+	return p.API.SendEphemeralPost(userID, post)
+}
+
+func (p *Plugin) postEphemeral(userID, channelID, message string) *model.Post {
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channelID,
+		Message:   message,
 	}
 
 	return p.API.SendEphemeralPost(userID, post)

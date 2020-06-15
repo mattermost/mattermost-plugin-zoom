@@ -41,6 +41,13 @@
                 "default": false
             },
             {
+                "key": "AccountLevelApp",
+                "display_name": "OAuth by Account Level App (Beta)",
+                "type": "bool",
+                "help_text": "When true, only an account administrator has to log in. The rest of the users will use their e-mail to log in.",
+                "default": false
+            },
+            {
                 "key": "OAuthClientID",
                 "display_name": "Zoom OAuth Client ID",
                 "type": "text",

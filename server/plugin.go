@@ -29,13 +29,14 @@ const (
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
-	zoomDefaultURL       = "https://zoom.us"
-	zoomDefaultAPIURL    = "https://api.zoom.com/v2"
-	zoomTokenKey         = "zoomtoken_"
-	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
+	zoomDefaultURL        = "https://zoom.us"
+	zoomDefaultAPIURL     = "https://api.zoom.com/v2"
+	zoomTokenKey          = "zoomtoken_"
+	zoomSuperUserTokenKey = "zoomSuperUserToken"
+	zoomTokenKeyByZoomID  = "zoomtokenbyzoomid_"
 
-	zoomStateLength   = 3
-	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+	zoomStateLength   = 4
+	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s&justConnect=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
@@ -219,6 +220,47 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 	return &userInfo, nil
 }
 
+func (p *Plugin) getSuperUserToken() (*oauth2.Token, error) {
+	var token oauth2.Token
+	rawToken, appErr := p.API.KVGet(zoomSuperUserTokenKey)
+	if appErr != nil {
+		return nil, appErr
+	}
+	if rawToken == nil {
+		return nil, nil
+	}
+
+	err := json.Unmarshal(rawToken, &token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+func (p *Plugin) setSuperUserToken(token *oauth2.Token) error {
+	rawToken, err := json.Marshal(token)
+	if err != nil {
+		return err
+	}
+
+	appErr := p.API.KVSet(zoomSuperUserTokenKey, rawToken)
+	if appErr != nil {
+		return appErr
+	}
+
+	return nil
+}
+
+func (p *Plugin) removeSuperUserToken() error {
+	appErr := p.API.KVDelete(zoomSuperUserTokenKey)
+	if appErr != nil {
+		return appErr
+	}
+
+	return nil
+}
+
 func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {
 	var zoomUser *zoom.User
 	var clientErr *zoom.ClientError
@@ -226,11 +268,11 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 	config := p.getConfiguration()
 
 	// use OAuth
-	if config.EnableOAuth {
+	if config.EnableOAuth && !config.AccountLevelApp {
 		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthMessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+			*p.API.GetConfig().ServiceSettings.SiteURL, channelID, "")
 
 		if apiErr != nil || zoomUserInfo == nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
@@ -238,6 +280,20 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 		zoomUser, err = p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
 		if err != nil || zoomUser == nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
+		}
+	} else if config.EnableOAuth && config.AccountLevelApp {
+		// use personal credentials
+		token, err := p.getSuperUserToken()
+		if err != nil {
+			return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: err}
+		}
+		if token == nil {
+			return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: err}
+		}
+		zoomUser, err = p.getZoomUserWithSuperUserToken(userEmail, token)
+		if err != nil {
+			includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, userEmail)
+			return nil, &AuthError{Message: includeEmailInErr, Err: err}
 		}
 	} else if config.EnableLegacyAuth {
 		// use personal credentials
@@ -289,6 +345,47 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	}
 
 	url := fmt.Sprintf("%v/users/me", apiURL)
+	res, err := client.Get(url)
+	if err != nil || res == nil {
+		return nil, errors.New("error fetching zoom user, err=" + err.Error())
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("error fetching zoom user")
+	}
+
+	buf := new(bytes.Buffer)
+
+	if _, err = buf.ReadFrom(res.Body); err != nil {
+		return nil, errors.New("error reading response body for zoom user")
+	}
+
+	var zoomUser zoom.User
+
+	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
+		return nil, errors.New("error unmarshalling zoom user")
+	}
+
+	return &zoomUser, nil
+}
+
+func (p *Plugin) getZoomUserWithSuperUserToken(email string, token *oauth2.Token) (*zoom.User, error) {
+	config := p.getConfiguration()
+	ctx := context.Background()
+
+	conf, err := p.getOAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	client := conf.Client(ctx, token)
+	apiURL := config.ZoomAPIURL
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
+	}
+
+	url := fmt.Sprintf("%v/users/%s", apiURL, email)
 	res, err := client.Get(url)
 	if err != nil || res == nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
