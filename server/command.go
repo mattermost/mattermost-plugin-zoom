@@ -75,9 +75,14 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		meetingID := zoomUser.Pmi
 
-		_, appErr = p.postMeeting(user, meetingID, args.ChannelId, "")
+		var createdPost *model.Post
+		createdPost, appErr = p.postMeeting(user, meetingID, args.ChannelId, "")
 		if appErr != nil {
 			return "Failed to post message. Please try again.", nil
+		}
+
+		if appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id), meetingPostIDTTL); appErr != nil {
+			p.API.LogDebug("failed to store post id", "err", appErr)
 		}
 		return "", nil
 	case "disconnect":

@@ -187,18 +187,21 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyWebhookSecret(r) {
+		p.API.LogWarn("Could not verify webhook secreet")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
 
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		res := fmt.Sprintf("Expected Content-Type 'application/json' for webhook request, received '%s'.", r.Header.Get("Content-Type"))
+		p.API.LogWarn(res)
 		http.Error(w, res, http.StatusBadRequest)
 		return
 	}
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		p.API.LogWarn("Cannot read body from Webhook")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -230,11 +233,13 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	key := fmt.Sprintf("%v%v", postMeetingKey, webhook.Payload.Object.ID)
 	b, appErr := p.API.KVGet(key)
 	if appErr != nil {
+		p.API.LogDebug("Could not get meeting post from KVStore", "err", appErr.Error())
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	if b == nil {
+		p.API.LogWarn("Stored meeting not found")
 		http.Error(w, "Stored meeting not found", http.StatusNotFound)
 		return
 	}
@@ -242,6 +247,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	postID := string(b)
 	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
+		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
@@ -276,6 +282,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 
 	_, appErr = p.API.UpdatePost(post)
 	if appErr != nil {
+		p.API.LogWarn("Could not update the post", "err", appErr)
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
@@ -390,7 +397,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id)); appErr != nil {
+	if appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id), meetingPostIDTTL); appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}

@@ -37,6 +37,8 @@ const (
 	zoomStateLength   = 3
 	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
+
+	meetingPostIDTTL = 60 * 60 * 24 // One day
 )
 
 type Plugin struct {
