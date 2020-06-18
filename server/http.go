@@ -159,10 +159,14 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	user, _ := p.API.GetUser(userID)
 
-	_, appErr = p.postMeeting(user, zoomUser.Pmi, channelID, "")
+	createdPost, appErr := p.postMeeting(user, zoomUser.Pmi, channelID, "")
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
+	}
+
+	if appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, zoomUser.Pmi), []byte(createdPost.Id), meetingPostIDTTL); appErr != nil {
+		p.API.LogDebug("failed to store post id", "err", appErr)
 	}
 
 	html := `
