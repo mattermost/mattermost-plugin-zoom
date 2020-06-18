@@ -8,8 +8,8 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const helpText = `* |/zoom start| - Start a zoom meeting
-* |/zoom disconnect| - Disconnect from zoom`
+const helpText = `* |/zoom start| - Start a zoom meeting`
+const oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
 
 func getCommand() *model.Command {
 	return &model.Command{
@@ -17,7 +17,7 @@ func getCommand() *model.Command {
 		DisplayName:      "Zoom",
 		Description:      "Integration with Zoom.",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start, disconnect",
+		AutoCompleteDesc: "Available commands: start, help",
 		AutoCompleteHint: "[command]",
 	}
 }
@@ -86,6 +86,9 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		}
 		return "", nil
 	case "disconnect":
+		if p.configuration.EnableLegacyAuth {
+			return fmt.Sprintf("Unknown action %v", action), nil
+		}
 		err := p.disconnect(userID)
 		if err != nil {
 			return "Failed to disconnect the user, err=" + err.Error(), nil
@@ -93,6 +96,9 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return "User disconnected from Zoom.", nil
 	case "help", "":
 		text := "###### Mattermost Zoom Plugin - Slash Command Help\n" + strings.Replace(helpText, "|", "`", -1)
+		if p.configuration.EnableOAuth {
+			text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
+		}
 		return text, nil
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
