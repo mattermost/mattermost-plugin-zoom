@@ -311,7 +311,7 @@ type startMeetingRequest struct {
 }
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
-	meetingURL := p.getMeetingURL(meetingID)
+	meetingURL := p.getMeetingURL(meetingID, creator.Id)
 	if topic == "" {
 		topic = defaultMeetingTopic
 	}
@@ -406,7 +406,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meetingURL := p.getMeetingURL(meetingID)
+	meetingURL := p.getMeetingURL(meetingID, userID)
 
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
@@ -414,10 +414,20 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) getMeetingURL(meetingID int) string {
-	meeting, err := p.zoomClient.GetMeeting(meetingID)
-	if err == nil {
-		return meeting.JoinURL
+func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
+	if p.configuration.EnableLegacyAuth {
+		meeting, err := p.zoomClient.GetMeeting(meetingID)
+		if err == nil {
+			return meeting.JoinURL
+		}
+	}
+
+	if p.configuration.EnableOAuth {
+		meeting, err := p.GetMeetingOAuth(meetingID, userID)
+		if err == nil {
+			return meeting.JoinURL
+		}
+		fmt.Printf("error: %v", err)
 	}
 
 	config := p.getConfiguration()
@@ -430,7 +440,12 @@ func (p *Plugin) getMeetingURL(meetingID int) string {
 }
 
 func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string, creatorName string) *model.Post {
-	meetingURL := p.getMeetingURL(meetingID)
+	creator, _ := p.API.GetUserByUsername(creatorName)
+	creatorID := ""
+	if creator != nil {
+		creatorID = creator.Id
+	}
+	meetingURL := p.getMeetingURL(meetingID, creatorID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
