@@ -152,7 +152,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		OAuthToken: tok,
 	}
 
-	if err := p.storeZoomUserInfo(zoomUserInfo); err != nil {
+	err = p.storeZoomUserInfo(zoomUserInfo)
+	if err != nil {
 		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
 		return
 	}
