@@ -159,14 +159,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	user, _ := p.API.GetUser(userID)
 
-	createdPost, appErr := p.postMeeting(user, zoomUser.Pmi, channelID, "")
-	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
+	err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	if appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, zoomUser.Pmi), []byte(createdPost.Id), meetingPostIDTTL); appErr != nil {
-		p.API.LogDebug("failed to store post id", "err", appErr)
 	}
 
 	html := `
@@ -310,7 +306,7 @@ type startMeetingRequest struct {
 	MeetingID int    `json:"meeting_id"`
 }
 
-func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) (*model.Post, *model.AppError) {
+func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) error {
 	meetingURL := p.getMeetingURL(meetingID, creator.Id)
 	if topic == "" {
 		topic = defaultMeetingTopic
@@ -338,7 +334,17 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		},
 	}
 
-	return p.API.CreatePost(post)
+	createdPost, appErr := p.API.CreatePost(post)
+	if appErr != nil {
+		return appErr
+	}
+
+	appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id), meetingPostIDTTL)
+	if appErr != nil {
+		p.API.LogDebug("failed to store post id", "err", appErr)
+	}
+
+	return nil
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
@@ -395,14 +401,9 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	meetingID := zoomUser.Pmi
 
-	createdPost, appErr := p.postMeeting(user, meetingID, req.ChannelID, req.Topic)
-	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
-		return
-	}
-
-	if appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id), meetingPostIDTTL); appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
+	err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -427,7 +428,6 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 		if err == nil {
 			return meeting.JoinURL
 		}
-		fmt.Printf("error: %v", err)
 	}
 
 	config := p.getConfiguration()
