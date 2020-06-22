@@ -327,7 +327,7 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 
 	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
 	if apiErr != nil {
-		return nil, err
+		return nil, apiErr
 	}
 
 	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
@@ -338,8 +338,11 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 
 	url := fmt.Sprintf("%v/meetings/%v", apiURL, meetingID)
 	res, err := client.Get(url)
-	if err != nil || res == nil {
+	if err != nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
+	}
+	if res == nil {
+		return nil, errors.New("error fetching zoom user, empty result returned")
 	}
 	defer res.Body.Close()
 
