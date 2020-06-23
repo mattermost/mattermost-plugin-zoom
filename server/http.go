@@ -378,7 +378,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
-		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
+		p.postConnect(req.ChannelID, userID)
 		return
 	}
 
@@ -440,11 +440,15 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 	return p.API.SendEphemeralPost(userID, post)
 }
 
-func (p *Plugin) postAuthenticationMessage(channelID string, userID string, message string) *model.Post {
+func (p *Plugin) postConnect(channelID string, userID string) *model.Post {
+	oauthMsg := fmt.Sprintf(
+		zoomOAuthMessage,
+		*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channelID,
-		Message:   message,
+		Message:   oauthMsg,
 	}
 
 	return p.API.SendEphemeralPost(userID, post)
