@@ -58,8 +58,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 	switch action {
 	case "connect":
-		if p.configuration.EnableLegacyAuth ||
-			(p.configuration.EnableOAuth && p.configuration.AccountLevelApp && !user.IsSystemAdmin()) {
+		if !p.canConnect(user) {
 			return fmt.Sprintf("Unknown action %v", action), nil
 		}
 
@@ -68,7 +67,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			*p.API.GetConfig().ServiceSettings.SiteURL, args.ChannelId, trueString)
 
 		if p.configuration.AccountLevelApp {
-			token, err := p.getSuperUserToken()
+			token, err := p.getSuperuserToken()
 			if err == nil && token != nil {
 				return alreadyConnectedString, nil
 			}
@@ -109,8 +108,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		}
 		return "", nil
 	case "disconnect":
-		if p.configuration.EnableLegacyAuth ||
-			(p.configuration.EnableOAuth && p.configuration.AccountLevelApp && !user.IsSystemAdmin()) {
+		if !p.canConnect(user) {
 			return fmt.Sprintf("Unknown action %v", action), nil
 		}
 
@@ -129,14 +127,19 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return "User disconnected from Zoom.", nil
 	case "help", "":
 		text := "###### Mattermost Zoom Plugin - Slash Command Help\n" + strings.Replace(helpText, "|", "`", -1)
-		if p.configuration.EnableOAuth && (!p.configuration.AccountLevelApp ||
-			p.configuration.AccountLevelApp && user.IsSystemAdmin()) {
+		if p.canConnect(user) {
 			text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
 		}
 		return text, nil
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
+}
+
+func (p *Plugin) canConnect(user *model.User) bool {
+	return p.configuration.EnableOAuth && // we are not on JWT
+		(!p.configuration.AccountLevelApp || // we are on user managed app
+			user.IsSystemAdmin()) // admins can connect Account level apps
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {

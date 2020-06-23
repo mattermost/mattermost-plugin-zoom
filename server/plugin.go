@@ -222,7 +222,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 	return &userInfo, nil
 }
 
-func (p *Plugin) getSuperUserToken() (*oauth2.Token, error) {
+func (p *Plugin) getSuperuserToken() (*oauth2.Token, error) {
 	var token oauth2.Token
 	rawToken, appErr := p.API.KVGet(zoomSuperUserTokenKey)
 	if appErr != nil {
@@ -266,16 +266,17 @@ func (p *Plugin) removeSuperUserToken() error {
 func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {
 	var zoomUser *zoom.User
 	var clientErr *zoom.ClientError
-	var err error
 	config := p.getConfiguration()
 
 	// use OAuth
 	switch {
 	case config.EnableOAuth && !config.AccountLevelApp:
+		siteURL, err := p.getSiteURL()
+		if err != nil {
+			return nil, &AuthError{Message: "Cannot get site URL.", Err: err}
+		}
 		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
-		oauthMsg := fmt.Sprintf(
-			zoomOAuthMessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, channelID, "")
+		oauthMsg := fmt.Sprintf(zoomOAuthMessage, siteURL, channelID, "")
 
 		if apiErr != nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
@@ -290,7 +291,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 		}
 	case config.EnableOAuth && config.AccountLevelApp:
 		// use personal credentials
-		token, err := p.getSuperUserToken()
+		token, err := p.getSuperuserToken()
 		if err != nil {
 			return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: err}
 		}
