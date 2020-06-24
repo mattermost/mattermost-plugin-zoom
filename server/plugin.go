@@ -85,6 +85,10 @@ func (p *Plugin) OnActivate() error {
 		return errors.WithMessage(err, "OnActivate: failed to register command")
 	}
 
+	if err = p.API.RegisterMobileTrigger(getTrigger()); err != nil {
+		return errors.WithMessage(err, "OnActivate: failed to register mobile trigger")
+	}
+
 	profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile.png"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't read profile image")
@@ -97,6 +101,17 @@ func (p *Plugin) OnActivate() error {
 	p.zoomClient = zoom.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
 
 	return nil
+}
+
+func getTrigger() *model.MobileTrigger {
+	return &model.MobileTrigger{
+		Trigger:  "start",
+		Location: "CHANNEL_HEADER",
+		// Extra: &model.MobileTriggerChannelHeader{
+		// 	DefaultMessage: "Start Zoom call",
+		// },
+		Extra: "Start Zoom call",
+	}
 }
 
 func (p *Plugin) getSiteURL() (string, error) {

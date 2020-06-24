@@ -2,6 +2,8 @@ module github.com/mattermost/mattermost-plugin-zoom
 
 go 1.12
 
+replace github.com/mattermost/mattermost-server/v5 v5.23.1 => github.com/larkox/mattermost-server/v5 v5.3.2-0.20200624180848-4b3fbf0c1ce1
+
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/mattermost/mattermost-server/v5 v5.23.1

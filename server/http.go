@@ -36,6 +36,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.handleWebhook(w, r)
 	case "/api/v1/meetings":
 		p.handleStartMeeting(w, r)
+	case "/mobile/start":
+		p.handleMobileStart(w, r)
 	case "/oauth2/connect":
 		p.connectUserToZoom(w, r)
 	case "/oauth2/complete":
@@ -398,6 +400,79 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	meetingURL := p.getMeetingURL(meetingID)
 
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+	if err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
+}
+
+func (p *Plugin) handleMobileStart(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-Id")
+	if userID == "" {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req startMeetingRequest
+	var err error
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	if _, appErr = p.API.GetChannelMember(req.ChannelID, userID); appErr != nil {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if r.URL.Query().Get("force") == "" {
+		recentMeeting, recentMeetindID, creatorName, cpmErr := p.checkPreviousMessages(req.ChannelID)
+		if cpmErr != nil {
+			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
+			return
+		}
+
+		if recentMeeting {
+			_, err = w.Write([]byte(`{"action": "RESET_TO_CHANNEL", "meeting_url": ""}`))
+			if err != nil {
+				p.API.LogWarn("failed to write response", "error", err.Error())
+			}
+			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID, creatorName)
+			return
+		}
+	}
+
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, req.ChannelID)
+	if authErr != nil {
+		_, err = w.Write([]byte(`{"action": "RESET_TO_CHANNEL", "meeting_url": ""}`))
+		if err != nil {
+			p.API.LogWarn("failed to write response", "error", err.Error())
+		}
+		p.postConnect(req.ChannelID, userID)
+		return
+	}
+
+	meetingID := zoomUser.Pmi
+
+	createdPost, appErr := p.postMeeting(user, meetingID, req.ChannelID, req.Topic)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	if appErr = p.API.KVSet(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id)); appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	meetingURL := p.getMeetingURL(meetingID)
+
+	_, err = w.Write([]byte(fmt.Sprintf(`{"action": "RESET_TO_CHANNEL", "meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
