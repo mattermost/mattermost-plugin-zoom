@@ -79,7 +79,6 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		if err != nil {
 			return "Failed to post message. Please try again.", nil
 		}
-
 		return "", nil
 	case "disconnect":
 		if p.configuration.EnableLegacyAuth {

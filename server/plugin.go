@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -331,6 +332,7 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 	}
 
 	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
+	client.Timeout = 10 * time.Second
 	apiURL := config.ZoomAPIURL
 	if apiURL == "" {
 		apiURL = zoomDefaultAPIURL
@@ -338,6 +340,7 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 
 	url := fmt.Sprintf("%v/meetings/%v", apiURL, meetingID)
 	res, err := client.Get(url)
+
 	if err != nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
 	}
@@ -350,15 +353,14 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 		return nil, errors.New("error fetching zoom user")
 	}
 
-	buf := new(bytes.Buffer)
-
-	if _, err = buf.ReadFrom(res.Body); err != nil {
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
 		return nil, errors.New("error reading response body for zoom user")
 	}
 
 	var ret zoom.Meeting
 
-	if err := json.Unmarshal(buf.Bytes(), &ret); err != nil {
+	if err := json.Unmarshal(buf, &ret); err != nil {
 		return nil, errors.New("error unmarshalling zoom user")
 	}
 
