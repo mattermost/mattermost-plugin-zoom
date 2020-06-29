@@ -103,6 +103,7 @@ func TestPlugin(t *testing.T) {
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 
 			api.On("LogWarn", mock.AnythingOfType("string")).Return()
+			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
 
 			path, err := filepath.Abs("..")
 			require.Nil(t, err)
