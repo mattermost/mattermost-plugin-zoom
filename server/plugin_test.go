@@ -94,13 +94,16 @@ func TestPlugin(t *testing.T) {
 			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 			api.On("GetPostsSince", "thechannelid", mock.AnythingOfType("int64")).Return(&model.PostList{}, nil)
 
-			api.On("KVSet", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8")).Return(nil)
-			api.On("KVSet", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8")).Return(nil)
+			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
+			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
+
+			api.On("LogWarn", mock.AnythingOfType("string")).Return()
+			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
 
 			path, err := filepath.Abs("..")
 			require.Nil(t, err)
