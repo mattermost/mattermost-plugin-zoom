@@ -420,17 +420,17 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 	if p.configuration.EnableLegacyAuth {
 		meeting, err := p.zoomClient.GetMeeting(meetingID)
 		if err == nil {
-			p.API.LogDebug("failed to get meeting", "error", err.Error())
 			return meeting.JoinURL
 		}
+		p.API.LogDebug("failed to get meeting", "error", err.Error())
 	}
 
 	if p.configuration.EnableOAuth {
 		meeting, err := p.GetMeetingOAuth(meetingID, userID)
 		if err == nil {
-			p.API.LogDebug("failed to get meeting", "error", err.Error())
 			return meeting.JoinURL
 		}
+		p.API.LogDebug("failed to get meeting", "error", err.Error())
 	}
 
 	config := p.getConfiguration()
