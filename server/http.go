@@ -420,6 +420,7 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 	if p.configuration.EnableLegacyAuth {
 		meeting, err := p.zoomClient.GetMeeting(meetingID)
 		if err == nil {
+			p.API.LogDebug("failed to get meeting", "error", err.Error())
 			return meeting.JoinURL
 		}
 	}
@@ -427,6 +428,7 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 	if p.configuration.EnableOAuth {
 		meeting, err := p.GetMeetingOAuth(meetingID, userID)
 		if err == nil {
+			p.API.LogDebug("failed to get meeting", "error", err.Error())
 			return meeting.JoinURL
 		}
 	}
@@ -441,7 +443,10 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 }
 
 func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string, creatorName string) *model.Post {
-	creator, _ := p.API.GetUserByUsername(creatorName)
+	creator, err := p.API.GetUserByUsername(creatorName)
+	if err != nil {
+		p.API.LogDebug("error fetching user on postConfirm", "error", err.Error())
+	}
 	creatorID := ""
 	if creator != nil {
 		creatorID = creator.Id

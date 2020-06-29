@@ -319,7 +319,8 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 
 func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, error) {
 	config := p.getConfiguration()
-	ctx := context.Background()
+	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunct()
 
 	conf, err := p.getOAuthConfig()
 	if err != nil {
@@ -332,7 +333,6 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 	}
 
 	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
-	client.Timeout = 10 * time.Second
 	apiURL := config.ZoomAPIURL
 	if apiURL == "" {
 		apiURL = zoomDefaultAPIURL
