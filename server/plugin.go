@@ -242,7 +242,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 		if err != nil || zoomUser == nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
-	} else if config.EnableLegacyAuth {
+	} else {
 		// use personal credentials
 		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
 		if clientErr != nil {
