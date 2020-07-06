@@ -146,6 +146,25 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		user, appErr := p.API.GetUser(userID)
+		if appErr != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		zoomUser, err := p.getZoomUserWithSuperUserToken(user.Email, tok)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		if !justConnect {
+			err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 	} else {
 		zoomUser, err := p.getZoomUserWithToken(tok)
 
