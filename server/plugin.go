@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -40,6 +41,8 @@ const (
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 
 	trueString = "true"
+
+	meetingPostIDTTL = 60 * 60 * 24 // One day
 )
 
 type Plugin struct {
@@ -398,6 +401,7 @@ func (p *Plugin) getZoomUserWithSuperUserToken(email string, token *oauth2.Token
 	if err != nil || res == nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
 	}
+
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
@@ -417,6 +421,56 @@ func (p *Plugin) getZoomUserWithSuperUserToken(email string, token *oauth2.Token
 	}
 
 	return &zoomUser, nil
+}
+
+func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, error) {
+	config := p.getConfiguration()
+	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunct()
+
+	conf, err := p.getOAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
+	apiURL := config.ZoomAPIURL
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
+	}
+
+	url := fmt.Sprintf("%v/meetings/%v", apiURL, meetingID)
+	res, err := client.Get(url)
+
+	if err != nil {
+		return nil, errors.New("error fetching zoom user, err=" + err.Error())
+	}
+	if res == nil {
+		return nil, errors.New("error fetching zoom user, empty result returned")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("error fetching zoom user")
+	}
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("error reading response body for zoom user")
+	}
+
+	var ret zoom.Meeting
+
+	if err := json.Unmarshal(buf, &ret); err != nil {
+		return nil, errors.New("error unmarshalling zoom user")
+	}
+
+	return &ret, nil
 }
 
 func (p *Plugin) dm(userID string, message string) error {
