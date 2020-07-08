@@ -140,33 +140,27 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	var user *model.User
+	var zoomUser *zoom.User
 	if p.configuration.AccountLevelApp {
-		err := p.setSuperUserToken(tok)
+		err = p.setSuperUserToken(tok)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		user, appErr := p.API.GetUser(userID)
+		user, appErr = p.API.GetUser(userID)
 		if appErr != nil {
 			http.Error(w, appErr.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		zoomUser, err := p.getZoomUserWithSuperUserToken(user.Email, tok)
+		zoomUser, err = p.getZoomUserWithSuperUserToken(user.Email, tok)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-
-		if !justConnect {
-			err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
 	} else {
-		zoomUser, err := p.getZoomUserWithToken(tok)
+		zoomUser, err = p.getZoomUserWithToken(tok)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -185,14 +179,18 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		user, _ := p.API.GetUser(userID)
+		user, appErr = p.API.GetUser(userID)
+		if appErr != nil {
+			http.Error(w, "Unable to get user", http.StatusInternalServerError)
+			return
+		}
+	}
 
-		if !justConnect {
-			err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+	if !justConnect {
+		err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
