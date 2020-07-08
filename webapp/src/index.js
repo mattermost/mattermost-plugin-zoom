@@ -7,7 +7,7 @@ import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
 import {id as pluginId} from './manifest';
 
-import Icon from './components/icon.jsx';
+import Icon from './components/icon';
 import PostTypeZoom from './components/post_type_zoom';
 import {startMeeting} from './actions';
 import Client from './client';
