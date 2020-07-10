@@ -85,7 +85,11 @@ func (p *Plugin) OnActivate() error {
 		return errors.WithMessage(err, "OnActivate: failed to register command")
 	}
 
-	if err = p.API.RegisterMobileTrigger(getTrigger()); err != nil {
+	if err = p.API.RegisterPluginIntegration(p.getMobileChannelHeaderIntegration()); err != nil {
+		return errors.WithMessage(err, "OnActivate: failed to register mobile trigger")
+	}
+
+	if err = p.API.RegisterPluginIntegration(p.getWebappPostMenuIntegration()); err != nil {
 		return errors.WithMessage(err, "OnActivate: failed to register mobile trigger")
 	}
 
@@ -103,11 +107,26 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-func getTrigger() *model.MobileTrigger {
-	return &model.MobileTrigger{
-		Trigger:  "start",
-		Location: "CHANNEL_HEADER",
+func (p *Plugin) getMobileChannelHeaderIntegration() *model.PluginIntegration {
+	return &model.PluginIntegration{
+		PluginID:   manifest.ID,
+		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/mobile/start",
+		Location:   "CHANNEL_HEADER",
+		Scope:      []string{model.ScopeMobile},
 		// Extra: &model.MobileTriggerChannelHeader{
+		// 	DefaultMessage: "Start Zoom call",
+		// },
+		Extra: "Start Zoom call",
+	}
+}
+
+func (p *Plugin) getWebappPostMenuIntegration() *model.PluginIntegration {
+	return &model.PluginIntegration{
+		PluginID:   manifest.ID,
+		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/webapp/start",
+		Location:   "POST_ACTION",
+		Scope:      []string{model.ScopeWebApp},
+		// Extra: &model.PluginIntegrationPostAction{
 		// 	DefaultMessage: "Start Zoom call",
 		// },
 		Extra: "Start Zoom call",
