@@ -81,7 +81,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		}
 		return "", nil
 	case "disconnect":
-		if p.configuration.EnableLegacyAuth {
+		if !p.configuration.EnableOAuth {
 			return fmt.Sprintf("Unknown action %v", action), nil
 		}
 		err := p.disconnect(userID)
