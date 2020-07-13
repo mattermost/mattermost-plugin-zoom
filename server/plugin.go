@@ -307,7 +307,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 			includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, userEmail)
 			return nil, &AuthError{Message: includeEmailInErr, Err: err}
 		}
-	case config.EnableLegacyAuth:
+	case !config.EnableOAuth:
 		// use personal credentials
 		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
 		if clientErr != nil {

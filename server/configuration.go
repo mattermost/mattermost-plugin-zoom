@@ -25,7 +25,6 @@ import (
 type configuration struct {
 	ZoomURL           string
 	ZoomAPIURL        string
-	EnableLegacyAuth  bool
 	APIKey            string
 	APISecret         string
 	EnableOAuth       bool
@@ -46,12 +45,8 @@ func (c *configuration) Clone() *configuration {
 
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid() error {
-	if _, err := isValidAuthConfig(c); err != nil {
-		return err
-	}
-
 	switch {
-	case c.EnableLegacyAuth:
+	case !c.EnableOAuth:
 		switch {
 		case len(c.APIKey) == 0:
 			return errors.New("please configure APIKey")
@@ -130,29 +125,9 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
-	if _, err := isValidAuthConfig(configuration); err != nil {
-		if apiErr := p.API.DisablePlugin(manifest.ID); apiErr != nil {
-			return errors.Wrap(apiErr, "failed to disable plugin on invalid configuration change")
-		}
-
-		return errors.Wrap(err, "failed to validate authentication configuration")
-	}
 
 	p.setConfiguration(configuration)
 	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 
 	return nil
-}
-
-// function to validate authentication config
-func isValidAuthConfig(configuration *configuration) (bool, error) {
-	switch {
-	case configuration.EnableLegacyAuth && configuration.EnableOAuth:
-		return false, errors.New(
-			"only one authentication scheme (OAuth or Password) is allowed to be enabled at the same time")
-	case !configuration.EnableLegacyAuth && !configuration.EnableOAuth:
-		return false, errors.New("please enable authentication")
-	default:
-		return true, nil
-	}
 }

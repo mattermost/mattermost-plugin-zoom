@@ -448,16 +448,14 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
-	if p.configuration.EnableLegacyAuth {
-		meeting, err := p.zoomClient.GetMeeting(meetingID)
+	if p.configuration.EnableOAuth {
+		meeting, err := p.GetMeetingOAuth(meetingID, userID)
 		if err == nil {
 			return meeting.JoinURL
 		}
 		p.API.LogDebug("failed to get meeting", "error", err.Error())
-	}
-
-	if p.configuration.EnableOAuth {
-		meeting, err := p.GetMeetingOAuth(meetingID, userID)
+	} else {
+		meeting, err := p.zoomClient.GetMeeting(meetingID)
 		if err == nil {
 			return meeting.JoinURL
 		}
