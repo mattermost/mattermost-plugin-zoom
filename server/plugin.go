@@ -311,7 +311,7 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	var zoomUser zoom.User
 
 	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
-		return nil, errors.New("error unmarshalling zoom user")
+		return nil, errors.New("error unmarshaling zoom user")
 	}
 
 	return &zoomUser, nil
@@ -361,7 +361,66 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 	var ret zoom.Meeting
 
 	if err := json.Unmarshal(buf, &ret); err != nil {
-		return nil, errors.New("error unmarshalling zoom user")
+		return nil, errors.New("error unmarshaling zoom user")
+	}
+
+	return &ret, nil
+}
+
+func (p *Plugin) StartMeetingOAuth(userID string) (*zoom.Meeting, error) {
+	config := p.getConfiguration()
+	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunct()
+
+	conf, err := p.getOAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
+	apiURL := config.ZoomAPIURL
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
+	}
+
+	url := fmt.Sprintf("%v/users/%v/meetings", apiURL, zoomUserInfo.ZoomEmail)
+
+	meetingRequest := zoom.StartMeetingRequest{
+		Topic: "Meeting created on Mattermost",
+		Type:  1,
+	}
+	req, err := json.Marshal(meetingRequest)
+	if err != nil {
+		return nil, errors.New("error marshaling request, err=" + err.Error())
+	}
+	res, err := client.Post(url, "application/json", bytes.NewReader(req))
+
+	if err != nil {
+		return nil, errors.New("error creating meeting, err=" + err.Error())
+	}
+	if res == nil {
+		return nil, errors.New("error creating meeting, empty result returned")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusCreated {
+		return nil, errors.New("error creating meeting")
+	}
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("error reading response body for meeting")
+	}
+
+	var ret zoom.Meeting
+
+	if err := json.Unmarshal(buf, &ret); err != nil {
+		return nil, errors.New("error unmarshaling meeting")
 	}
 
 	return &ret, nil

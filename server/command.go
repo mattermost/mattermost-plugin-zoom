@@ -6,6 +6,8 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 const helpText = `* |/zoom start| - Start a zoom meeting`
@@ -73,7 +75,25 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return authErr.Message, authErr.Err
 		}
 
-		meetingID := zoomUser.Pmi
+		var meeting *zoom.Meeting
+		errorMessage := "Failed to create the meeting"
+		if p.configuration.EnableOAuth {
+			var err error
+			meeting, err = p.StartMeetingOAuth(userID)
+			if err != nil {
+				p.API.LogError("failed to create meeting", "error", err.Error())
+				return errorMessage, nil
+			}
+		} else {
+			var clientErr *zoom.ClientError
+			meeting, clientErr = p.zoomClient.StartMeeting(zoomUser.Email)
+			if clientErr != nil {
+				p.API.LogError("failed to create meeting", "error", clientErr.Error())
+				return errorMessage, nil
+			}
+		}
+
+		meetingID := meeting.ID
 
 		err := p.postMeeting(user, meetingID, args.ChannelId, "")
 		if err != nil {

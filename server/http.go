@@ -400,7 +400,25 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meetingID := zoomUser.Pmi
+	var meeting *zoom.Meeting
+	if p.configuration.EnableOAuth {
+		meeting, err = p.StartMeetingOAuth(userID)
+		if err != nil {
+			p.API.LogError("failed to create meeting", "error", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		var clientErr *zoom.ClientError
+		meeting, clientErr = p.zoomClient.StartMeeting(zoomUser.Email)
+		if clientErr != nil {
+			p.API.LogError("failed to create meeting", "error", clientErr.Error())
+			http.Error(w, clientErr.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	meetingID := meeting.ID
 
 	err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic)
 	if err != nil {
