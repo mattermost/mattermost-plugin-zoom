@@ -140,6 +140,5 @@ func (c *Client) StartMeeting(userEmail string) (*Meeting, *ClientError) {
 		Type:  1,
 	}
 	err := c.request(http.MethodPost, fmt.Sprintf("/users/%s/meetings", userEmail), meetingRequest, &ret)
-	fmt.Printf("DEBUG: %v\n", ret)
 	return &ret, err
 }

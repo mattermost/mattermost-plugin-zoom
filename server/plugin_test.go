@@ -27,11 +27,23 @@ func TestPlugin(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/users/theuseremail" {
 			user := &zoom.User{
-				ID:  "thezoomuserid",
-				Pmi: 123,
+				ID:    "thezoomuserid",
+				Email: "theuseremail",
+				Pmi:   123,
 			}
 
 			str, _ := json.Marshal(user)
+
+			if _, err := w.Write(str); err != nil {
+				require.NoError(t, err)
+			}
+		}
+		if r.URL.Path == "/users/theuseremail/meetings" {
+			meeting := &zoom.Meeting{
+				ID: 234,
+			}
+
+			str, _ := json.Marshal(meeting)
 
 			if _, err := w.Write(str); err != nil {
 				require.NoError(t, err)
