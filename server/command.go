@@ -64,6 +64,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		}
 
 		if recentMeeting {
+			p.trackMeetingDuplication(args.UserId)
 			p.postConfirm(recentMeetingID, args.ChannelId, "", userID, creatorName)
 			return "", nil
 		}
@@ -79,6 +80,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		if err != nil {
 			return "Failed to post message. Please try again.", nil
 		}
+		p.trackMeetingStart(args.UserId, telemetryStartSourceCommand)
 		return "", nil
 	case "disconnect":
 		if !p.configuration.EnableOAuth {
@@ -88,6 +90,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		if err != nil {
 			return "Failed to disconnect the user, err=" + err.Error(), nil
 		}
+		p.trackDisconnect(userID)
 		return "User disconnected from Zoom.", nil
 	case "help", "":
 		text := "###### Mattermost Zoom Plugin - Slash Command Help\n" + strings.Replace(helpText, "|", "`", -1)

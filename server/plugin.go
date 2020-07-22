@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
@@ -56,6 +57,9 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+
+	telemetryClient telemetry.Client
+	tracker         telemetry.Tracker
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
@@ -99,6 +103,10 @@ func (p *Plugin) OnActivate() error {
 
 	p.zoomClient = zoom.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
 
+	p.telemetryClient, err = telemetry.NewRudderClient()
+	if err != nil {
+		p.API.LogWarn("telemetry client not started", "error", err.Error())
+	}
 	return nil
 }
 

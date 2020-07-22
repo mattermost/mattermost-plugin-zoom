@@ -6,6 +6,8 @@ package main
 import (
 	"reflect"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/bot/logger"
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
@@ -119,6 +121,7 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
 	var configuration = new(configuration)
+	prevConfigEnableOAuth := p.configuration.EnableOAuth
 
 	// Load the public configuration fields from the Mattermost server configuration.
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
@@ -128,5 +131,21 @@ func (p *Plugin) OnConfigurationChange() error {
 	p.setConfiguration(configuration)
 	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 
+	enableDiagnostics := false
+	if config := p.API.GetConfig(); config != nil {
+		if configValue := config.LogSettings.EnableDiagnostics; configValue != nil {
+			enableDiagnostics = *configValue
+		}
+	}
+	logger := logger.NewLogger(logger.Config{}, p.API, nil, "")
+	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.ID, manifest.Version, "zoom", enableDiagnostics, logger)
+
+	if prevConfigEnableOAuth != p.configuration.EnableOAuth {
+		method := telemetryOauthModeJWT
+		if p.configuration.EnableOAuth {
+			method = telemetryOauthModeOauth
+		}
+		p.trackOAuthModeChange(method)
+	}
 	return nil
 }

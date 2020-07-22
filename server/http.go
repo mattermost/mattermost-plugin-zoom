@@ -160,6 +160,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	user, _ := p.API.GetUser(userID)
 
+	p.trackConnect(userID)
+
 	err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -386,6 +388,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
 			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID, creatorName)
+			p.trackMeetingDuplication(userID)
 			return
 		}
 	}
@@ -406,6 +409,11 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	p.trackMeetingStart(userID, telemetryStartSourceWebapp)
+	if r.URL.Query().Get("force") != "" {
+		p.trackMeetingForced(userID)
 	}
 
 	meetingURL := p.getMeetingURL(meetingID, userID)
