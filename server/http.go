@@ -24,6 +24,13 @@ import (
 
 const defaultMeetingTopic = "Zoom Meeting"
 
+type startMeetingRequest struct {
+	ChannelID string `json:"channel_id"`
+	Personal  bool   `json:"personal"`
+	Topic     string `json:"topic"`
+	MeetingID int    `json:"meeting_id"`
+}
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 	if err := config.IsValid(); err != nil {
@@ -62,7 +69,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 
 	conf, err := p.getOAuthConfig()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("could not get OAuth config: %s", err.Error()), http.StatusInternalServerError)
 	}
 
 	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
@@ -84,10 +91,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ctx := context.Background()
 	conf, err := p.getOAuthConfig()
 	if err != nil {
-		http.Error(w, "error in oauth config", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("could not get OAuth config: %s", err.Error()), http.StatusInternalServerError)
 	}
 
 	code := r.URL.Query().Get("code")
@@ -103,11 +109,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		log.Printf("stateComponents: %v, state: %v", stateComponents, state)
 		http.Error(w, "invalid state", http.StatusBadRequest)
 	}
-	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
 
-	var storedState []byte
-	var appErr *model.AppError
-	storedState, appErr = p.API.KVGet(key)
+	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
+	storedState, appErr := p.API.KVGet(key)
 	if appErr != nil {
 		fmt.Println(appErr)
 		http.Error(w, "missing stored state", http.StatusBadRequest)
@@ -122,8 +126,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	userID := stateComponents[1]
 	channelID := stateComponents[2]
 
-	appErr = p.API.KVDelete(state)
-	if appErr != nil {
+	if appErr = p.API.KVDelete(state); appErr != nil {
 		p.API.LogWarn("failed to delete state from db", "error", appErr.Error())
 	}
 
@@ -132,14 +135,13 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tok, err := conf.Exchange(ctx, code)
+	tok, err := conf.Exchange(context.Background(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	zoomUser, err := p.getZoomUserWithToken(tok)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -152,16 +154,13 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		OAuthToken: tok,
 	}
 
-	err = p.storeZoomUserInfo(zoomUserInfo)
-	if err != nil {
+	if err = p.storeZoomUserInfo(zoomUserInfo); err != nil {
 		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
 		return
 	}
 
 	user, _ := p.API.GetUser(userID)
-
-	err = p.postMeeting(user, zoomUser.Pmi, channelID, "")
-	if err != nil {
+	if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -208,8 +207,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var webhook zoom.Webhook
-	err = json.Unmarshal(b, &webhook)
-	if err != nil {
+	if err = json.Unmarshal(b, &webhook); err != nil {
 		p.API.LogError("Error unmarshaling webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -221,8 +219,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var meetingWebhook zoom.MeetingWebhook
-	err = json.Unmarshal(b, &meetingWebhook)
-	if err != nil {
+	if err = json.Unmarshal(b, &meetingWebhook); err != nil {
 		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -288,8 +285,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	appErr = p.API.KVDelete(key)
-	if appErr != nil {
+	if appErr = p.API.KVDelete(key); appErr != nil {
 		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
 		return
 	}
@@ -298,13 +294,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
-}
-
-type startMeetingRequest struct {
-	ChannelID string `json:"channel_id"`
-	Personal  bool   `json:"personal"`
-	Topic     string `json:"topic"`
-	MeetingID int    `json:"meeting_id"`
 }
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) error {
@@ -401,15 +390,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	meetingID := zoomUser.Pmi
-
-	err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic)
-	if err != nil {
+	if err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	meetingURL := p.getMeetingURL(meetingID, userID)
-
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
@@ -417,7 +403,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
-	if p.configuration.EnableOAuth {
+	if p.getConfiguration().EnableOAuth {
 		meeting, err := p.GetMeetingOAuth(meetingID, userID)
 		if err == nil {
 			return meeting.JoinURL
@@ -431,13 +417,7 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 		p.API.LogDebug("failed to get meeting", "error", err.Error())
 	}
 
-	config := p.getConfiguration()
-	zoomURL := strings.TrimSpace(config.ZoomURL)
-	if len(zoomURL) == 0 {
-		zoomURL = "https://zoom.us"
-	}
-
-	return fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
+	return fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
 }
 
 func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string, creatorName string) *model.Post {
@@ -527,7 +507,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = p.dm(info.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
+	err = p.sendDirectMessage(info.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
 	if err != nil {
 		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
 	}

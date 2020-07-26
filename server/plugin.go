@@ -30,8 +30,6 @@ const (
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
-	zoomDefaultURL       = "https://zoom.us"
-	zoomDefaultAPIURL    = "https://api.zoom.com/v2"
 	zoomTokenKey         = "zoomtoken_"
 	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
 
@@ -113,14 +111,10 @@ func (p *Plugin) getSiteURL() (string, error) {
 
 func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 	config := p.getConfiguration()
-
 	clientID := config.OAuthClientID
 	clientSecret := config.OAuthClientSecret
-	zoomURL := config.ZoomURL
-	if zoomURL == "" {
-		zoomURL = zoomDefaultURL
-	}
 
+	zoomURL := p.getZoomURL()
 	authURL := fmt.Sprintf("%v/oauth/authorize", zoomURL)
 	tokenURL := fmt.Sprintf("%v/oauth/token", zoomURL)
 
@@ -223,31 +217,33 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 }
 
 func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {
-	var zoomUser *zoom.User
-	var clientErr *zoom.ClientError
-	var err error
 	config := p.getConfiguration()
 
-	// use OAuth
+	// use OAuth if available
 	if config.EnableOAuth {
 		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthMessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
+			*p.API.GetConfig().ServiceSettings.SiteURL, channelID,
+		)
 
-		if apiErr != nil || zoomUserInfo == nil {
+		if apiErr != nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
-		zoomUser, err = p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
-		if err != nil || zoomUser == nil {
+
+		zoomUser, err := p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
+		if err != nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
-	} else {
-		// use personal credentials
-		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
-		if clientErr != nil {
-			includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, userEmail)
-			return nil, &AuthError{Message: includeEmailInErr, Err: clientErr}
+		return zoomUser, nil
+	}
+
+	// use personal credentials if OAuth is not available
+	zoomUser, err := p.zoomClient.GetUser(userEmail)
+	if err != nil {
+		return nil, &AuthError{
+			Message: fmt.Sprintf(zoomEmailMismatch, userEmail),
+			Err:     err,
 		}
 	}
 	return zoomUser, nil
@@ -259,14 +255,14 @@ func (p *Plugin) disconnect(userID string) error {
 		return appErr
 	}
 
-	var info ZoomUserInfo
-	err := json.Unmarshal(rawInfo, &info)
+	var userInfo ZoomUserInfo
+	err := json.Unmarshal(rawInfo, &userInfo)
 	if err != nil {
 		return err
 	}
 
 	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
-	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + info.ZoomID)
+	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + userInfo.ZoomID)
 	if errByMattermostID != nil {
 		return errByMattermostID
 	}
@@ -277,21 +273,15 @@ func (p *Plugin) disconnect(userID string) error {
 }
 
 func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
-	config := p.getConfiguration()
-	ctx := context.Background()
-
 	conf, err := p.getOAuthConfig()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not get OAuth config")
 	}
 
+	ctx := context.Background()
 	client := conf.Client(ctx, token)
-	apiURL := config.ZoomAPIURL
-	if apiURL == "" {
-		apiURL = zoomDefaultAPIURL
-	}
 
-	url := fmt.Sprintf("%v/users/me", apiURL)
+	url := fmt.Sprintf("%s/users/me", p.getZoomAPIURL())
 	res, err := client.Get(url)
 	if err != nil || res == nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
@@ -318,13 +308,9 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 }
 
 func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, error) {
-	config := p.getConfiguration()
-	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelFunct()
-
 	conf, err := p.getOAuthConfig()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not get OAuth config")
 	}
 
 	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
@@ -332,15 +318,12 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 		return nil, apiErr
 	}
 
+	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunct()
 	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
-	apiURL := config.ZoomAPIURL
-	if apiURL == "" {
-		apiURL = zoomDefaultAPIURL
-	}
 
-	url := fmt.Sprintf("%v/meetings/%v", apiURL, meetingID)
+	url := fmt.Sprintf("%s/meetings/%v", p.getZoomAPIURL(), meetingID)
 	res, err := client.Get(url)
-
 	if err != nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
 	}
@@ -359,7 +342,6 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 	}
 
 	var ret zoom.Meeting
-
 	if err := json.Unmarshal(buf, &ret); err != nil {
 		return nil, errors.New("error unmarshalling zoom user")
 	}
@@ -367,11 +349,12 @@ func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, e
 	return &ret, nil
 }
 
-func (p *Plugin) dm(userID string, message string) error {
+func (p *Plugin) sendDirectMessage(userID string, message string) error {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserID)
 	if err != nil {
-		p.API.LogInfo("Couldn't get bot's DM channel", "user_id", userID)
-		return err
+		msg := "could not get bot's DM channel"
+		p.API.LogInfo(msg, "user_id", userID)
+		return errors.Wrap(err, msg)
 	}
 
 	post := &model.Post{
@@ -381,8 +364,5 @@ func (p *Plugin) dm(userID string, message string) error {
 	}
 
 	_, err = p.API.CreatePost(post)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

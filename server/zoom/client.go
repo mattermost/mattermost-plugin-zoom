@@ -76,7 +76,7 @@ func (c *Client) generateJWT() (string, error) {
 	return out, nil
 }
 
-func (c *Client) request(method string, path string, data interface{}, ret interface{}) *ClientError {
+func (c *Client) request(method, path string, data, ret interface{}) *ClientError {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return &ClientError{http.StatusInternalServerError, err}

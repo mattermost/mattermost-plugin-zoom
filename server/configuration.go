@@ -5,10 +5,16 @@ package main
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+)
+
+const (
+	zoomDefaultURL    = "https://zoom.us"
+	zoomDefaultAPIURL = "https://api.zoom.com/v2"
 )
 
 // configuration captures the plugin's external configuration as exposed in the Mattermost server
@@ -129,4 +135,24 @@ func (p *Plugin) OnConfigurationChange() error {
 	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 
 	return nil
+}
+
+// getZoomURL gets the configured Zoom URL, or the default URL if it's not configured.
+func (p *Plugin) getZoomURL() string {
+	config := p.getConfiguration()
+	zoomURL := strings.TrimSpace(config.ZoomURL)
+	if zoomURL == "" {
+		zoomURL = "https://zoom.us"
+	}
+	return zoomURL
+}
+
+// getZoomAPIURL gets the configured Zoom API URL, or the default API URL if it's not configured.
+func (p *Plugin) getZoomAPIURL() string {
+	config := p.getConfiguration()
+	apiURL := config.ZoomAPIURL
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
+	}
+	return apiURL
 }
