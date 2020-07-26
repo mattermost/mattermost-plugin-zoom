@@ -139,8 +139,7 @@ func (p *Plugin) OnConfigurationChange() error {
 
 // getZoomURL gets the configured Zoom URL, or the default URL if it's not configured.
 func (p *Plugin) getZoomURL() string {
-	config := p.getConfiguration()
-	zoomURL := strings.TrimSpace(config.ZoomURL)
+	zoomURL := strings.TrimSpace(p.getConfiguration().ZoomURL)
 	if zoomURL == "" {
 		zoomURL = zoomDefaultURL
 	}
@@ -149,8 +148,7 @@ func (p *Plugin) getZoomURL() string {
 
 // getZoomAPIURL gets the configured Zoom API URL, or the default API URL if it's not configured.
 func (p *Plugin) getZoomAPIURL() string {
-	config := p.getConfiguration()
-	apiURL := config.ZoomAPIURL
+	apiURL := strings.TrimSpace(p.getConfiguration().ZoomAPIURL)
 	if apiURL == "" {
 		apiURL = zoomDefaultAPIURL
 	}
