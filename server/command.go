@@ -108,7 +108,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, user
 // runDisconnectCommand runs command to disconnect from Zoom. Will fail if OAuth is not enabled.
 func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 	if !p.configuration.EnableOAuth {
-		return fmt.Sprintf("Invalid attempt to disconnect; OAuth is not enabled."), nil
+		return "Invalid attempt to disconnect; OAuth is not enabled.", nil
 	}
 
 	if err := p.disconnect(userID); err != nil {
