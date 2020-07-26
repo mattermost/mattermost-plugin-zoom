@@ -142,7 +142,7 @@ func (p *Plugin) getZoomURL() string {
 	config := p.getConfiguration()
 	zoomURL := strings.TrimSpace(config.ZoomURL)
 	if zoomURL == "" {
-		zoomURL = "https://zoom.us"
+		zoomURL = zoomDefaultURL
 	}
 	return zoomURL
 }
