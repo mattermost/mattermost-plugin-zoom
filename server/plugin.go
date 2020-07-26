@@ -4,16 +4,12 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -141,19 +137,6 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 	}, nil
 }
 
-type ZoomUserInfo struct {
-	ZoomEmail string
-
-	// Zoom OAuth Token, ttl 15 years
-	OAuthToken *oauth2.Token
-
-	// Mattermost userID
-	UserID string
-
-	// Zoom userID
-	ZoomID string
-}
-
 type AuthError struct {
 	Message string `json:"message"`
 	Err     error  `json:"err"`
@@ -164,7 +147,7 @@ func (ae *AuthError) Error() string {
 	return string(errorString)
 }
 
-func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
+func (p *Plugin) storeZoomUserInfo(info *zoom.UserInfo) error {
 	config := p.getConfiguration()
 
 	encryptedToken, err := encrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
@@ -190,21 +173,19 @@ func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
 	return nil
 }
 
-func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
-	config := p.getConfiguration()
-
-	var userInfo ZoomUserInfo
-
+func (p *Plugin) getZoomUserInfo(userID string) (*zoom.UserInfo, error) {
 	infoBytes, appErr := p.API.KVGet(zoomTokenKey + userID)
 	if appErr != nil || infoBytes == nil {
 		return nil, errors.New("must connect user account to Zoom first")
 	}
 
+	var userInfo zoom.UserInfo
 	err := json.Unmarshal(infoBytes, &userInfo)
 	if err != nil {
 		return nil, errors.New("unable to parse token")
 	}
 
+	config := p.getConfiguration()
 	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), userInfo.OAuthToken.AccessToken)
 	if err != nil {
 		log.Println(err.Error())
@@ -212,7 +193,6 @@ func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
 	}
 
 	userInfo.OAuthToken.AccessToken = unencryptedToken
-
 	return &userInfo, nil
 }
 
@@ -221,19 +201,24 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 
 	// use OAuth if available
 	if config.EnableOAuth {
-		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
+		zoomUserInfo, err := p.getZoomUserInfo(userID)
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthMessage,
 			*p.API.GetConfig().ServiceSettings.SiteURL, channelID,
 		)
 
-		if apiErr != nil {
-			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
+		if err != nil {
+			return nil, &AuthError{Message: oauthMsg, Err: err}
 		}
 
-		zoomUser, err := p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
+		conf, err := p.getOAuthConfig()
 		if err != nil {
-			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
+			return nil, &AuthError{Message: oauthMsg, Err: err}
+		}
+
+		zoomUser, err := zoom.GetUserViaOAuth(zoomUserInfo.OAuthToken, conf, p.getZoomAPIURL())
+		if err != nil {
+			return nil, &AuthError{Message: oauthMsg, Err: err}
 		}
 		return zoomUser, nil
 	}
@@ -255,9 +240,8 @@ func (p *Plugin) disconnect(userID string) error {
 		return appErr
 	}
 
-	var userInfo ZoomUserInfo
-	err := json.Unmarshal(rawInfo, &userInfo)
-	if err != nil {
+	var userInfo zoom.UserInfo
+	if err := json.Unmarshal(rawInfo, &userInfo); err != nil {
 		return err
 	}
 
@@ -270,83 +254,6 @@ func (p *Plugin) disconnect(userID string) error {
 		return errByZoomID
 	}
 	return nil
-}
-
-func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get OAuth config")
-	}
-
-	ctx := context.Background()
-	client := conf.Client(ctx, token)
-
-	url := fmt.Sprintf("%s/users/me", p.getZoomAPIURL())
-	res, err := client.Get(url)
-	if err != nil || res == nil {
-		return nil, errors.New("error fetching zoom user, err=" + err.Error())
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("error fetching zoom user")
-	}
-
-	buf := new(bytes.Buffer)
-
-	if _, err = buf.ReadFrom(res.Body); err != nil {
-		return nil, errors.New("error reading response body for zoom user")
-	}
-
-	var zoomUser zoom.User
-
-	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
-		return nil, errors.New("error unmarshalling zoom user")
-	}
-
-	return &zoomUser, nil
-}
-
-func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, error) {
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get OAuth config")
-	}
-
-	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelFunct()
-	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
-
-	url := fmt.Sprintf("%s/meetings/%v", p.getZoomAPIURL(), meetingID)
-	res, err := client.Get(url)
-	if err != nil {
-		return nil, errors.New("error fetching zoom user, err=" + err.Error())
-	}
-	if res == nil {
-		return nil, errors.New("error fetching zoom user, empty result returned")
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("error fetching zoom user")
-	}
-
-	buf, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, errors.New("error reading response body for zoom user")
-	}
-
-	var ret zoom.Meeting
-	if err := json.Unmarshal(buf, &ret); err != nil {
-		return nil, errors.New("error unmarshalling zoom user")
-	}
-
-	return &ret, nil
 }
 
 func (p *Plugin) sendDirectMessage(userID string, message string) error {

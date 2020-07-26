@@ -1,0 +1,88 @@
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
+// See License for license information.
+
+package zoom
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
+	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
+)
+
+type UserInfo struct {
+	ZoomEmail string
+
+	// Zoom OAuth Token, ttl 15 years
+	OAuthToken *oauth2.Token
+
+	// Mattermost userID
+	UserID string
+
+	// Zoom userID
+	ZoomID string
+}
+
+func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (*User, error) {
+	client := conf.Client(context.Background(), token)
+	url := fmt.Sprintf("%s/users/me", zoomAPIURL)
+	res, err := client.Get(url)
+	if err != nil || res == nil {
+		return nil, errors.Wrap(err, "error fetching zoom user")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("error fetching zoom user")
+	}
+
+	buf := new(bytes.Buffer)
+	if _, err = buf.ReadFrom(res.Body); err != nil {
+		return nil, errors.New("error reading response body for zoom user")
+	}
+
+	var zoomUser User
+	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
+		return nil, errors.New("error unmarshalling zoom user")
+	}
+
+	return &zoomUser, nil
+}
+
+func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (*Meeting, error) {
+	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunct()
+	client := conf.Client(ctx, u.OAuthToken)
+
+	url := fmt.Sprintf("%s/meetings/%v", zoomAPIURL, meetingID)
+	res, err := client.Get(url)
+	if err != nil {
+		return nil, errors.New("error fetching zoom user, err=" + err.Error())
+	}
+	if res == nil {
+		return nil, errors.New("error fetching zoom user, empty result returned")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("error fetching zoom user")
+	}
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("error reading response body for zoom user")
+	}
+
+	var ret Meeting
+	if err := json.Unmarshal(buf, &ret); err != nil {
+		return nil, errors.New("error unmarshalling zoom user")
+	}
+
+	return &ret, nil
+}
