@@ -112,7 +112,7 @@ func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 	}
 
 	if err := p.disconnect(userID); err != nil {
-		return fmt.Sprintf("Failed to disconnect the user: %s" + err.Error()), nil
+		return fmt.Sprintf("Failed to disconnect the user: %s", err.Error()), nil
 	}
 	return "User disconnected from Zoom.", nil
 }
