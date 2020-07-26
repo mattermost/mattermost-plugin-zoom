@@ -8,17 +8,20 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const helpText = `* |/zoom start| - Start a zoom meeting`
-const oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
+const (
+	helpText      = `* |/zoom start| - Start a zoom meeting`
+	oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
+)
 
-func getCommand() *model.Command {
+func (p *Plugin) getCommand() *model.Command {
 	return &model.Command{
 		Trigger:          "zoom",
 		DisplayName:      "Zoom",
-		Description:      "Integration with Zoom.",
+		Description:      "Zoom Integration.",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start, help",
+		AutoCompleteDesc: "Available commands: start, disconnect, help",
 		AutoCompleteHint: "[command]",
+		AutocompleteData: p.getAutocompleteData(),
 	}
 }
 
@@ -54,47 +57,11 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 	switch action {
 	case "start":
-		if _, appErr = p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
-			return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
-		}
-
-		recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
-		if appErr != nil {
-			return "Error checking previous messages", nil
-		}
-
-		if recentMeeting {
-			p.postConfirm(recentMeetingID, args.ChannelId, "", userID, creatorName)
-			return "", nil
-		}
-
-		zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
-		if authErr != nil {
-			return authErr.Message, authErr.Err
-		}
-
-		meetingID := zoomUser.Pmi
-
-		err := p.postMeeting(user, meetingID, args.ChannelId, "")
-		if err != nil {
-			return "Failed to post message. Please try again.", nil
-		}
-		return "", nil
+		return p.runStartCommand(args, user, userID)
 	case "disconnect":
-		if !p.configuration.EnableOAuth {
-			return fmt.Sprintf("Unknown action %v", action), nil
-		}
-		err := p.disconnect(userID)
-		if err != nil {
-			return "Failed to disconnect the user, err=" + err.Error(), nil
-		}
-		return "User disconnected from Zoom.", nil
+		return p.runDisconnectCommand(userID)
 	case "help", "":
-		text := "###### Mattermost Zoom Plugin - Slash Command Help\n" + strings.Replace(helpText, "|", "`", -1)
-		if p.configuration.EnableOAuth {
-			text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
-		}
-		return text, nil
+		return p.runHelpCommand()
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -109,4 +76,73 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		p.postCommandResponse(args, msg)
 	}
 	return &model.CommandResponse{}, nil
+}
+
+// runStartCommand runs command to start a Zoom meeting.
+func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, userID string) (string, error) {
+	if _, appErr := p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
+		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
+	}
+
+	recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
+	if appErr != nil {
+		return "Error checking previous messages", nil
+	}
+
+	if recentMeeting {
+		p.postConfirm(recentMeetingID, args.ChannelId, "", userID, creatorName)
+		return "", nil
+	}
+
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
+	if authErr != nil {
+		return authErr.Message, authErr.Err
+	}
+
+	if err := p.postMeeting(user, zoomUser.Pmi, args.ChannelId, ""); err != nil {
+		return "Failed to post message. Please try again.", nil
+	}
+	return "", nil
+}
+
+// runDisconnectCommand runs command to disconnect from Zoom. Will fail if OAuth is not enabled.
+func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
+	if !p.configuration.EnableOAuth {
+		return fmt.Sprintf("Invalid attempt to disconnect; OAuth is not enabled."), nil
+	}
+
+	if err := p.disconnect(userID); err != nil {
+		return fmt.Sprintf("Failed to disconnect the user: %s" + err.Error()), nil
+	}
+	return "User disconnected from Zoom.", nil
+}
+
+// runHelpCommand runs command to display help text.
+func (p *Plugin) runHelpCommand() (string, error) {
+	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
+	text += strings.Replace(helpText, "|", "`", -1)
+
+	if p.configuration.EnableOAuth {
+		text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
+	}
+	return text, nil
+}
+
+// getAutocompleteData retrieves auto-complete data for the "/zoom" command
+func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
+	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, help")
+
+	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
+	zoom.AddCommand(start)
+
+	// no point in showing the 'disconnect' option if OAuth is not enabled
+	if p.configuration.EnableOAuth {
+		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
+		zoom.AddCommand(disconnect)
+	}
+
+	help := model.NewAutocompleteData("help", "", "Display usage")
+	zoom.AddCommand(help)
+
+	return zoom
 }
