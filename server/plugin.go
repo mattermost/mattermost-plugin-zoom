@@ -137,53 +137,51 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 	}, nil
 }
 
-func (p *Plugin) storeZoomUserInfo(info *zoom.UserInfo) error {
+func (p *Plugin) storeOAuthClient(client *zoom.OAuthClient) error {
 	config := p.getConfiguration()
 
-	encryptedToken, err := encrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
+	encryptedToken, err := encrypt([]byte(config.EncryptionKey), client.OAuthToken.AccessToken)
 	if err != nil {
 		return err
 	}
 
-	info.OAuthToken.AccessToken = encryptedToken
+	client.OAuthToken.AccessToken = encryptedToken
 
-	jsonInfo, err := json.Marshal(info)
+	encoded, err := json.Marshal(client)
 	if err != nil {
 		return err
 	}
 
-	if err := p.API.KVSet(zoomTokenKey+info.UserID, jsonInfo); err != nil {
+	if err := p.API.KVSet(zoomTokenKey+client.UserID, encoded); err != nil {
 		return err
 	}
 
-	if err := p.API.KVSet(zoomTokenKeyByZoomID+info.ZoomID, jsonInfo); err != nil {
+	if err := p.API.KVSet(zoomTokenKeyByZoomID+client.ZoomID, encoded); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (p *Plugin) getZoomUserInfo(userID string) (*zoom.UserInfo, error) {
-	infoBytes, appErr := p.API.KVGet(zoomTokenKey + userID)
-	if appErr != nil || infoBytes == nil {
+func (p *Plugin) getOAuthClient(userID string) (client *zoom.OAuthClient, err error) {
+	encoded, appErr := p.API.KVGet(zoomTokenKey + userID)
+	if appErr != nil || encoded == nil {
 		return nil, errors.New("must connect user account to Zoom first")
 	}
 
-	var userInfo zoom.UserInfo
-	err := json.Unmarshal(infoBytes, &userInfo)
-	if err != nil {
+	if err := json.Unmarshal(encoded, client); err != nil {
 		return nil, errors.New("unable to parse token")
 	}
 
 	config := p.getConfiguration()
-	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), userInfo.OAuthToken.AccessToken)
+	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), client.OAuthToken.AccessToken)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, errors.New("unable to decrypt access token")
 	}
 
-	userInfo.OAuthToken.AccessToken = unencryptedToken
-	return &userInfo, nil
+	client.OAuthToken.AccessToken = unencryptedToken
+	return client, nil
 }
 
 func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *zoom.AuthError) {
@@ -191,7 +189,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 
 	// use OAuth if available
 	if config.EnableOAuth {
-		zoomUserInfo, err := p.getZoomUserInfo(userID)
+		client, err := p.getOAuthClient(userID)
 		oauthMsg := fmt.Sprintf(
 			zoomOAuthMessage,
 			*p.API.GetConfig().ServiceSettings.SiteURL, channelID,
@@ -206,7 +204,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 			return nil, &zoom.AuthError{Message: oauthMsg, Err: err}
 		}
 
-		zoomUser, err := zoom.GetUserViaOAuth(zoomUserInfo.OAuthToken, conf, p.getZoomAPIURL())
+		zoomUser, err := zoom.GetUserViaOAuth(client.OAuthToken, conf, p.getZoomAPIURL())
 		if err != nil {
 			return nil, &zoom.AuthError{Message: oauthMsg, Err: err}
 		}
@@ -225,18 +223,18 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 }
 
 func (p *Plugin) disconnect(userID string) error {
-	rawInfo, appErr := p.API.KVGet(zoomTokenKey + userID)
+	encoded, appErr := p.API.KVGet(zoomTokenKey + userID)
 	if appErr != nil {
 		return appErr
 	}
 
-	var userInfo zoom.UserInfo
-	if err := json.Unmarshal(rawInfo, &userInfo); err != nil {
+	var client zoom.OAuthClient
+	if err := json.Unmarshal(encoded, &client); err != nil {
 		return err
 	}
 
 	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
-	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + userInfo.ZoomID)
+	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + client.ZoomID)
 	if errByMattermostID != nil {
 		return errByMattermostID
 	}

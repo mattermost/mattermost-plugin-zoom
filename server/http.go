@@ -147,14 +147,14 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	zoomUserInfo := &zoom.UserInfo{
+	client := &zoom.OAuthClient{
 		ZoomEmail:  zoomUser.Email,
 		ZoomID:     zoomUser.ID,
 		UserID:     userID,
 		OAuthToken: token,
 	}
 
-	if err = p.storeZoomUserInfo(zoomUserInfo); err != nil {
+	if err = p.storeOAuthClient(client); err != nil {
 		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
 		return
 	}
@@ -415,7 +415,7 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 		return meeting.JoinURL
 	}
 
-	userInfo, err := p.getZoomUserInfo(userID)
+	client, err := p.getOAuthClient(userID)
 	if err != nil {
 		p.API.LogDebug("failed to get Zoom user info", "error", err.Error())
 		return defaultURL
@@ -427,7 +427,7 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 		return defaultURL
 	}
 
-	meeting, err := userInfo.GetMeetingViaOAuth(meetingID, conf, p.getZoomAPIURL())
+	meeting, err := client.GetMeetingViaOAuth(meetingID, conf, p.getZoomAPIURL())
 	if err != nil {
 		p.API.LogDebug("failed to get meeting via OAuth", "error", err.Error())
 		return defaultURL
@@ -506,24 +506,24 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rawInfo, appErr := p.API.KVGet(zoomTokenKeyByZoomID + req.Payload.UserID)
+	encoded, appErr := p.API.KVGet(zoomTokenKeyByZoomID + req.Payload.UserID)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	var userInfo zoom.UserInfo
-	if err := json.Unmarshal(rawInfo, &userInfo); err != nil {
+	var client zoom.OAuthClient
+	if err := json.Unmarshal(encoded, &client); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := p.disconnect(userInfo.UserID); err != nil {
+	if err := p.disconnect(client.UserID); err != nil {
 		http.Error(w, "Unable to disconnect user from Zoom", http.StatusInternalServerError)
 		return
 	}
 
-	err := p.sendDirectMessage(userInfo.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
+	err := p.sendDirectMessage(client.UserID, "We have received a deauthorization message from Zoom for your account. We have removed all your Zoom related information from our systems. Please, connect again to Zoom to keep using it.")
 	if err != nil {
 		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
 	}

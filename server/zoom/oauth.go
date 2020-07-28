@@ -16,7 +16,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type UserInfo struct {
+type OAuthClient struct {
 	ZoomEmail string
 
 	// Zoom OAuth Token, ttl 15 years
@@ -54,7 +54,7 @@ func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 	return user, nil
 }
 
-func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {
+func (u OAuthClient) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
