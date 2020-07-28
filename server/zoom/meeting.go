@@ -3,7 +3,7 @@
 
 package zoom
 
-// https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting.
+// https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting
 type Meeting struct {
 	UUID              string `json:"uuid"`
 	ID                int    `json:"id"`

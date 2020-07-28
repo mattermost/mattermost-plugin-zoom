@@ -55,13 +55,12 @@ func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 	return &zoomUser, nil
 }
 
-func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (*Meeting, error) {
-	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelFunct()
-	client := conf.Client(ctx, u.OAuthToken)
+func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
-	url := fmt.Sprintf("%s/meetings/%v", zoomAPIURL, meetingID)
-	res, err := client.Get(url)
+	client := conf.Client(ctx, u.OAuthToken)
+	res, err := client.Get(fmt.Sprintf("%s/meetings/%v", zoomAPIURL, meetingID))
 	if err != nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())
 	}
@@ -79,10 +78,9 @@ func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPI
 		return nil, errors.New("error reading response body for zoom user")
 	}
 
-	var meeting Meeting
-	if err := json.Unmarshal(buf, &meeting); err != nil {
+	if err := json.Unmarshal(buf, meeting); err != nil {
 		return nil, errors.New("error unmarshalling zoom user")
 	}
 
-	return &meeting, nil
+	return meeting, nil
 }
