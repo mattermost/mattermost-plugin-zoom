@@ -29,7 +29,7 @@ type UserInfo struct {
 	ZoomID string
 }
 
-func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (*User, error) {
+func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (user *User, err error) {
 	client := conf.Client(context.Background(), token)
 	url := fmt.Sprintf("%s/users/me", zoomAPIURL)
 	res, err := client.Get(url)
@@ -47,12 +47,11 @@ func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 		return nil, errors.New("error reading response body for zoom user")
 	}
 
-	var zoomUser User
-	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), user); err != nil {
 		return nil, errors.New("error unmarshalling zoom user")
 	}
 
-	return &zoomUser, nil
+	return user, nil
 }
 
 func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {

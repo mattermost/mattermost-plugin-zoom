@@ -47,10 +47,9 @@ func (c *APIClient) CompleteCompliance(payload DeauthorizationPayload) error {
 	return c.request(http.MethodPost, "/oauth/data/compliance", req, &ret)
 }
 
-func (c *APIClient) GetMeeting(meetingID int) (*Meeting, error) {
-	var meeting Meeting
-	err := c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &meeting)
-	return &meeting, err
+func (c *APIClient) GetMeeting(meetingID int) (meeting *Meeting, err error) {
+	err = c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", meeting)
+	return meeting, err
 }
 
 func (c *APIClient) GetUser(userID string) (user *User, err error) {
