@@ -132,7 +132,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	p.setConfiguration(cfg)
-	p.apiClient = zoom.NewClient(cfg.ZoomAPIURL, cfg.APIKey, cfg.APISecret)
+	p.apiClient = zoom.NewAPIClient(cfg.ZoomAPIURL, cfg.APIKey, cfg.APISecret)
 
 	return nil
 }

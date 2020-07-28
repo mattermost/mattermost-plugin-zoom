@@ -16,7 +16,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type OAuthClient struct {
+const oAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+
+type OAuthInfo struct {
 	ZoomEmail string
 
 	// Zoom OAuth Token, ttl 15 years
@@ -27,6 +29,31 @@ type OAuthClient struct {
 
 	// Zoom userID
 	ZoomID string
+}
+
+type OAuthClient struct {
+	info      *OAuthInfo
+	config    *oauth2.Config
+	siteURL   string
+	channelID string
+	apiURL    string
+}
+
+func NewOAuthClient(info *OAuthInfo, config *oauth2.Config, siteURL, channelID, apiURL string) *OAuthClient {
+	return &OAuthClient{info, config, siteURL, channelID, apiURL}
+}
+
+func (c *OAuthClient) GetUser(userID string) (*User, *AuthError) {
+	user, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
+	if err != nil {
+		return nil, &AuthError{fmt.Sprintf(oAuthPrompt, c.siteURL, c.channelID), err}
+	}
+
+	return user, nil
+}
+
+func (c *OAuthClient) GetMeeting(meetingID int) (meeting *Meeting, err error) {
+	return &Meeting{}, nil
 }
 
 func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (user *User, err error) {
@@ -54,11 +81,11 @@ func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 	return user, nil
 }
 
-func (u OAuthClient) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {
+func (c OAuthClient) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	client := conf.Client(ctx, u.OAuthToken)
+	client := conf.Client(ctx, c.info.OAuthToken)
 	res, err := client.Get(fmt.Sprintf("%s/meetings/%v", zoomAPIURL, meetingID))
 	if err != nil {
 		return nil, errors.New("error fetching zoom user, err=" + err.Error())

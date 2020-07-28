@@ -14,7 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const jwlAlgorithm = "HS256"
+const (
+	jwlAlgorithm      = "HS256"
+	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
+)
 
 // APIClient represents a Zoom API client
 type APIClient struct {
@@ -24,8 +27,8 @@ type APIClient struct {
 	baseURL    string
 }
 
-// NewClient returns a new Zoom API client
-func NewClient(zoomAPIURL, apiKey, apiSecret string) *APIClient {
+// NewAPIClient returns a new Zoom API client
+func NewAPIClient(zoomAPIURL, apiKey, apiSecret string) *APIClient {
 	return &APIClient{
 		apiKey:     apiKey,
 		apiSecret:  apiSecret,
@@ -52,9 +55,12 @@ func (c *APIClient) GetMeeting(meetingID int) (meeting *Meeting, err error) {
 	return meeting, err
 }
 
-func (c *APIClient) GetUser(userID string) (user *User, err error) {
-	err = c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", user)
-	return user, err
+func (c *APIClient) GetUser(userID string) (user *User, err *AuthError) {
+	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", user); err != nil {
+		return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
+	}
+
+	return user, nil
 }
 
 func (c *APIClient) generateJWT() (string, error) {
