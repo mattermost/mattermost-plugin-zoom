@@ -3,13 +3,9 @@
 
 package zoom
 
-import (
-	"fmt"
-	"net/http"
-	"time"
-)
+import "time"
 
-// The User object defined at https://zoom.github.io/api/#the-user-object.
+// https://marketplace.zoom.us/docs/api-reference/zoom-api/users/users
 type User struct {
 	ID                string    `json:"id"`
 	FirstName         string    `json:"first_name"`
@@ -25,9 +21,4 @@ type User struct {
 	VanityURL         string    `json:"vanity_url"`
 	Verified          int       `json:"verified"`
 	PicURL            string    `json:"pic_url"`
-}
-
-func (c *Client) GetUser(userID string) (*User, *ClientError) {
-	var ret User
-	return &ret, c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", &ret)
 }

@@ -39,7 +39,7 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	zoomClient *zoom.Client
+	zoomClient *zoom.APIClient
 
 	// botUserID of the created bot account.
 	botUserID string
@@ -91,7 +91,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.zoomClient = zoom.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
+	p.zoomClient = zoom.NewClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
 
 	return nil
 }

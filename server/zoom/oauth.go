@@ -79,10 +79,10 @@ func (u UserInfo) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPI
 		return nil, errors.New("error reading response body for zoom user")
 	}
 
-	var ret Meeting
-	if err := json.Unmarshal(buf, &ret); err != nil {
+	var meeting Meeting
+	if err := json.Unmarshal(buf, &meeting); err != nil {
 		return nil, errors.New("error unmarshalling zoom user")
 	}
 
-	return &ret, nil
+	return &meeting, nil
 }

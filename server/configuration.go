@@ -14,7 +14,7 @@ import (
 
 const (
 	zoomDefaultURL    = "https://zoom.us"
-	zoomDefaultAPIURL = "https://api.zoom.com/v2"
+	zoomDefaultAPIURL = "https://api.zoom.us/v2"
 )
 
 // configuration captures the plugin's external configuration as exposed in the Mattermost server
@@ -137,7 +137,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	return nil
 }
 
-// getZoomURL gets the configured Zoom URL, or the default URL if it's not configured.
+// getZoomURL gets the configured Zoom URL. Default URL is https://zoom.us
 func (p *Plugin) getZoomURL() string {
 	zoomURL := strings.TrimSpace(p.getConfiguration().ZoomURL)
 	if zoomURL == "" {
@@ -146,7 +146,7 @@ func (p *Plugin) getZoomURL() string {
 	return zoomURL
 }
 
-// getZoomAPIURL gets the configured Zoom API URL, or the default API URL if it's not configured.
+// getZoomAPIURL gets the configured Zoom API URL. Default URL is https://api.zoom.us/v2.
 func (p *Plugin) getZoomAPIURL() string {
 	apiURL := strings.TrimSpace(p.getConfiguration().ZoomAPIURL)
 	if apiURL == "" {
