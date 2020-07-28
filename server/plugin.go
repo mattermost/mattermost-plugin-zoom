@@ -214,7 +214,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 	}
 
 	// use personal credentials if OAuth is not available
-	zoomUser, err := p.apiClient.GetUser(userEmail)
+	zoomUser, err := p.apiClient.GetUser(userID)
 	if err != nil {
 		return nil, &zoom.AuthError{
 			Message: fmt.Sprintf(zoomEmailMismatch, userEmail),
