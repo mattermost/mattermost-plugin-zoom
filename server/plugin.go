@@ -99,7 +99,7 @@ func (p *Plugin) OnActivate() error {
 }
 
 // getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
-func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
+func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Client, error) {
 	config := p.getConfiguration()
 
 	if !config.EnableOAuth {
@@ -116,7 +116,7 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
 		return nil, errors.Wrap(err, "could not get Zoom OAuth config")
 	}
 
-	return zoom.NewOAuthClient(info, conf), nil
+	return zoom.NewOAuthClient(info, conf, p.siteURL, channelID, p.getZoomAPIURL()), nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
@@ -165,13 +165,14 @@ func (p *Plugin) storeOAuthInfo(info *zoom.OAuthInfo) error {
 	return nil
 }
 
-func (p *Plugin) getOAuthInfo(userID string) (info *zoom.OAuthInfo, err error) {
+func (p *Plugin) getOAuthInfo(userID string) (*zoom.OAuthInfo, error) {
 	encoded, appErr := p.API.KVGet(zoomTokenKey + userID)
 	if appErr != nil || encoded == nil {
 		return nil, errors.New("must connect user account to Zoom first")
 	}
 
-	if err := json.Unmarshal(encoded, info); err != nil {
+	var info zoom.OAuthInfo
+	if err := json.Unmarshal(encoded, &info); err != nil {
 		return nil, errors.New("unable to parse token")
 	}
 
@@ -183,13 +184,16 @@ func (p *Plugin) getOAuthInfo(userID string) (info *zoom.OAuthInfo, err error) {
 	}
 
 	info.OAuthToken.AccessToken = unencryptedToken
-	return info, nil
+	return &info, nil
 }
 
 func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string) (*zoom.User, *zoom.AuthError) {
-	client, err := p.getActiveClient(user)
+	client, err := p.getActiveClient(user, channelID)
 	if err != nil {
-		return nil, &zoom.AuthError{"could not get the active zoom client", err}
+		return nil, &zoom.AuthError{
+			Message: "could not get the active zoom client",
+			Err:     err,
+		}
 	}
 
 	return client.GetUser(user.Id)

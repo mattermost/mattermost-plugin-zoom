@@ -50,17 +50,19 @@ func (c *APIClient) CompleteCompliance(payload DeauthorizationPayload) error {
 	return c.request(http.MethodPost, "/oauth/data/compliance", req, &ret)
 }
 
-func (c *APIClient) GetMeeting(meetingID int) (meeting *Meeting, err error) {
-	err = c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", meeting)
-	return meeting, err
+func (c *APIClient) GetMeeting(meetingID int) (*Meeting, error) {
+	var meeting Meeting
+	err := c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &meeting)
+	return &meeting, err
 }
 
-func (c *APIClient) GetUser(userID string) (user *User, err *AuthError) {
-	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", user); err != nil {
+func (c *APIClient) GetUser(userID string) (*User, *AuthError) {
+	var user User
+	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", &user); err != nil {
 		return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (c *APIClient) generateJWT() (string, error) {

@@ -19,16 +19,10 @@ import (
 const oAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 
 type OAuthInfo struct {
-	ZoomEmail string
-
-	// Zoom OAuth Token, ttl 15 years
-	OAuthToken *oauth2.Token
-
-	// Mattermost userID
-	UserID string
-
-	// Zoom userID
-	ZoomID string
+	ZoomEmail  string
+	OAuthToken *oauth2.Token // Zoom OAuth Token, ttl 15 years
+	UserID     string        // Mattermost userID
+	ZoomID     string        // Zoom userID
 }
 
 type OAuthClient struct {
@@ -52,8 +46,35 @@ func (c *OAuthClient) GetUser(userID string) (*User, *AuthError) {
 	return user, nil
 }
 
-func (c *OAuthClient) GetMeeting(meetingID int) (meeting *Meeting, err error) {
-	return &Meeting{}, nil
+func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	client := c.config.Client(ctx, c.info.OAuthToken)
+	res, err := client.Get(fmt.Sprintf("%s/meetings/%v", c.apiURL, meetingID))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not fetch zoom meeting")
+	}
+	if res == nil {
+		return nil, errors.New("error fetching zoom meeting, empty result returned")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("%d error returned while fetching zoom meeting", res.StatusCode))
+	}
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read response body for zoom meeting")
+	}
+
+	var meeting Meeting
+	if err := json.Unmarshal(buf, &meeting); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal zoom meeting data")
+	}
+
+	return &meeting, nil
 }
 
 func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (user *User, err error) {
@@ -66,47 +87,17 @@ func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("error fetching zoom user")
+		return nil, errors.New(fmt.Sprintf("%d error returned while fetching zoom user", res.StatusCode))
 	}
 
 	buf := new(bytes.Buffer)
 	if _, err = buf.ReadFrom(res.Body); err != nil {
-		return nil, errors.New("error reading response body for zoom user")
+		return nil, errors.Wrap(err, "could not read response body for zoom user")
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), user); err != nil {
-		return nil, errors.New("error unmarshalling zoom user")
+		return nil, errors.Wrap(err, "could not unmarshal zoom user data")
 	}
 
 	return user, nil
-}
-
-func (c OAuthClient) GetMeetingViaOAuth(meetingID int, conf *oauth2.Config, zoomAPIURL string) (meeting *Meeting, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	client := conf.Client(ctx, c.info.OAuthToken)
-	res, err := client.Get(fmt.Sprintf("%s/meetings/%v", zoomAPIURL, meetingID))
-	if err != nil {
-		return nil, errors.New("error fetching zoom user, err=" + err.Error())
-	}
-	if res == nil {
-		return nil, errors.New("error fetching zoom user, empty result returned")
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("error fetching zoom user")
-	}
-
-	buf, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, errors.New("error reading response body for zoom user")
-	}
-
-	if err := json.Unmarshal(buf, meeting); err != nil {
-		return nil, errors.New("error unmarshalling zoom user")
-	}
-
-	return meeting, nil
 }

@@ -301,7 +301,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		topic = defaultMeetingTopic
 	}
 
-	meetingURL := p.getMeetingURL(meetingID, creator.Id)
+	meetingURL := p.getMeetingURL(creator, meetingID, channelID)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
@@ -396,40 +396,24 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meetingURL := p.getMeetingURL(meetingID, userID)
+	meetingURL := p.getMeetingURL(user, meetingID, req.ChannelID)
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
 
-func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
+func (p *Plugin) getMeetingURL(user *model.User, meetingID int, channelID string) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
-
-	if !p.getConfiguration().EnableOAuth {
-		meeting, err := p.apiClient.GetMeeting(meetingID)
-		if err != nil {
-			p.API.LogDebug("failed to get meeting", "error", err.Error())
-			return defaultURL
-		}
-		return meeting.JoinURL
-	}
-
-	info, err := p.getOAuthInfo(userID)
+	client, err := p.getActiveClient(user, channelID)
 	if err != nil {
-		p.API.LogDebug("failed to get Zoom user info", "error", err.Error())
+		p.API.LogWarn("could not get the active zoom client", "error", err.Error())
 		return defaultURL
 	}
 
-	conf, err := p.getOAuthConfig()
+	meeting, err := client.GetMeeting(meetingID)
 	if err != nil {
-		p.API.LogDebug("failed to get OAuth config", "error", err.Error())
-		return defaultURL
-	}
-
-	meeting, err := info.GetMeetingViaOAuth(meetingID, conf, p.getZoomAPIURL())
-	if err != nil {
-		p.API.LogDebug("failed to get meeting via OAuth", "error", err.Error())
+		p.API.LogWarn("failed to get meeting", "error", err.Error())
 		return defaultURL
 	}
 	return meeting.JoinURL
@@ -441,12 +425,7 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 		p.API.LogDebug("error fetching user on postConfirm", "error", err.Error())
 	}
 
-	creatorID := ""
-	if creator != nil {
-		creatorID = creator.Id
-	}
-
-	meetingURL := p.getMeetingURL(meetingID, creatorID)
+	meetingURL := p.getMeetingURL(creator, meetingID, channelID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
