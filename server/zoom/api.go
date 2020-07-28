@@ -59,7 +59,6 @@ func (c *APIClient) GetUser(userID string) (user *User, err error) {
 
 func (c *APIClient) generateJWT() (string, error) {
 	claims := jwt.MapClaims{}
-
 	claims["iss"] = c.apiKey
 	claims["exp"] = model.GetMillis() + (10 * 1000) // expire after 10s
 
@@ -69,13 +68,7 @@ func (c *APIClient) generateJWT() (string, error) {
 	}
 
 	token := jwt.NewWithClaims(alg, claims)
-
-	out, err := token.SignedString([]byte(c.apiSecret))
-	if err != nil {
-		return "", err
-	}
-
-	return out, nil
+	return token.SignedString([]byte(c.apiSecret))
 }
 
 func (c *APIClient) request(method, path string, data, ret interface{}) error {
@@ -116,9 +109,5 @@ func (c *APIClient) request(method, path string, data, ret interface{}) error {
 		return errors.New(buf.String())
 	}
 
-	if err := json.Unmarshal(buf.Bytes(), &ret); err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(buf.Bytes(), &ret)
 }

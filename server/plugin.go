@@ -39,7 +39,7 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	zoomClient *zoom.APIClient
+	apiClient *zoom.APIClient
 
 	// botUserID of the created bot account.
 	botUserID string
@@ -91,7 +91,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.zoomClient = zoom.NewClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
+	p.apiClient = zoom.NewClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
 
 	return nil
 }
@@ -135,16 +135,6 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 			"webinar:write",
 			"recording:write"},
 	}, nil
-}
-
-type AuthError struct {
-	Message string `json:"message"`
-	Err     error  `json:"err"`
-}
-
-func (ae *AuthError) Error() string {
-	errorString, _ := json.Marshal(ae)
-	return string(errorString)
 }
 
 func (p *Plugin) storeZoomUserInfo(info *zoom.UserInfo) error {
@@ -196,7 +186,7 @@ func (p *Plugin) getZoomUserInfo(userID string) (*zoom.UserInfo, error) {
 	return &userInfo, nil
 }
 
-func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {
+func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *zoom.AuthError) {
 	config := p.getConfiguration()
 
 	// use OAuth if available
@@ -208,25 +198,25 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 		)
 
 		if err != nil {
-			return nil, &AuthError{Message: oauthMsg, Err: err}
+			return nil, &zoom.AuthError{Message: oauthMsg, Err: err}
 		}
 
 		conf, err := p.getOAuthConfig()
 		if err != nil {
-			return nil, &AuthError{Message: oauthMsg, Err: err}
+			return nil, &zoom.AuthError{Message: oauthMsg, Err: err}
 		}
 
 		zoomUser, err := zoom.GetUserViaOAuth(zoomUserInfo.OAuthToken, conf, p.getZoomAPIURL())
 		if err != nil {
-			return nil, &AuthError{Message: oauthMsg, Err: err}
+			return nil, &zoom.AuthError{Message: oauthMsg, Err: err}
 		}
 		return zoomUser, nil
 	}
 
 	// use personal credentials if OAuth is not available
-	zoomUser, err := p.zoomClient.GetUser(userEmail)
+	zoomUser, err := p.apiClient.GetUser(userEmail)
 	if err != nil {
-		return nil, &AuthError{
+		return nil, &zoom.AuthError{
 			Message: fmt.Sprintf(zoomEmailMismatch, userEmail),
 			Err:     err,
 		}

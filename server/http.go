@@ -407,7 +407,7 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
 
 	if !p.getConfiguration().EnableOAuth {
-		meeting, err := p.zoomClient.GetMeeting(meetingID)
+		meeting, err := p.apiClient.GetMeeting(meetingID)
 		if err != nil {
 			p.API.LogDebug("failed to get meeting", "error", err.Error())
 			return defaultURL
@@ -529,7 +529,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Payload.UserDataRetention == "true" {
-		if err := p.zoomClient.CompleteCompliance(req.Payload); err != nil {
+		if err := p.apiClient.CompleteCompliance(req.Payload); err != nil {
 			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
 		}
 	}
