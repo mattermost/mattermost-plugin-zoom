@@ -11,7 +11,6 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
-	"golang.org/x/oauth2"
 )
 
 const postMeetingKey = "post_meeting_"
@@ -55,26 +54,15 @@ func (p *Plugin) fetchOAuthUserInfo(tokenKey, userID string) (*zoom.OAuthUserInf
 	return &info, nil
 }
 
-func (p *Plugin) connectZoomUser(userID, channelID string) (string, *model.AppError) {
-	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
-	state := fmt.Sprintf("%v_%v", key, channelID)
-	if err := p.API.KVSet(key, []byte(state)); err != nil {
-		return "", err
-	}
-
-	cfg := p.getOAuthConfig()
-	return cfg.AuthCodeURL(state, oauth2.AccessTypeOffline), nil
-}
-
 func (p *Plugin) disconnectOAuthUser(userID string) error {
 	encoded, err := p.API.KVGet(zoomTokenKey + userID)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not find OAuth user info")
 	}
 
 	var info zoom.OAuthUserInfo
 	if err := json.Unmarshal(encoded, &info); err != nil {
-		return err
+		return errors.Wrap(err, "could not decode OAuth user info")
 	}
 
 	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
@@ -86,6 +74,16 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 		return errByZoomID
 	}
 	return nil
+}
+
+func (p *Plugin) storeUserState(userID, channelID string) (string, error) {
+	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
+	state := fmt.Sprintf("%v_%v", key, channelID)
+	if err := p.API.KVSet(key, []byte(state)); err != nil {
+		return "", errors.Wrap(err, "could not store user state")
+	}
+
+	return state, nil
 }
 
 func (p *Plugin) deleteUserState(state string) error {

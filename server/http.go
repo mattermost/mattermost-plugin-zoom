@@ -17,6 +17,7 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"golang.org/x/oauth2"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -69,12 +70,15 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authCodeURL, err := p.connectZoomUser(userID, channelID)
+	state, err := p.storeUserState(userID, channelID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	http.Redirect(w, r, authCodeURL, http.StatusFound)
+	cfg := p.getOAuthConfig()
+	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
+
+	http.Redirect(w, r, url, http.StatusFound)
 }
 
 func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
