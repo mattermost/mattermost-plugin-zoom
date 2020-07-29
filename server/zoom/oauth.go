@@ -32,20 +32,20 @@ type OAuthUserInfo struct {
 
 // OAuthClient represents an OAuth-based Zoom client.
 type OAuthClient struct {
-	info    *OAuthUserInfo
+	token   *oauth2.Token
 	config  *oauth2.Config
 	siteURL string
 	apiURL  string
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, apiURL string) *OAuthClient {
-	return &OAuthClient{info, config, siteURL, apiURL}
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string) *OAuthClient {
+	return &OAuthClient{token, config, siteURL, apiURL}
 }
 
 // GetUser returns the Zoom user via OAuth.
 func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
-	zoomUser, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
+	zoomUser, err := getUserViaOAuth(c.token, c.config, c.apiURL)
 	if err != nil {
 		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
 	}
@@ -58,7 +58,7 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()
 
-	client := c.config.Client(ctx, c.info.OAuthToken)
+	client := c.config.Client(ctx, c.token)
 	res, err := client.Get(fmt.Sprintf("%s/meetings/%v", c.apiURL, meetingID))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not fetch zoom meeting")
@@ -85,7 +85,7 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	return &meeting, nil
 }
 
-func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (user *User, err error) {
+func getUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (*User, error) {
 	client := conf.Client(context.Background(), token)
 	url := fmt.Sprintf("%s/users/me", zoomAPIURL)
 	res, err := client.Get(url)
@@ -103,9 +103,10 @@ func GetUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 		return nil, errors.Wrap(err, "could not read response body for zoom user")
 	}
 
-	if err := json.Unmarshal(buf.Bytes(), user); err != nil {
+	var user User
+	if err := json.Unmarshal(buf.Bytes(), &user); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal zoom user data")
 	}
 
-	return user, nil
+	return &user, nil
 }

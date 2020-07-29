@@ -114,15 +114,15 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
 		return nil, errors.Wrap(err, "could not fetch Zoom OAuth info")
 	}
 
-	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
+	plainToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
 	if err != nil {
 		return nil, errors.New("could not decrypt OAuth access token")
 	}
 
-	info.OAuthToken.AccessToken = unencryptedToken
+	info.OAuthToken.AccessToken = plainToken
 
 	conf := p.getOAuthConfig()
-	return zoom.NewOAuthClient(info, conf, p.siteURL, p.getZoomAPIURL()), nil
+	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL()), nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
