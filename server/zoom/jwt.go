@@ -14,10 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	jwlAlgorithm      = "HS256"
-	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
-)
+const jwlAlgorithm = "HS256"
 
 // JWTClient represents a JWT-based Zoom API client.
 type JWTClient struct {
@@ -58,10 +55,10 @@ func (c *JWTClient) GetMeeting(meetingID int) (*Meeting, error) {
 }
 
 // GetUser returns the Zoom user via JWT authentication.
-func (c *JWTClient) GetUser(user *model.User) (*User, *AuthError) {
+func (c *JWTClient) GetUser(user *model.User) (*User, error) {
 	var zoomUser User
 	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", user.Email), "", &zoomUser); err != nil {
-		return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
+		return nil, err
 	}
 
 	return &zoomUser, nil
