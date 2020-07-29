@@ -84,7 +84,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		if !p.configuration.EnableOAuth {
 			return fmt.Sprintf("Unknown action %v", action), nil
 		}
-		err := p.disconnect(userID)
+		err := p.disconnectOAuthUser(userID)
 		if err != nil {
 			return "Failed to disconnect the user, err=" + err.Error(), nil
 		}

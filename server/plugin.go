@@ -4,10 +4,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"sync"
 
@@ -20,16 +18,12 @@ import (
 )
 
 const (
-	postMeetingKey = "post_meeting_"
-
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
 	zoomTokenKey         = "zoomtoken_"
 	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
-
-	zoomStateLength = 3
 
 	meetingPostIDTTL = 60 * 60 * 24 // One day
 )
@@ -115,10 +109,17 @@ func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Clien
 		return p.jwtClient, nil
 	}
 
-	info, err := p.getOAuthUserInfo(user.Id)
+	info, err := p.fetchOAuthUserInfo(zoomTokenKey, user.Id)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get Zoom OAuth info")
+		return nil, errors.Wrap(err, "could not fetch Zoom OAuth info")
 	}
+
+	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
+	if err != nil {
+		return nil, errors.New("could not decrypt OAuth access token")
+	}
+
+	info.OAuthToken.AccessToken = unencryptedToken
 
 	conf := p.getOAuthConfig()
 	return zoom.NewOAuthClient(info, conf, p.siteURL, channelID, p.getZoomAPIURL()), nil
@@ -145,53 +146,6 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 	}
 }
 
-func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
-	config := p.getConfiguration()
-
-	encryptedToken, err := encrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
-	if err != nil {
-		return errors.Wrap(err, "could not encrypt OAuth token")
-	}
-	info.OAuthToken.AccessToken = encryptedToken
-
-	encoded, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-
-	if err := p.API.KVSet(zoomTokenKey+info.UserID, encoded); err != nil {
-		return err
-	}
-
-	if err := p.API.KVSet(zoomTokenKeyByZoomID+info.ZoomID, encoded); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *Plugin) getOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
-	encoded, appErr := p.API.KVGet(zoomTokenKey + userID)
-	if appErr != nil || encoded == nil {
-		return nil, errors.New("must connect user account to Zoom first")
-	}
-
-	var info zoom.OAuthUserInfo
-	if err := json.Unmarshal(encoded, &info); err != nil {
-		return nil, errors.New("unable to parse token")
-	}
-
-	config := p.getConfiguration()
-	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, errors.New("unable to decrypt access token")
-	}
-
-	info.OAuthToken.AccessToken = unencryptedToken
-	return &info, nil
-}
-
 func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string) (*zoom.User, *zoom.AuthError) {
 	zoomClient, err := p.getActiveClient(user, channelID)
 	if err != nil {
@@ -202,28 +156,6 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string
 	}
 
 	return zoomClient.GetUser(user)
-}
-
-func (p *Plugin) disconnect(userID string) error {
-	encoded, appErr := p.API.KVGet(zoomTokenKey + userID)
-	if appErr != nil {
-		return appErr
-	}
-
-	var info zoom.OAuthUserInfo
-	if err := json.Unmarshal(encoded, &info); err != nil {
-		return err
-	}
-
-	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
-	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + info.ZoomID)
-	if errByMattermostID != nil {
-		return errByMattermostID
-	}
-	if errByZoomID != nil {
-		return errByZoomID
-	}
-	return nil
 }
 
 func (p *Plugin) sendDirectMessage(userID string, message string) error {
