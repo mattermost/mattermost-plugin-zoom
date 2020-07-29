@@ -37,7 +37,7 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	apiClient *zoom.APIClient
+	jwtClient *zoom.JWTClient
 
 	// botUserID of the created bot account.
 	botUserID string
@@ -93,7 +93,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.apiClient = zoom.NewAPIClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
+	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
 
 	return nil
 }
@@ -103,7 +103,7 @@ func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Clien
 	config := p.getConfiguration()
 
 	if !config.EnableOAuth {
-		return p.apiClient, nil
+		return p.jwtClient, nil
 	}
 
 	info, err := p.getOAuthInfo(user.Id)
