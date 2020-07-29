@@ -297,11 +297,11 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 }
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) error {
+	meetingURL := p.getMeetingURL(creator, meetingID, channelID)
+
 	if topic == "" {
 		topic = defaultMeetingTopic
 	}
-
-	meetingURL := p.getMeetingURL(creator, meetingID, channelID)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
@@ -413,7 +413,7 @@ func (p *Plugin) getMeetingURL(user *model.User, meetingID int, channelID string
 
 	meeting, err := client.GetMeeting(meetingID)
 	if err != nil {
-		// p.API.LogWarn("failed to get meeting", "error", err.Error())
+		p.API.LogDebug("failed to get meeting")
 		return defaultURL
 	}
 	return meeting.JoinURL
