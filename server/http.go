@@ -413,7 +413,7 @@ func (p *Plugin) getMeetingURL(user *model.User, meetingID int, channelID string
 
 	meeting, err := client.GetMeeting(meetingID)
 	if err != nil {
-		p.API.LogWarn("failed to get meeting", "error", err.Error())
+		// p.API.LogWarn("failed to get meeting", "error", err.Error())
 		return defaultURL
 	}
 	return meeting.JoinURL

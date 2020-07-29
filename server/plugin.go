@@ -196,7 +196,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string
 		}
 	}
 
-	return client.GetUser(user.Id)
+	return client.GetUser(user.Email)
 }
 
 func (p *Plugin) disconnect(userID string) error {
