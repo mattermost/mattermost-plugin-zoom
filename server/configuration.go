@@ -131,6 +131,10 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 
+	if err := p.registerSiteURL(); err != nil {
+		return errors.Wrap(err, "could not register site URL")
+	}
+
 	p.setConfiguration(cfg)
 	p.jwtClient = zoom.NewJWTClient(cfg.ZoomAPIURL, cfg.APIKey, cfg.APISecret)
 

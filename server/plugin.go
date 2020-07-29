@@ -59,11 +59,9 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	siteURL := p.API.GetConfig().ServiceSettings.SiteURL
-	if siteURL == nil || *siteURL == "" {
-		return errors.New("error fetching siteUrl")
+	if err := p.registerSiteURL(); err != nil {
+		return errors.Wrap(err, "could not register site URL")
 	}
-	p.siteURL = *siteURL
 
 	botUserID, err := p.Helpers.EnsureBot(&model.Bot{
 		Username:    botUserName,
@@ -98,6 +96,17 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
+// registerSiteURL fetches the site URL and sets it in the plugin object.
+func (p *Plugin) registerSiteURL() error {
+	siteURL := p.API.GetConfig().ServiceSettings.SiteURL
+	if siteURL == nil || *siteURL == "" {
+		return errors.New("could not fetch siteURL")
+	}
+
+	p.siteURL = *siteURL
+	return nil
+}
+
 // getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
 func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Client, error) {
 	config := p.getConfiguration()
@@ -111,16 +120,12 @@ func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Clien
 		return nil, errors.Wrap(err, "could not get Zoom OAuth info")
 	}
 
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get Zoom OAuth config")
-	}
-
+	conf := p.getOAuthConfig()
 	return zoom.NewOAuthClient(info, conf, p.siteURL, channelID, p.getZoomAPIURL()), nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
-func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
+func (p *Plugin) getOAuthConfig() *oauth2.Config {
 	config := p.getConfiguration()
 	zoomURL := p.getZoomURL()
 
@@ -137,7 +142,7 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 			"meeting:write",
 			"webinar:write",
 			"recording:write"},
-	}, nil
+	}
 }
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
