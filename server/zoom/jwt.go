@@ -19,7 +19,7 @@ const (
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
-// JWTClient represents a JWT-based Zoom API client
+// JWTClient represents a JWT-based Zoom API client.
 type JWTClient struct {
 	apiKey     string
 	apiSecret  string
@@ -27,7 +27,7 @@ type JWTClient struct {
 	baseURL    string
 }
 
-// NewJWTClient returns a new JWT-based Zoom API client
+// NewJWTClient returns a new JWT-based Zoom API client.
 func NewJWTClient(zoomAPIURL, apiKey, apiSecret string) *JWTClient {
 	return &JWTClient{
 		apiKey:     apiKey,

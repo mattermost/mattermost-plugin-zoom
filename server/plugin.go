@@ -106,7 +106,7 @@ func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Clien
 		return p.jwtClient, nil
 	}
 
-	info, err := p.getOAuthInfo(user.Id)
+	info, err := p.getOAuthUserInfo(user.Id)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get Zoom OAuth info")
 	}
@@ -140,7 +140,7 @@ func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
 	}, nil
 }
 
-func (p *Plugin) storeOAuthInfo(info *zoom.OAuthInfo) error {
+func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 	config := p.getConfiguration()
 
 	encryptedToken, err := encrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
@@ -165,13 +165,13 @@ func (p *Plugin) storeOAuthInfo(info *zoom.OAuthInfo) error {
 	return nil
 }
 
-func (p *Plugin) getOAuthInfo(userID string) (*zoom.OAuthInfo, error) {
+func (p *Plugin) getOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
 	encoded, appErr := p.API.KVGet(zoomTokenKey + userID)
 	if appErr != nil || encoded == nil {
 		return nil, errors.New("must connect user account to Zoom first")
 	}
 
-	var info zoom.OAuthInfo
+	var info zoom.OAuthUserInfo
 	if err := json.Unmarshal(encoded, &info); err != nil {
 		return nil, errors.New("unable to parse token")
 	}
@@ -205,7 +205,7 @@ func (p *Plugin) disconnect(userID string) error {
 		return appErr
 	}
 
-	var info zoom.OAuthInfo
+	var info zoom.OAuthUserInfo
 	if err := json.Unmarshal(encoded, &info); err != nil {
 		return err
 	}

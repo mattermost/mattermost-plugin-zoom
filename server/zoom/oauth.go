@@ -21,15 +21,17 @@ const (
 	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 )
 
-type OAuthInfo struct {
+// OAuthUserInfo represents a Zoom user authenticated via OAuth.
+type OAuthUserInfo struct {
 	ZoomEmail  string
 	OAuthToken *oauth2.Token // Zoom OAuth Token, ttl 15 years
 	UserID     string        // Mattermost userID
 	ZoomID     string        // Zoom userID
 }
 
+// OAuthClient represents an OAuth-based Zoom client.
 type OAuthClient struct {
-	info      *OAuthInfo
+	info      *OAuthUserInfo
 	config    *oauth2.Config
 	siteURL   string
 	channelID string
@@ -37,7 +39,7 @@ type OAuthClient struct {
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(info *OAuthInfo, config *oauth2.Config, siteURL, channelID, apiURL string) *OAuthClient {
+func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, channelID, apiURL string) *OAuthClient {
 	return &OAuthClient{info, config, siteURL, channelID, apiURL}
 }
 

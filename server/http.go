@@ -147,14 +147,14 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	info := &zoom.OAuthInfo{
+	info := &zoom.OAuthUserInfo{
 		ZoomEmail:  zoomUser.Email,
 		ZoomID:     zoomUser.ID,
 		UserID:     userID,
 		OAuthToken: token,
 	}
 
-	if err = p.storeOAuthInfo(info); err != nil {
+	if err = p.storeOAuthUserInfo(info); err != nil {
 		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
 		return
 	}
@@ -491,7 +491,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var info zoom.OAuthInfo
+	var info zoom.OAuthUserInfo
 	if err := json.Unmarshal(encoded, &info); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
