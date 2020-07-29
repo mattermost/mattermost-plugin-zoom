@@ -36,10 +36,12 @@ type OAuthClient struct {
 	apiURL    string
 }
 
+// NewOAuthClient creates a new Zoom OAuthClient instance.
 func NewOAuthClient(info *OAuthInfo, config *oauth2.Config, siteURL, channelID, apiURL string) *OAuthClient {
 	return &OAuthClient{info, config, siteURL, channelID, apiURL}
 }
 
+// GetUser returns the Zoom user via OAuth.
 func (c *OAuthClient) GetUser(userID string) (*User, *AuthError) {
 	user, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
 	if err != nil {
@@ -49,6 +51,7 @@ func (c *OAuthClient) GetUser(userID string) (*User, *AuthError) {
 	return user, nil
 }
 
+// GetMeeting returns the Zoom meeting with the given ID via OAuth.
 func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), httpTimeout)
 	defer cancel()

@@ -5,7 +5,7 @@ package zoom
 
 import "time"
 
-// https://marketplace.zoom.us/docs/api-reference/zoom-api/users/users
+// User is defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/users/users
 type User struct {
 	ID                string    `json:"id"`
 	FirstName         string    `json:"first_name"`
