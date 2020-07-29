@@ -19,7 +19,7 @@ import (
 
 const (
 	httpTimeout = time.Second * 10
-	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
 )
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
@@ -32,23 +32,22 @@ type OAuthUserInfo struct {
 
 // OAuthClient represents an OAuth-based Zoom client.
 type OAuthClient struct {
-	info      *OAuthUserInfo
-	config    *oauth2.Config
-	siteURL   string
-	channelID string
-	apiURL    string
+	info    *OAuthUserInfo
+	config  *oauth2.Config
+	siteURL string
+	apiURL  string
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, channelID, apiURL string) *OAuthClient {
-	return &OAuthClient{info, config, siteURL, channelID, apiURL}
+func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, apiURL string) *OAuthClient {
+	return &OAuthClient{info, config, siteURL, apiURL}
 }
 
 // GetUser returns the Zoom user via OAuth.
 func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
 	zoomUser, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
 	if err != nil {
-		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL, c.channelID), err}
+		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
 	}
 
 	return zoomUser, nil

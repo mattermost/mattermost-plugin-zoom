@@ -77,10 +77,9 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 	return nil
 }
 
-func (p *Plugin) storeUserState(userID, channelID string) (string, error) {
-	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
-	state := fmt.Sprintf("%v_%v", key, channelID)
-	if err := p.API.KVSet(key, []byte(state)); err != nil {
+func (p *Plugin) storeUserState(userID string) (string, error) {
+	state := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
+	if err := p.API.KVSet(state, []byte(state)); err != nil {
 		return "", errors.Wrap(err, "could not store user state")
 	}
 

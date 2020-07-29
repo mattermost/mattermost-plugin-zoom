@@ -64,13 +64,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channelID := r.URL.Query().Get("channelID")
-	if channelID == "" {
-		http.Error(w, "channelID missing", http.StatusBadRequest)
-		return
-	}
-
-	state, err := p.storeUserState(userID, channelID)
+	state, err := p.storeUserState(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -350,7 +344,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(user, req.ChannelID)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
 		_, err = w.Write([]byte(`{"meeting_url": ""}`))
 		if err != nil {
@@ -375,7 +369,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) getMeetingURL(user *model.User, meetingID int, channelID string) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
-	client, authErr := p.getActiveClient(user, channelID)
+	client, authErr := p.getActiveClient(user)
 	if authErr != nil {
 		p.API.LogWarn("could not get the active zoom client", "error", authErr.Error())
 		return defaultURL
