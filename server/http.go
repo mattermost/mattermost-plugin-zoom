@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
@@ -463,7 +465,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Payload.UserDataRetention == "false" {
-		if err := p.jwtClient.CompleteCompliance(req.Payload); err != nil {
+		if err := p.completeCompliance(req.Payload); err != nil {
 			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
 		}
 	}
@@ -472,4 +474,35 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) verifyWebhookSecret(r *http.Request) bool {
 	config := p.getConfiguration()
 	return subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) == 1
+}
+
+func (p *Plugin) completeCompliance(payload zoom.DeauthorizationPayload) error {
+	data := zoom.ComplianceRequest{
+		ClientID:                     payload.ClientID,
+		UserID:                       payload.UserID,
+		AccountID:                    payload.AccountID,
+		DeauthorizationEventReceived: payload,
+		ComplianceCompleted:          true,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "could not marshal JSON data")
+	}
+
+	res, err := http.Post(
+		p.getZoomAPIURL()+"/oauth/data/compliance",
+		"application/json",
+		bytes.NewReader(jsonData),
+	)
+	if err != nil {
+		return errors.Wrap(err, "could not make POST request to the data compliance endpoint")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 300 {
+		return errors.Errorf("data compliance request has failed with status code: %d", res.StatusCode)
+	}
+
+	return nil
 }

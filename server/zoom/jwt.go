@@ -37,19 +37,6 @@ func NewJWTClient(zoomAPIURL, apiKey, apiSecret string) *JWTClient {
 	}
 }
 
-func (c *JWTClient) CompleteCompliance(payload DeauthorizationPayload) error {
-	req := complianceRequest{
-		ClientID:                     payload.ClientID,
-		UserID:                       payload.UserID,
-		AccountID:                    payload.AccountID,
-		DeauthorizationEventReceived: payload,
-		ComplianceCompleted:          true,
-	}
-
-	var ret string
-	return c.request(http.MethodPost, "/oauth/data/compliance", req, &ret)
-}
-
 // GetMeeting returns the Zoom meeting with the given ID via JWT authentication.
 func (c *JWTClient) GetMeeting(meetingID int) (*Meeting, error) {
 	var meeting Meeting

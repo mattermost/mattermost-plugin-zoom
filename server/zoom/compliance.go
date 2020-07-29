@@ -1,6 +1,6 @@
 package zoom
 
-type complianceRequest struct {
+type ComplianceRequest struct {
 	ClientID                     string                 `json:"client_id"`
 	UserID                       string                 `json:"user_id"`
 	AccountID                    string                 `json:"account_id"`
