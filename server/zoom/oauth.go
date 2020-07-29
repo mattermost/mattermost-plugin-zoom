@@ -16,7 +16,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const oAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+const OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 
 type OAuthInfo struct {
 	ZoomEmail  string
@@ -40,7 +40,7 @@ func NewOAuthClient(info *OAuthInfo, config *oauth2.Config, siteURL, channelID, 
 func (c *OAuthClient) GetUser(userID string) (*User, *AuthError) {
 	user, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
 	if err != nil {
-		return nil, &AuthError{fmt.Sprintf(oAuthPrompt, c.siteURL, c.channelID), err}
+		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL, c.channelID), err}
 	}
 
 	return user, nil

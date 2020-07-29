@@ -191,7 +191,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string
 	client, err := p.getActiveClient(user, channelID)
 	if err != nil {
 		return nil, &zoom.AuthError{
-			Message: "could not get the active zoom client",
+			Message: fmt.Sprintf(zoom.OAuthPrompt, p.siteURL, channelID),
 			Err:     err,
 		}
 	}
