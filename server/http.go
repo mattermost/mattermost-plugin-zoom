@@ -461,7 +461,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := p.disconnectOAuthUser(info.UserID); err != nil {
+	if err = p.disconnectOAuthUser(info.UserID); err != nil {
 		http.Error(w, "Unable to disconnect user from Zoom", http.StatusInternalServerError)
 		return
 	}
