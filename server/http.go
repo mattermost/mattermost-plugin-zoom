@@ -117,9 +117,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL())
 	user, _ := p.API.GetUser(userID)
-	zoomUser, err := client.GetUser(user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	zoomUser, authErr := client.GetUser(user)
+	if authErr != nil {
+		http.Error(w, authErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
