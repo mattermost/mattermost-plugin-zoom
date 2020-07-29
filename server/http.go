@@ -67,11 +67,6 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("could not get OAuth config: %s", err.Error()), http.StatusInternalServerError)
-	}
-
 	key := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
 	state := fmt.Sprintf("%v_%v", key, channelID)
 
@@ -80,6 +75,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, appErr.Error(), http.StatusInternalServerError)
 	}
 
+	conf := p.getOAuthConfig()
 	url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusFound)
 }
@@ -89,11 +85,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if authedUserID == "" {
 		http.Error(w, "Not authorized, missing Mattermost user id", http.StatusUnauthorized)
 		return
-	}
-
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("could not get OAuth config: %s", err.Error()), http.StatusInternalServerError)
 	}
 
 	code := r.URL.Query().Get("code")
@@ -135,6 +126,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	conf := p.getOAuthConfig()
 	token, err := conf.Exchange(context.Background(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
