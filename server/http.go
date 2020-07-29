@@ -465,7 +465,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
 	}
 
-	if req.Payload.UserDataRetention == "true" {
+	if req.Payload.UserDataRetention == "false" {
 		if err := p.jwtClient.CompleteCompliance(req.Payload); err != nil {
 			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
 		}
