@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -44,13 +45,13 @@ func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, channel
 }
 
 // GetUser returns the Zoom user via OAuth.
-func (c *OAuthClient) GetUser(userID string) (*User, *AuthError) {
-	user, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
+func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
+	zoomUser, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
 	if err != nil {
 		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL, c.channelID), err}
 	}
 
-	return user, nil
+	return zoomUser, nil
 }
 
 // GetMeeting returns the Zoom meeting with the given ID via OAuth.

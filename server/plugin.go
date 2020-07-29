@@ -188,7 +188,7 @@ func (p *Plugin) getOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
 }
 
 func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string) (*zoom.User, *zoom.AuthError) {
-	client, err := p.getActiveClient(user, channelID)
+	zoomClient, err := p.getActiveClient(user, channelID)
 	if err != nil {
 		return nil, &zoom.AuthError{
 			Message: fmt.Sprintf(zoom.OAuthPrompt, p.siteURL, channelID),
@@ -196,7 +196,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string
 		}
 	}
 
-	return client.GetUser(user.Email)
+	return zoomClient.GetUser(user)
 }
 
 func (p *Plugin) disconnect(userID string) error {

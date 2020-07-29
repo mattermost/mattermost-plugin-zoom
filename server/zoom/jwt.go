@@ -50,19 +50,21 @@ func (c *JWTClient) CompleteCompliance(payload DeauthorizationPayload) error {
 	return c.request(http.MethodPost, "/oauth/data/compliance", req, &ret)
 }
 
+// GetMeeting returns the Zoom meeting with the given ID via JWT authentication.
 func (c *JWTClient) GetMeeting(meetingID int) (*Meeting, error) {
 	var meeting Meeting
 	err := c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &meeting)
 	return &meeting, err
 }
 
-func (c *JWTClient) GetUser(userID string) (*User, *AuthError) {
-	var user User
-	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", userID), "", &user); err != nil {
+// GetUser returns the Zoom user via JWT authentication.
+func (c *JWTClient) GetUser(user *model.User) (*User, *AuthError) {
+	var zoomUser User
+	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", user.Email), "", &zoomUser); err != nil {
 		return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
 	}
 
-	return &user, nil
+	return &zoomUser, nil
 }
 
 func (c *JWTClient) generateJWT() (string, error) {
