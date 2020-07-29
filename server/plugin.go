@@ -26,9 +26,6 @@ const (
 	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
 
 	meetingPostIDTTL = 60 * 60 * 24 // One day
-
-	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
-	oAuthPrompt       = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 )
 
 type Plugin struct {
@@ -105,7 +102,7 @@ func (p *Plugin) registerSiteURL() error {
 }
 
 // getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
-func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
+func (p *Plugin) getActiveClient(user *model.User, channelID string) (zoom.Client, error) {
 	config := p.getConfiguration()
 
 	if !config.EnableOAuth {
@@ -125,7 +122,7 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
 	info.OAuthToken.AccessToken = unencryptedToken
 
 	conf := p.getOAuthConfig()
-	return zoom.NewOAuthClient(info, conf, p.siteURL, p.getZoomAPIURL()), nil
+	return zoom.NewOAuthClient(info, conf, p.siteURL, channelID, p.getZoomAPIURL()), nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
@@ -150,26 +147,15 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 }
 
 func (p *Plugin) authenticateAndFetchZoomUser(user *model.User, channelID string) (*zoom.User, *zoom.AuthError) {
-	msg := fmt.Sprintf(zoomEmailMismatch, user.Email)
-	oauthMsg := fmt.Sprintf(oAuthPrompt, p.siteURL, channelID)
-
-	zoomClient, err := p.getActiveClient(user)
+	zoomClient, err := p.getActiveClient(user, channelID)
 	if err != nil {
-		return nil, &zoom.AuthError{Message: oauthMsg, Err: err}
-	}
-
-	zoomUser, err := zoomClient.GetUser(user)
-	if err != nil {
-		// generate the prompt for the user here conditionally to avoid
-		// having to to pass channelID to OAuthClient just so that it can generate an error prompt
-		if p.getConfiguration().EnableOAuth {
-			msg = oauthMsg
+		return nil, &zoom.AuthError{
+			Message: fmt.Sprintf(zoom.OAuthPrompt, p.siteURL, channelID),
+			Err:     err,
 		}
-
-		return nil, &zoom.AuthError{Message: msg, Err: err}
 	}
 
-	return zoomUser, nil
+	return zoomClient.GetUser(user)
 }
 
 func (p *Plugin) sendDirectMessage(userID string, message string) error {

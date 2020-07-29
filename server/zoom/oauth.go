@@ -17,7 +17,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const httpTimeout = time.Second * 10
+const (
+	httpTimeout = time.Second * 10
+	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
+)
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
 type OAuthUserInfo struct {
@@ -29,20 +32,26 @@ type OAuthUserInfo struct {
 
 // OAuthClient represents an OAuth-based Zoom client.
 type OAuthClient struct {
-	info    *OAuthUserInfo
-	config  *oauth2.Config
-	siteURL string
-	apiURL  string
+	info      *OAuthUserInfo
+	config    *oauth2.Config
+	siteURL   string
+	channelID string
+	apiURL    string
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, apiURL string) *OAuthClient {
-	return &OAuthClient{info, config, siteURL, apiURL}
+func NewOAuthClient(info *OAuthUserInfo, config *oauth2.Config, siteURL, channelID, apiURL string) *OAuthClient {
+	return &OAuthClient{info, config, siteURL, channelID, apiURL}
 }
 
 // GetUser returns the Zoom user via OAuth.
-func (c *OAuthClient) GetUser(user *model.User) (*User, error) {
-	return GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
+func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
+	zoomUser, err := GetUserViaOAuth(c.info.OAuthToken, c.config, c.apiURL)
+	if err != nil {
+		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL, c.channelID), err}
+	}
+
+	return zoomUser, nil
 }
 
 // GetMeeting returns the Zoom meeting with the given ID via OAuth.
