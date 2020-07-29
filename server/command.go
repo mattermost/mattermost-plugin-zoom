@@ -73,6 +73,13 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 			return authErr.Message, authErr.Err
 		}
 
+		// store user state to verify a possible user connection attempt in the future
+		if zoomUser == nil {
+			if err := p.storeUserState(userID, args.ChannelId); err != nil {
+				return "Failed to initiate authentication. Please try again.", err
+			}
+		}
+
 		meetingID := zoomUser.Pmi
 
 		err := p.postMeeting(user, meetingID, args.ChannelId, "")

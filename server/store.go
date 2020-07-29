@@ -6,7 +6,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
@@ -14,7 +13,10 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
-const postMeetingKey = "post_meeting_"
+const (
+	zoomStateKeyPrefix = "zoomuserstate"
+	postMeetingKey     = "post_meeting_"
+)
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 	config := p.getConfiguration()
@@ -77,32 +79,24 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 	return nil
 }
 
-func (p *Plugin) storeUserState(userID string) (string, error) {
-	state := fmt.Sprintf("%v_%v", model.NewId()[0:15], userID)
-	if err := p.API.KVSet(state, []byte(state)); err != nil {
-		return "", errors.Wrap(err, "could not store user state")
-	}
-
-	return state, nil
+// storeUserState stores the user state with the corresponding channelID
+func (p *Plugin) storeUserState(userID string, channelID string) error {
+	state := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+	return p.API.KVSet(state, []byte(channelID))
 }
 
-func (p *Plugin) deleteUserState(state string) error {
-	stateComponents := strings.Split(state, "_")
-	key := fmt.Sprintf("%v_%v", stateComponents[0], stateComponents[1])
-	storedState, err := p.API.KVGet(key)
+// deleteUserState deletes the user state from the store and returns channelID from the deleted state
+func (p *Plugin) deleteUserState(state string) (string, error) {
+	channelID, err := p.API.KVGet(state)
 	if err != nil {
-		return errors.Wrap(err, "missing stored state")
-	}
-
-	if string(storedState) != state {
-		return errors.Wrap(err, "invalid state")
+		return "", errors.Wrap(err, "missing stored state")
 	}
 
 	if err = p.API.KVDelete(state); err != nil {
-		return errors.Wrap(err, "failed to delete state from db")
+		return "", errors.Wrap(err, "failed to delete state from db")
 	}
 
-	return nil
+	return string(channelID), nil
 }
 
 func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppError {

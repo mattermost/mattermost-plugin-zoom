@@ -64,11 +64,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	state, err := p.storeUserState(userID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
+	state := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
 	cfg := p.getOAuthConfig()
 	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
 
@@ -91,7 +87,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	state := r.URL.Query().Get("state")
 	stateComponents := strings.Split(state, "_")
 	userID := stateComponents[1]
-	channelID := stateComponents[2]
 
 	if userID != authedUserID {
 		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
@@ -103,7 +98,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "invalid state", http.StatusBadRequest)
 	}
 
-	if err := p.deleteUserState(state); err != nil {
+	channelID, err := p.deleteUserState(state)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
