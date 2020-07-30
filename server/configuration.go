@@ -136,7 +136,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	p.setConfiguration(cfg)
-	p.jwtClient = zoom.NewJWTClient(cfg.ZoomAPIURL, cfg.APIKey, cfg.APISecret)
+	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), cfg.APIKey, cfg.APISecret)
 
 	return nil
 }
