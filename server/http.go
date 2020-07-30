@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	defaultMeetingTopic = "Zoom Meeting"
-	zoomStateLength     = 2
+	defaultMeetingTopic      = "Zoom Meeting"
+	zoomOAuthUserStateLength = 3
 )
 
 type startMeetingRequest struct {
@@ -65,10 +65,15 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	state := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+	// fetch OAuth user state from the KV store that has been saved in '/zoom start' command handler
+	state, appErr := p.fetchOAuthUserState(userID)
+	if appErr != nil {
+		http.Error(w, "missing stored state", http.StatusNotFound)
+		return
+	}
+
 	cfg := p.getOAuthConfig()
 	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
-
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -85,26 +90,21 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	state := r.URL.Query().Get("state")
-	stateComponents := strings.Split(state, "_")
-
-	if len(stateComponents) != zoomStateLength {
-		p.API.LogDebug(fmt.Sprintf("stateComponents: %v, state: %v", stateComponents, state))
-		http.Error(w, "invalid state", http.StatusBadRequest)
+	storedState, appErr := p.fetchOAuthUserState(authedUserID)
+	if appErr != nil {
+		http.Error(w, "missing stored state", http.StatusNotFound)
 		return
 	}
 
-	userID := stateComponents[1]
-	if userID != authedUserID {
-		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
-		return
-	}
-
-	channelID, err := p.deleteUserState(state)
+	userID, channelID, err := parseOAuthUserState(storedState)
 	if err != nil {
-		msg := "failed to delete user state"
-		p.API.LogWarn(msg, "error", err.Error())
-		http.Error(w, msg, http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	state := r.URL.Query().Get("state")
+	if storedState != state {
+		http.Error(w, "OAuth user state mismatch", http.StatusUnauthorized)
 		return
 	}
 
@@ -512,4 +512,14 @@ func (p *Plugin) completeCompliance(payload zoom.DeauthorizationPayload) error {
 	}
 
 	return nil
+}
+
+// parseOAuthUserState parses the user ID and the channel ID from the given OAuth user state.
+func parseOAuthUserState(state string) (userID, channelID string, err error) {
+	stateComponents := strings.Split(state, "_")
+	if len(stateComponents) != zoomOAuthUserStateLength {
+		return "", "", errors.New("invalid OAuth user state")
+	}
+
+	return stateComponents[1], stateComponents[2], nil
 }

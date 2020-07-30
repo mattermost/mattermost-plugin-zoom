@@ -70,7 +70,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 
 		zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 		if authErr != nil {
-			if appErr := p.storeUserState(userID, args.ChannelId); appErr != nil {
+			// the user state will be needed later while connecting the user to Zoom via OAuth
+			if appErr := p.storeOAuthUserState(userID, args.ChannelId); appErr != nil {
 				p.API.LogWarn("failed to store user state")
 			}
 			return authErr.Message, authErr.Err

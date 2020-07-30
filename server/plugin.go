@@ -21,8 +21,6 @@ const (
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
-
-	meetingPostIDTTL = 60 * 60 * 24 // One day
 )
 
 type Plugin struct {
@@ -159,7 +157,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zo
 func (p *Plugin) sendDirectMessage(userID string, message string) error {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserID)
 	if err != nil {
-		msg := fmt.Sprintf("could not get DM channel for bot ID: %s", p.botUserID)
+		msg := fmt.Sprintf("could not get or create DM channel for bot with ID: %s", p.botUserID)
 		p.API.LogInfo(msg, "user_id", userID)
 		return errors.Wrap(err, msg)
 	}

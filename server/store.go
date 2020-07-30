@@ -18,6 +18,9 @@ const (
 	zoomStateKeyPrefix = "zoomuserstate"
 	zoomUserByMMID     = "zoomtoken_"
 	zoomUserByZoomID   = "zoomtokenbyzoomid_"
+
+	meetingPostIDTTL  = 60 * 60 * 24 // One day
+	oAuthUserStateTTL = 60 * 5       // 5 minutes
 )
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
@@ -81,24 +84,23 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 	return nil
 }
 
-// storeUserState stores the user state with the corresponding channelID
-func (p *Plugin) storeUserState(userID string, channelID string) error {
-	state := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
-	return p.API.KVSet(state, []byte(channelID))
+// storeOAuthUserState generates an OAuth user state that contains the user ID & channel ID,
+// then stores it in the KV store with and expiry of 5 minutes.
+func (p *Plugin) storeOAuthUserState(userID string, channelID string) *model.AppError {
+	key := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+	state := fmt.Sprintf("%s_%s_%s", model.NewId()[0:15], userID, channelID)
+	return p.API.KVSetWithExpiry(key, []byte(state), oAuthUserStateTTL)
 }
 
-// deleteUserState deletes the user state from the store and returns channelID from the deleted state
-func (p *Plugin) deleteUserState(state string) (string, error) {
-	channelID, err := p.API.KVGet(state)
+// fetchOAuthUserState retrieves the OAuth user state from the KV store by the user ID.
+func (p *Plugin) fetchOAuthUserState(userID string) (string, *model.AppError) {
+	key := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+	state, err := p.API.KVGet(key)
 	if err != nil {
-		return "", errors.Wrap(err, "missing stored state")
+		return "", err
 	}
 
-	if err = p.API.KVDelete(state); err != nil {
-		return "", errors.Wrap(err, "failed to delete state from db")
-	}
-
-	return string(channelID), nil
+	return string(state), nil
 }
 
 func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppError {
