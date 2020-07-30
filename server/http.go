@@ -119,7 +119,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	user, _ := p.API.GetUser(userID)
 	zoomUser, authErr := client.GetUser(user)
 	if authErr != nil {
-		p.API.LogWarn("failed to get user", "error", err.Error())
+		p.API.LogWarn("failed to get user", "error", authErr.Error())
 		http.Error(w, authErr.Error(), http.StatusInternalServerError)
 		return
 	}
