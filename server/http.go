@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
 	"net/http"
 	"strings"
@@ -26,7 +25,7 @@ import (
 
 const (
 	defaultMeetingTopic = "Zoom Meeting"
-	zoomStateLength     = 3
+	zoomStateLength     = 2
 )
 
 type startMeetingRequest struct {
@@ -88,27 +87,30 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	state := r.URL.Query().Get("state")
 	stateComponents := strings.Split(state, "_")
-	userID := stateComponents[1]
 
+	if len(stateComponents) != zoomStateLength {
+		p.API.LogWarn(fmt.Sprintf("stateComponents: %v, state: %v", stateComponents, state))
+		http.Error(w, "invalid state", http.StatusBadRequest)
+	}
+
+	userID := stateComponents[1]
 	if userID != authedUserID {
 		http.Error(w, "Not authorized, incorrect user", http.StatusUnauthorized)
 		return
 	}
 
-	if len(stateComponents) != zoomStateLength {
-		log.Printf("stateComponents: %v, state: %v", stateComponents, state)
-		http.Error(w, "invalid state", http.StatusBadRequest)
-	}
-
 	channelID, err := p.deleteUserState(state)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		msg := "failed to delete user state"
+		p.API.LogWarn(msg, "error", err.Error())
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
 	conf := p.getOAuthConfig()
 	token, err := conf.Exchange(context.Background(), code)
 	if err != nil {
+		p.API.LogWarn("failed to create access token", "error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -117,6 +119,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	user, _ := p.API.GetUser(userID)
 	zoomUser, authErr := client.GetUser(user)
 	if authErr != nil {
+		p.API.LogWarn("failed to get user", "error", err.Error())
 		http.Error(w, authErr.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -129,11 +132,14 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err = p.storeOAuthUserInfo(info); err != nil {
-		http.Error(w, "Unable to connect user to Zoom", http.StatusInternalServerError)
+		msg := "Unable to connect user to Zoom"
+		p.API.LogWarn(msg, "error", err.Error())
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 
 	if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
+		p.API.LogWarn("Failed to post meeting", "error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
