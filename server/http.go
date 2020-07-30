@@ -89,8 +89,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	stateComponents := strings.Split(state, "_")
 
 	if len(stateComponents) != zoomStateLength {
-		p.API.LogWarn(fmt.Sprintf("stateComponents: %v, state: %v", stateComponents, state))
+		p.API.LogDebug(fmt.Sprintf("stateComponents: %v, state: %v", stateComponents, state))
 		http.Error(w, "invalid state", http.StatusBadRequest)
+		return
 	}
 
 	userID := stateComponents[1]
@@ -267,7 +268,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 }
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) error {
-	meetingURL := p.getMeetingURL(creator, meetingID, channelID)
+	meetingURL := p.getMeetingURL(creator, meetingID)
 
 	if topic == "" {
 		topic = defaultMeetingTopic
@@ -365,14 +366,14 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meetingURL := p.getMeetingURL(user, meetingID, req.ChannelID)
+	meetingURL := p.getMeetingURL(user, meetingID)
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
 
-func (p *Plugin) getMeetingURL(user *model.User, meetingID int, channelID string) string {
+func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
 	client, authErr := p.getActiveClient(user)
 	if authErr != nil {
@@ -394,7 +395,7 @@ func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, user
 		p.API.LogDebug("error fetching user on postConfirm", "error", err.Error())
 	}
 
-	meetingURL := p.getMeetingURL(creator, meetingID, channelID)
+	meetingURL := p.getMeetingURL(creator, meetingID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
@@ -454,7 +455,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	info, err := p.fetchOAuthUserInfo(zoomTokenKeyByZoomID, req.Payload.UserID)
+	info, err := p.fetchOAuthUserInfo(zoomUserByZoomID, req.Payload.UserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

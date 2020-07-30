@@ -14,8 +14,10 @@ import (
 )
 
 const (
-	zoomStateKeyPrefix = "zoomuserstate"
 	postMeetingKey     = "post_meeting_"
+	zoomStateKeyPrefix = "zoomuserstate"
+	zoomUserByMMID     = "zoomtoken_"
+	zoomUserByZoomID   = "zoomtokenbyzoomid_"
 )
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
@@ -32,11 +34,11 @@ func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 		return err
 	}
 
-	if err := p.API.KVSet(zoomTokenKey+info.UserID, encoded); err != nil {
+	if err := p.API.KVSet(zoomUserByMMID+info.UserID, encoded); err != nil {
 		return err
 	}
 
-	if err := p.API.KVSet(zoomTokenKeyByZoomID+info.ZoomID, encoded); err != nil {
+	if err := p.API.KVSet(zoomUserByZoomID+info.ZoomID, encoded); err != nil {
 		return err
 	}
 
@@ -58,7 +60,7 @@ func (p *Plugin) fetchOAuthUserInfo(tokenKey, userID string) (*zoom.OAuthUserInf
 }
 
 func (p *Plugin) disconnectOAuthUser(userID string) error {
-	encoded, err := p.API.KVGet(zoomTokenKey + userID)
+	encoded, err := p.API.KVGet(zoomUserByMMID + userID)
 	if err != nil {
 		return errors.Wrap(err, "could not find OAuth user info")
 	}
@@ -68,8 +70,8 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 		return errors.Wrap(err, "could not decode OAuth user info")
 	}
 
-	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
-	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + info.ZoomID)
+	errByMattermostID := p.API.KVDelete(zoomUserByMMID + userID)
+	errByZoomID := p.API.KVDelete(zoomUserByZoomID + info.ZoomID)
 	if errByMattermostID != nil {
 		return errByMattermostID
 	}

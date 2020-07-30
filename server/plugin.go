@@ -22,9 +22,6 @@ const (
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
-	zoomTokenKey         = "zoomtoken_"
-	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
-
 	meetingPostIDTTL = 60 * 60 * 24 // One day
 )
 
@@ -109,7 +106,7 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
 		return p.jwtClient, nil
 	}
 
-	info, err := p.fetchOAuthUserInfo(zoomTokenKey, user.Id)
+	info, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not fetch Zoom OAuth info")
 	}
@@ -120,7 +117,6 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
 	}
 
 	info.OAuthToken.AccessToken = plainToken
-
 	conf := p.getOAuthConfig()
 	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL()), nil
 }
@@ -146,9 +142,11 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 	}
 }
 
+// authenticateAndFetchZoomUser uses the active Zoom client to authenticate and return the Zoom user
 func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zoom.AuthError) {
 	zoomClient, err := p.getActiveClient(user)
 	if err != nil {
+		// this error will occur if the active client is the OAuth client and the user isn't connected
 		return nil, &zoom.AuthError{
 			Message: fmt.Sprintf(zoom.OAuthPrompt, p.siteURL),
 			Err:     err,
@@ -161,7 +159,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zo
 func (p *Plugin) sendDirectMessage(userID string, message string) error {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserID)
 	if err != nil {
-		msg := "could not get bot's DM channel"
+		msg := fmt.Sprintf("could not get DM channel for bot ID: %s", p.botUserID)
 		p.API.LogInfo(msg, "user_id", userID)
 		return errors.Wrap(err, msg)
 	}
