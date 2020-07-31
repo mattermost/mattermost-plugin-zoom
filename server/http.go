@@ -108,6 +108,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if appErr := p.deleteUserState(userID); err != nil {
+		p.API.LogWarn("failed to delete OAuth user state from KV store", "error", appErr.Error())
+	}
+
 	conf := p.getOAuthConfig()
 	token, err := conf.Exchange(context.Background(), code)
 	if err != nil {

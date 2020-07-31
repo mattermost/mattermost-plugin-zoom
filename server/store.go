@@ -87,20 +87,26 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 // storeOAuthUserState generates an OAuth user state that contains the user ID & channel ID,
 // then stores it in the KV store with and expiry of 5 minutes.
 func (p *Plugin) storeOAuthUserState(userID string, channelID string) *model.AppError {
-	key := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+	key := getOAuthUserStateKey(userID)
 	state := fmt.Sprintf("%s_%s_%s", model.NewId()[0:15], userID, channelID)
 	return p.API.KVSetWithExpiry(key, []byte(state), oAuthUserStateTTL)
 }
 
 // fetchOAuthUserState retrieves the OAuth user state from the KV store by the user ID.
 func (p *Plugin) fetchOAuthUserState(userID string) (string, *model.AppError) {
-	key := fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+	key := getOAuthUserStateKey(userID)
 	state, err := p.API.KVGet(key)
 	if err != nil {
 		return "", err
 	}
 
 	return string(state), nil
+}
+
+// deleteUserState deletes the stored the OAuth user state from the KV store for the given userID.
+func (p *Plugin) deleteUserState(userID string) *model.AppError {
+	key := getOAuthUserStateKey(userID)
+	return p.API.KVDelete(key)
 }
 
 func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppError {
@@ -128,4 +134,9 @@ func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) 
 func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", postMeetingKey, postID)
 	return p.API.KVDelete(key)
+}
+
+// getOAuthUserStateKey generates and returns the key for storing the OAuth user state in the KV store.
+func getOAuthUserStateKey(userID string) string {
+	return fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
 }
