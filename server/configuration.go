@@ -138,6 +138,11 @@ func (p *Plugin) OnConfigurationChange() error {
 	p.setConfiguration(cfg)
 	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), cfg.APIKey, cfg.APISecret)
 
+	// re-register the plugin command here as a configuration update might change the available commands
+	if err := p.API.RegisterCommand(p.getCommand()); err != nil {
+		return errors.Wrap(err, "OnConfigurationChange: failed to register command")
+	}
+
 	return nil
 }
 
