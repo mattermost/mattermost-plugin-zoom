@@ -88,7 +88,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "couldn't get bundle path")
 	}
 
-	if err = p.API.RegisterCommand(getCommand()); err != nil {
+	if err = p.API.RegisterCommand(p.getCommand()); err != nil {
 		return errors.WithMessage(err, "OnActivate: failed to register command")
 	}
 
