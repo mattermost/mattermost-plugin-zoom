@@ -41,6 +41,12 @@ type Plugin struct {
 	siteURL string
 }
 
+// Client defines a common interface for the API and OAuth Zoom clients
+type Client interface {
+	GetMeeting(meetingID int) (*zoom.Meeting, error)
+	GetUser(user *model.User) (*zoom.User, *zoom.AuthError)
+}
+
 // OnActivate checks if the configurations is valid and ensures the bot account exists
 func (p *Plugin) OnActivate() error {
 	config := p.getConfiguration()
@@ -97,7 +103,7 @@ func (p *Plugin) registerSiteURL() error {
 }
 
 // getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
-func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, error) {
+func (p *Plugin) getActiveClient(user *model.User) (Client, error) {
 	config := p.getConfiguration()
 
 	if !config.EnableOAuth {

@@ -124,10 +124,10 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
-	var cfg = new(configuration)
+	var configuration = new(configuration)
 
 	// Load the public configuration fields from the Mattermost server configuration.
-	if err := p.API.LoadPluginConfiguration(cfg); err != nil {
+	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 
@@ -135,8 +135,8 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "could not register site URL")
 	}
 
-	p.setConfiguration(cfg)
-	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), cfg.APIKey, cfg.APISecret)
+	p.setConfiguration(configuration)
+	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), configuration.APIKey, configuration.APISecret)
 
 	return nil
 }
