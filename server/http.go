@@ -332,6 +332,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 			"meeting_personal":         true,
 			"meeting_topic":            topic,
 			"meeting_creator_username": creator.Username,
+			"meeting_provider":         zoomProviderName,
 		},
 	}
 
@@ -374,7 +375,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Query().Get("force") == "" {
-		recentMeeting, recentMeetindID, creatorName, cpmErr := p.checkPreviousMessages(req.ChannelID)
+		recentMeeting, recentMeetingLink, creatorName, provider, cpmErr := p.checkPreviousMessages(req.ChannelID)
 		if cpmErr != nil {
 			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
 			return
@@ -385,7 +386,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
-			p.postConfirm(recentMeetindID, req.ChannelID, req.Topic, userID, creatorName)
+			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, creatorName, provider)
 			return
 		}
 	}
@@ -440,30 +441,25 @@ func (p *Plugin) getMeetingURL(meetingID int, userID string) string {
 	return fmt.Sprintf("%s/j/%v", zoomURL, meetingID)
 }
 
-func (p *Plugin) postConfirm(meetingID int, channelID string, topic string, userID string, creatorName string) *model.Post {
-	creator, err := p.API.GetUserByUsername(creatorName)
-	if err != nil {
-		p.API.LogDebug("error fetching user on postConfirm", "error", err.Error())
+func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string, userID string, creatorName string, provider string) *model.Post {
+	message := "There is another recent meeting created on this channel."
+	if provider != zoomProviderName {
+		message = fmt.Sprintf("There is another recent meeting created on this channel with %s.", provider)
 	}
-	creatorID := ""
-	if creator != nil {
-		creatorID = creator.Id
-	}
-	meetingURL := p.getMeetingURL(meetingID, creatorID)
 
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channelID,
-		Message:   "There is another recent meeting created on this channel.",
+		Message:   message,
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
 			"type":                     "custom_zoom",
-			"meeting_id":               meetingID,
-			"meeting_link":             meetingURL,
+			"meeting_link":             meetingLink,
 			"meeting_status":           zoom.RecentlyCreated,
 			"meeting_personal":         true,
 			"meeting_topic":            topic,
 			"meeting_creator_username": creatorName,
+			"meeting_provider":         provider,
 		},
 	}
 
@@ -480,21 +476,34 @@ func (p *Plugin) postAuthenticationMessage(channelID string, userID string, mess
 	return p.API.SendEphemeralPost(userID, post)
 }
 
-func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetindID int, creatorName string, err *model.AppError) {
+func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, meetingLink string, creatorName string, provider string, err *model.AppError) {
 	var zoomMeetingTimeWindow int64 = 30 // 30 seconds
 
 	postList, appErr := p.API.GetPostsSince(channelID, (time.Now().Unix()-zoomMeetingTimeWindow)*1000)
 	if appErr != nil {
-		return false, 0, "", appErr
+		return false, "", "", "", appErr
 	}
 
 	for _, post := range postList.ToSlice() {
-		if meetingID, ok := post.Props["meeting_id"]; ok {
-			return true, int(meetingID.(float64)), post.Props["meeting_creator_username"].(string), nil
+		if meetingProvider, ok := post.Props["meeting_provider"]; ok {
+			if meetingProvider == zoomProviderName {
+				if meetingLink, ok := post.Props["meeting_link"]; ok {
+					return true, meetingLink.(string), post.Props["meeting_creator_username"].(string), meetingProvider.(string), nil
+				}
+			} else {
+				if meetingLink, ok := post.Props["meeting_link"]; ok {
+					creatorNameInt, hasCreatorName := post.Props["meeting_creator_username"]
+					creatorName := ""
+					if hasCreatorName {
+						creatorName = creatorNameInt.(string)
+					}
+					return true, meetingLink.(string), creatorName, meetingProvider.(string), nil
+				}
+			}
 		}
 	}
 
-	return false, 0, "", nil
+	return false, "", "", "", nil
 }
 
 func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
