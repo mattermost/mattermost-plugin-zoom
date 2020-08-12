@@ -5,7 +5,7 @@
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
     "icon_path": "assets/profile.svg",
-    "version": "1.3.1",
+    "version": "1.4.1",
     "min_server_version": "5.12.0",
     "server": {
         "executables": {
@@ -37,7 +37,7 @@
                 "key": "EnableOAuth",
                 "display_name": "Enable OAuth (Beta)",
                 "type": "bool",
-                "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n Only Enable OAuth OR Password based authentication. Not both. If you are currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
+                "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n When false, JWT will be used as the authentication means with Zoom. \n If you are currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
                 "default": false
             },
             {
@@ -58,13 +58,6 @@
                 "type": "generated",
                 "help_text": "The AES encryption key used to encrypt stored access tokens.",
                 "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth Token. Regenerating the key invalidates your existing Zoom OAuth."
-            },
-            {
-                "key": "EnableLegacyAuth",
-                "display_name": "Enable Password based authentication",
-                "type": "bool",
-                "help_text": "When true, user's email and password will be used to authenticate with Zoom. \n Only Enable OAuth OR Password based authentication. Not both. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
-                "default": true
             },
             {
                 "key": "APIKey",

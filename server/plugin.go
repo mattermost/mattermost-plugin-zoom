@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -37,6 +38,8 @@ const (
 	zoomStateLength   = 3
 	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
+
+	meetingPostIDTTL = 60 * 60 * 24 // One day
 )
 
 type Plugin struct {
@@ -81,7 +84,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "couldn't get bundle path")
 	}
 
-	if err = p.API.RegisterCommand(getCommand()); err != nil {
+	if err = p.API.RegisterCommand(p.getCommand()); err != nil {
 		return errors.WithMessage(err, "OnActivate: failed to register command")
 	}
 
@@ -273,7 +276,7 @@ func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID strin
 		if err != nil || zoomUser == nil {
 			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
 		}
-	} else if config.EnableLegacyAuth {
+	} else {
 		// use personal credentials
 		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
 		if clientErr != nil {
@@ -346,6 +349,56 @@ func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
 	}
 
 	return &zoomUser, nil
+}
+
+func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, error) {
+	config := p.getConfiguration()
+	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunct()
+
+	conf, err := p.getOAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
+	apiURL := config.ZoomAPIURL
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
+	}
+
+	url := fmt.Sprintf("%v/meetings/%v", apiURL, meetingID)
+	res, err := client.Get(url)
+
+	if err != nil {
+		return nil, errors.New("error fetching zoom user, err=" + err.Error())
+	}
+	if res == nil {
+		return nil, errors.New("error fetching zoom user, empty result returned")
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("error fetching zoom user")
+	}
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.New("error reading response body for zoom user")
+	}
+
+	var ret zoom.Meeting
+
+	if err := json.Unmarshal(buf, &ret); err != nil {
+		return nil, errors.New("error unmarshalling zoom user")
+	}
+
+	return &ret, nil
 }
 
 func (p *Plugin) dm(userID string, message string) error {
