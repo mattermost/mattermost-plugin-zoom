@@ -496,8 +496,7 @@ func (p *Plugin) handleWebappStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		PostID    string `json:"post_id"`
-		ChannelID string `json:"channel_id"`
+		PostID string `json:"post_id"`
 	}
 	var err error
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -543,7 +542,7 @@ func (p *Plugin) handleWebappStart(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
-		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
+		p.postAuthenticationMessage(channelID, userID, authErr.Message)
 		return
 	}
 
