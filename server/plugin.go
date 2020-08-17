@@ -88,11 +88,15 @@ func (p *Plugin) OnActivate() error {
 		return errors.WithMessage(err, "OnActivate: failed to register command")
 	}
 
-	if err = p.API.RegisterPluginIntegration(p.getMobileChannelHeaderIntegration()); err != nil {
+	if err = p.API.RegisterPluginIntegration(p.getChannelHeaderIntegration()); err != nil {
 		return errors.WithMessage(err, "OnActivate: failed to register mobile trigger")
 	}
 
-	if err = p.API.RegisterPluginIntegration(p.getWebappPostMenuIntegration()); err != nil {
+	if err = p.API.RegisterPluginIntegration(p.getPostMenuIntegration()); err != nil {
+		return errors.WithMessage(err, "OnActivate: failed to register mobile trigger")
+	}
+
+	if err = p.API.RegisterPluginIntegration(p.getSettingsMenuIntegration()); err != nil {
 		return errors.WithMessage(err, "OnActivate: failed to register mobile trigger")
 	}
 
@@ -110,29 +114,51 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-func (p *Plugin) getMobileChannelHeaderIntegration() *model.PluginIntegration {
+func (p *Plugin) getChannelHeaderIntegration() *model.PluginIntegration {
 	return &model.PluginIntegration{
 		PluginID:   manifest.ID,
-		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/mobile/start",
+		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/start/channelHeader",
 		Location:   "CHANNEL_HEADER",
-		Scope:      []string{model.ScopeMobile},
-		// Extra: &model.MobileTriggerChannelHeader{
-		// 	DefaultMessage: "Start Zoom call",
-		// },
-		Extra: "Start Zoom call",
+		Scope:      []string{model.ScopeMobile, model.ScopeWebApp},
+		Extra: struct {
+			Icon string "json:\"icon\""
+			Text string "json:\"text\""
+		}{
+			Text: "Start Zoom call",
+			Icon: "https://images-na.ssl-images-amazon.com/images/I/61DZY6oW0PL.png",
+		},
 	}
 }
 
-func (p *Plugin) getWebappPostMenuIntegration() *model.PluginIntegration {
+func (p *Plugin) getPostMenuIntegration() *model.PluginIntegration {
 	return &model.PluginIntegration{
 		PluginID:   manifest.ID,
-		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/webapp/start",
+		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/start/postMenu",
 		Location:   "POST_ACTION",
-		Scope:      []string{model.ScopeWebApp},
-		// Extra: &model.PluginIntegrationPostAction{
-		// 	DefaultMessage: "Start Zoom call",
-		// },
-		Extra: "Start Zoom call",
+		Scope:      []string{model.ScopeMobile, model.ScopeWebApp},
+		Extra: struct {
+			Icon string "json:\"icon\""
+			Text string "json:\"text\""
+		}{
+			Text: "Add todo",
+			Icon: "https://cocomaterial.com/media/school_note_write_pencil.svg",
+		},
+	}
+}
+
+func (p *Plugin) getSettingsMenuIntegration() *model.PluginIntegration {
+	return &model.PluginIntegration{
+		PluginID:   manifest.ID,
+		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/start/settings",
+		Location:   "SETTINGS",
+		Scope:      []string{model.ScopeMobile, model.ScopeWebApp},
+		Extra: struct {
+			Icon string "json:\"icon\""
+			Text string "json:\"text\""
+		}{
+			Text: "MS Calendar settings",
+			Icon: "https://f0.pngfuel.com/png/516/608/blue-office-logo-png-clip-art-thumbnail.png",
+		},
 	}
 }
 

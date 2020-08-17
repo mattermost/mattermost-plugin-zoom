@@ -36,10 +36,12 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.handleWebhook(w, r)
 	case "/api/v1/meetings":
 		p.handleStartMeeting(w, r)
-	case "/mobile/start":
-		p.handleMobileStart(w, r)
-	case "/webapp/start":
-		p.handleWebappStart(w, r)
+	case "/start/channelHeader":
+		p.handleActionStart(w, r)
+	case "/start/postMenu":
+		p.handlePostStart(w, r)
+	case "/start/settings":
+		p.handleSettingsStart(w, r)
 	case "/oauth2/connect":
 		p.connectUserToZoom(w, r)
 	case "/oauth2/complete":
@@ -420,7 +422,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) handleMobileStart(w http.ResponseWriter, r *http.Request) {
+func (p *Plugin) handleActionStart(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-Id")
 	if userID == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
@@ -488,7 +490,7 @@ func (p *Plugin) handleMobileStart(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) handleWebappStart(w http.ResponseWriter, r *http.Request) {
+func (p *Plugin) handlePostStart(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-Id")
 	if userID == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
@@ -503,60 +505,34 @@ func (p *Plugin) handleWebappStart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	p.API.LogError(req.PostID)
 
-	user, appErr := p.API.GetUser(userID)
-	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
+	p.API.LogDebug("Action performed from post", "postID", req.PostID)
+
+	_, err = w.Write([]byte(fmt.Sprintf(`{"action": "RESET_TO_CHANNEL"}`)))
+	if err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
+}
+
+func (p *Plugin) handleSettingsStart(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-Id")
+	if userID == "" {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
 
-	post, appErr := p.API.GetPost(req.PostID)
-	channelID := post.ChannelId
-
-	if _, appErr = p.API.GetChannelMember(channelID, userID); appErr != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+	var req struct {
+		TeamID string `json:"team_id"`
+	}
+	var err error
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if r.URL.Query().Get("force") == "" {
-		recentMeeting, recentMeetindID, creatorName, cpmErr := p.checkPreviousMessages(channelID)
-		if cpmErr != nil {
-			http.Error(w, cpmErr.Error(), cpmErr.StatusCode)
-			return
-		}
+	p.API.LogDebug("Action performed from settings", "teamID", req.TeamID)
 
-		if recentMeeting {
-			_, err = w.Write([]byte(`{"action": "RESET_TO_CHANNEL", "meeting_url": ""}`))
-			if err != nil {
-				p.API.LogWarn("failed to write response", "error", err.Error())
-			}
-			p.postConfirm(recentMeetindID, channelID, "", userID, creatorName)
-			return
-		}
-	}
-
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, channelID)
-	if authErr != nil {
-		_, err = w.Write([]byte(`{"action": "RESET_TO_CHANNEL", "meeting_url": ""}`))
-		if err != nil {
-			p.API.LogWarn("failed to write response", "error", err.Error())
-		}
-		p.postAuthenticationMessage(channelID, userID, authErr.Message)
-		return
-	}
-
-	meetingID := zoomUser.Pmi
-
-	err = p.postMeeting(user, meetingID, channelID, "")
-	if appErr != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	meetingURL := p.getMeetingURL(meetingID, userID)
-
-	_, err = w.Write([]byte(fmt.Sprintf(`{"action": "RESET_TO_CHANNEL", "meeting_url": "%s"}`, meetingURL)))
+	_, err = w.Write([]byte(fmt.Sprintf(`{"action": "RESET_TO_CHANNEL"}`)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
