@@ -115,15 +115,20 @@ func (p *Plugin) OnActivate() error {
 }
 
 func (p *Plugin) getChannelHeaderIntegration() *model.PluginIntegration {
+	config := p.API.GetConfig()
+	baseURL := ""
+	if config != nil {
+		if config.ServiceSettings.SiteURL != nil {
+			baseURL = *config.ServiceSettings.SiteURL
+		}
+	}
+
 	return &model.PluginIntegration{
 		PluginID:   manifest.ID,
-		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/start/channelHeader",
+		RequestURL: baseURL + "/plugins/zoom/start/channelHeader",
 		Location:   "CHANNEL_HEADER",
 		Scope:      []string{model.ScopeMobile, model.ScopeWebApp},
-		Extra: struct {
-			Icon string "json:\"icon\""
-			Text string "json:\"text\""
-		}{
+		Extra: &model.MobileIntegrationChannelHeader{
 			Text: "Start Zoom call",
 			Icon: "https://images-na.ssl-images-amazon.com/images/I/61DZY6oW0PL.png",
 		},
@@ -131,33 +136,43 @@ func (p *Plugin) getChannelHeaderIntegration() *model.PluginIntegration {
 }
 
 func (p *Plugin) getPostMenuIntegration() *model.PluginIntegration {
+	config := p.API.GetConfig()
+	baseURL := ""
+	if config != nil {
+		if config.ServiceSettings.SiteURL != nil {
+			baseURL = *config.ServiceSettings.SiteURL
+		}
+	}
+
 	return &model.PluginIntegration{
 		PluginID:   manifest.ID,
-		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/start/postMenu",
+		RequestURL: baseURL + "/plugins/zoom/start/postMenu",
 		Location:   "POST_ACTION",
 		Scope:      []string{model.ScopeMobile, model.ScopeWebApp},
-		Extra: struct {
-			Icon string "json:\"icon\""
-			Text string "json:\"text\""
-		}{
+		Extra: &model.MobileIntegrationPostAction{
 			Text: "Add todo",
-			Icon: "https://cocomaterial.com/media/school_note_write_pencil.svg",
+			Icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/GNOME_Todo_icon_2019.svg/1200px-GNOME_Todo_icon_2019.svg.png",
 		},
 	}
 }
 
 func (p *Plugin) getSettingsMenuIntegration() *model.PluginIntegration {
+	config := p.API.GetConfig()
+	baseURL := ""
+	if config != nil {
+		if config.ServiceSettings.SiteURL != nil {
+			baseURL = *config.ServiceSettings.SiteURL
+		}
+	}
+
 	return &model.PluginIntegration{
 		PluginID:   manifest.ID,
-		RequestURL: *p.API.GetConfig().ServiceSettings.SiteURL + "/plugins/zoom/start/settings",
+		RequestURL: baseURL + "/plugins/zoom/start/settings",
 		Location:   "SETTINGS",
 		Scope:      []string{model.ScopeMobile, model.ScopeWebApp},
-		Extra: struct {
-			Icon string "json:\"icon\""
-			Text string "json:\"text\""
-		}{
+		Extra: &model.MobileIntegrationSettings{
 			Text: "MS Calendar settings",
-			Icon: "https://f0.pngfuel.com/png/516/608/blue-office-logo-png-clip-art-thumbnail.png",
+			Icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg/1200px-Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg.png",
 		},
 	}
 }
