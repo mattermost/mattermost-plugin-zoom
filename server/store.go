@@ -73,14 +73,16 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 		return errors.Wrap(err, "could not decode OAuth user info")
 	}
 
-	errByMattermostID := p.API.KVDelete(zoomUserByMMID + userID)
-	errByZoomID := p.API.KVDelete(zoomUserByZoomID + info.ZoomID)
-	if errByMattermostID != nil {
-		return errByMattermostID
+	appErr := p.API.KVDelete(zoomUserByMMID + userID)
+	if appErr != nil {
+		return appErr
 	}
-	if errByZoomID != nil {
-		return errByZoomID
+
+	appErr = p.API.KVDelete(zoomUserByZoomID + info.ZoomID)
+	if appErr != nil {
+		return appErr
 	}
+
 	return nil
 }
 
