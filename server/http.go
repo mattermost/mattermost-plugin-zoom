@@ -508,7 +508,7 @@ func (p *Plugin) handlePostStart(w http.ResponseWriter, r *http.Request) {
 
 	p.API.LogDebug("Action performed from post", "postID", req.PostID)
 
-	_, err = w.Write([]byte(fmt.Sprintf(`{"action": "RESET_TO_CHANNEL"}`)))
+	_, err = w.Write([]byte(`{"action": "RESET_TO_CHANNEL"}`))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
@@ -532,7 +532,7 @@ func (p *Plugin) handleSettingsStart(w http.ResponseWriter, r *http.Request) {
 
 	p.API.LogDebug("Action performed from settings", "teamID", req.TeamID)
 
-	_, err = w.Write([]byte(fmt.Sprintf(`{"action": "RESET_TO_CHANNEL"}`)))
+	_, err = w.Write([]byte(`{"action": "RESET_TO_CHANNEL"}`))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
