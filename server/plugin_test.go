@@ -87,6 +87,8 @@ func TestPlugin(t *testing.T) {
 				Email: "theuseremail",
 			}, nil)
 
+			api.On("RegisterPluginIntegration", mock.Anything).Return(nil)
+
 			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
 
 			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
