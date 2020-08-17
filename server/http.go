@@ -360,6 +360,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			p.API.LogWarn("failed to write response", "error", err.Error())
 		}
+
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(userID, req.ChannelID); appErr != nil {
+			p.API.LogWarn("failed to store user state")
+		}
+
 		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
 		return
 	}
