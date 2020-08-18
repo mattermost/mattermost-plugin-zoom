@@ -485,25 +485,32 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 	}
 
 	for _, post := range postList.ToSlice() {
-		if meetingProvider, ok := post.Props["meeting_provider"]; ok {
-			if meetingProvider == zoomProviderName {
-				if meetingLink, ok := post.Props["meeting_link"]; ok {
-					return true, meetingLink.(string), post.Props["meeting_creator_username"].(string), meetingProvider.(string), nil
-				}
-			} else {
-				if meetingLink, ok := post.Props["meeting_link"]; ok {
-					creatorNameInt, hasCreatorName := post.Props["meeting_creator_username"]
-					creatorName := ""
-					if hasCreatorName {
-						creatorName = creatorNameInt.(string)
-					}
-					return true, meetingLink.(string), creatorName, meetingProvider.(string), nil
-				}
-			}
+		meetingProvider := getString("meeting_provider", post.Props)
+		if meetingProvider == "" {
+			continue
 		}
+
+		meetingLink := getString("meeting_link", post.Props)
+		if meetingLink == "" {
+			continue
+		}
+
+		creator := getString("meeting_creator_username", post.Props)
+
+		return true, meetingLink, creator, meetingProvider, nil
 	}
 
 	return false, "", "", "", nil
+}
+
+func getString(key string, props model.StringInterface) string {
+	value := ""
+	if valueInterface, ok := props[key]; ok {
+		if valueString, ok := valueInterface.(string); ok {
+			value = valueString
+		}
+	}
+	return value
 }
 
 func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
