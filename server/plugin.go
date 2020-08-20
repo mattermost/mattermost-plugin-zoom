@@ -110,6 +110,17 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
+func (p *Plugin) OnDeactivate() error {
+	if p.telemetryClient != nil {
+		err := p.telemetryClient.Close()
+		if err != nil {
+			p.API.LogWarn("OnDeactivate: failed to close telemetryClient", "error", err.Error())
+		}
+	}
+
+	return nil
+}
+
 func (p *Plugin) getSiteURL() (string, error) {
 	siteURLRef := p.API.GetConfig().ServiceSettings.SiteURL
 	if siteURLRef == nil || *siteURLRef == "" {
