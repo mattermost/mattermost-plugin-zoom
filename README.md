@@ -14,7 +14,7 @@ Start and join voice calls, video calls and use screen sharing with your team me
 Usage & Setup Guide
 -----
 
-Check our [GitBook](https://app.gitbook.com/@mattermost/s/plugin-zoom/) for all the documentation regarding to this plugin.
+Check our [GitBook](https://mattermost.gitbook.io/plugin-zoom/) for further documentation about this plugin.
 
 ## Development
 
