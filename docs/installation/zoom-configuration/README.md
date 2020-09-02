@@ -15,6 +15,10 @@ Zoom supports two authentication methods for your users to connect Mattermost an
    * Users don't have to connect their account to use the integration which makes it easy to get started.
    * Uses JWT to pass security tokens.  This may not be sufficiently secure for some customers.
 
-**Note:** If you've been using Zoom prior to v1.4 you likely have a webhook-type app configured in Zoom. These are not compatible with Zoom v1.4 and you may experience issues with meeting update information not being posted.
+## Upgrading from a previous version
 
-To remedy this, remove the app. Then follow the steps provided [here](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration/webhook-configuration) to configure the new webhook.
+If you've been using Zoom prior to v1.4 you likely have a legacy webhook-type app configured in Zoom. 
+
+Legacy webhook apps are no longer supported by Zoom or Mattermost and are not compatible with Zoom plugin v1.4. You may experience issues with the meeting status message information not being updated when a meeting ends. This is because the webhook endpoint expects a JSON format request and newer webhooks use different formats.
+
+From Zoom v1.4, you can configure and associate your webhooks with an app you've already created. First, remove the previous webhook app. Then follow the steps provided [here](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration/webhook-configuration) to configure the new webhook.
