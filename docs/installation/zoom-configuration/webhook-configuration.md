@@ -2,7 +2,7 @@
 
 ## Configure Webhook Events
 
-When a meeting finishes in Zoom, the original link shared in the channel can be changed to indicate the meeting has ended and how long it lasted. To enable this functionality, we need to create a webhook subscription in Zoom that tells the Mattermost server every time a meeting ends. Then Mattermost server can update the original Zoom message.
+When a Zoom meeting ends, the original link shared in the channel can be changed to indicate the meeting has ended and how long it lasted. To enable this functionality, we need to create a webhook subscription in Zoom that tells the Mattermost server every time a meeting ends. The Mattermost server then updates the original Zoom message.
 
 1. Click on **Feature**.
 2. Enable **Event Subscriptions**.
