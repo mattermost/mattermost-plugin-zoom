@@ -1,5 +1,6 @@
 ---
 description: >-
+
   Choose which authentication method you want your users to use to connect their Zoom accounts
 ---
 
