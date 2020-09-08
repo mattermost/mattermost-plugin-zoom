@@ -17,7 +17,7 @@ Zoom supports two authentication methods for your users to connect Mattermost an
 
 ## Upgrading From a Previous Version
 
-If you've been using Zoom prior to v1.4 you likely have a legacy webhook-type app configured in Zoom.
+If you've been using Zoom prior to v1.4, you likely have a legacy webhook-type app configured in Zoom.
 
 Legacy webhook apps are no longer supported by Zoom or Mattermost and are not compatible with Zoom plugin v1.4. You may experience issues with the meeting status message information not being updated when a meeting ends. This is because the webhook endpoint expects a JSON format request and newer webhooks use different formats.
 
