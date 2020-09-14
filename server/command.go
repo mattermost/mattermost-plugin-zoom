@@ -84,13 +84,13 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, user
 		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 	}
 
-	recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
+	recentMeeting, recentMeetingLink, creatorName, provider, appErr := p.checkPreviousMessages(args.ChannelId)
 	if appErr != nil {
 		return "Error checking previous messages", nil
 	}
 
 	if recentMeeting {
-		p.postConfirm(recentMeetingID, args.ChannelId, "", userID, creatorName)
+		p.postConfirm(recentMeetingLink, args.ChannelId, "", userID, creatorName, provider)
 		return "", nil
 	}
 
