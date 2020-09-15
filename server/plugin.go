@@ -40,6 +40,8 @@ const (
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 
 	meetingPostIDTTL = 60 * 60 * 24 // One day
+
+	zoomProviderName = "Zoom"
 )
 
 type Plugin struct {
