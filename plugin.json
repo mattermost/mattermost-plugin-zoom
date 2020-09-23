@@ -4,6 +4,7 @@
     "description": "Zoom audio and video conferencing plugin for Mattermost 5.2+.",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.4.1",
     "icon_path": "assets/profile.svg",
     "version": "1.4.1",
     "min_server_version": "5.12.0",
