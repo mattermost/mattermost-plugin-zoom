@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/command"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -13,16 +15,20 @@ const (
 	oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
 )
 
-func (p *Plugin) getCommand() *model.Command {
-	return &model.Command{
-		Trigger:          "zoom",
-		DisplayName:      "Zoom",
-		Description:      "Zoom Integration.",
-		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start, disconnect, help",
-		AutoCompleteHint: "[command]",
-		AutocompleteData: p.getAutocompleteData(),
+func (p *Plugin) getCommand() (*model.Command, error) {
+	iconData, err := command.GetIconData(p.API, "assets/profile.svg")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get icon data")
 	}
+
+	return &model.Command{
+		Trigger:              "zoom",
+		AutoComplete:         true,
+		AutoCompleteDesc:     "Available commands: start, disconnect, help",
+		AutoCompleteHint:     "[command]",
+		AutocompleteData:     p.getAutocompleteData(),
+		AutocompleteIconData: iconData,
+	}, nil
 }
 
 func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
