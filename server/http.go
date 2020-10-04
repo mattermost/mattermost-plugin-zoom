@@ -288,6 +288,14 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
+	// Update user status
+	userID := post.UserId
+	_, appErr = p.API.UpdateUserStatus(userID, model.STATUS_ONLINE)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
 	appErr = p.API.KVDelete(key)
 	if appErr != nil {
 		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
@@ -338,6 +346,13 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 	createdPost, appErr := p.API.CreatePost(post)
 	if appErr != nil {
+		return appErr
+	}
+
+	// Update user status
+	_, appErr = p.API.UpdateUserStatus(creator.Id, model.STATUS_DND)
+	if appErr != nil {
+		p.API.LogDebug("Failed to update user status", "err", appErr)
 		return appErr
 	}
 
