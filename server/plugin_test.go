@@ -105,6 +105,8 @@ func TestPlugin(t *testing.T) {
 			api.On("LogWarn", mock.AnythingOfType("string")).Return()
 			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
 
+			api.On("UpdateUserStatus", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(&model.Status{}, nil)
+
 			path, err := filepath.Abs("..")
 			require.Nil(t, err)
 			api.On("GetBundlePath").Return(path, nil)
