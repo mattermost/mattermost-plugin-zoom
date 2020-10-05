@@ -128,5 +128,16 @@ func (p *Plugin) OnConfigurationChange() error {
 	p.setConfiguration(configuration)
 	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
 
+	// re-register the plugin command here as a configuration update might change the available commands
+	command, err := p.getCommand()
+	if err != nil {
+		return errors.Wrap(err, "failed to get command")
+	}
+
+	err = p.API.RegisterCommand(command)
+	if err != nil {
+		return errors.Wrap(err, "failed to register command")
+	}
+
 	return nil
 }

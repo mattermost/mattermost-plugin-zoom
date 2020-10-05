@@ -6,7 +6,7 @@ description: Configuration steps for the Mattermost server
 
 ## Zoom Plugin Setup Guide
 
-You'll need a paid Zoom account to use the plugin.
+**Note:** You need a paid Zoom account to use the plugin.
 
 ### First steps
 
@@ -22,11 +22,11 @@ You'll need a paid Zoom account to use the plugin.
   * **Self Hosted?**
     * If you're using a self-hosted private cloud or on-premises Zoom server, enter the **Zoom URL** and **Zoom API URL** for the Zoom server, for example `https://yourzoom.com` and `https://api.yourzoom.com/v2` respectively. Leave blank if you're using Zoom's vendor-hosted SaaS service.
   * **Cloud Hosted?**
-    * Simply leave **Zoom API URL** and **Zoom URL** fields blank.
+    * Leave **Zoom API URL** and **Zoom URL** fields blank.
 * How are your users connecting to Zoom? \([more information](zoom-configuration/)\)
   * **OAuth?**
     * Set **Enable OAuth** to `true`.
-    * Use the Client ID and Client Secret generated during [Zoom Configuration](zoom-configuration/zoom-setup-oauth.md) to fill in the fields **Zoom OAuth Client ID**, and **Zoom OAuth Client Secret**.
+    * Use the Client ID and Client Secret generated during [Zoom Configuration](zoom-configuration/zoom-setup-oauth.md) to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**.
     * Click the **Regenerate** button next to the field **At Rest Token Encryption Key**.
     * Make sure **Enable Password based authentication** is set to `false`.
     * Ignore **API Key** and **API Secret** fields.

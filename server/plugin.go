@@ -40,6 +40,8 @@ const (
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 
 	meetingPostIDTTL = 60 * 60 * 24 // One day
+
+	zoomProviderName = "Zoom"
 )
 
 type Plugin struct {
@@ -69,6 +71,16 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
+	command, err := p.getCommand()
+	if err != nil {
+		return errors.Wrap(err, "failed to get command")
+	}
+
+	err = p.API.RegisterCommand(command)
+	if err != nil {
+		return errors.Wrap(err, "failed to register command")
+	}
+
 	botUserID, err := p.Helpers.EnsureBot(&model.Bot{
 		Username:    botUserName,
 		DisplayName: botDisplayName,
@@ -82,10 +94,6 @@ func (p *Plugin) OnActivate() error {
 	bundlePath, err := p.API.GetBundlePath()
 	if err != nil {
 		return errors.Wrap(err, "couldn't get bundle path")
-	}
-
-	if err = p.API.RegisterCommand(getCommand()); err != nil {
-		return errors.WithMessage(err, "OnActivate: failed to register command")
 	}
 
 	profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile.png"))

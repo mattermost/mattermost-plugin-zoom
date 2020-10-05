@@ -11,8 +11,11 @@
 
 Start and join voice calls, video calls and use screen sharing with your team members via Zoom.
 
-Usage & Setup Guide
------
+## Usage & Setup Guide
+### Commands
+* **`/zoom start`** &mdash; Start a zoom meeting.
+* **`/zoom disconnect`** &mdash; Disconnect from zoom (if OAuth is enabled).
+* **`/zoom help`** &mdash; Display help message.
 
 Check our [GitBook](https://mattermost.gitbook.io/plugin-zoom/) for further documentation about this plugin.
 
