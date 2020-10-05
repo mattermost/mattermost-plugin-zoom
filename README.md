@@ -17,7 +17,7 @@ Start and join voice calls, video calls and use screen sharing with your team me
 * **`/zoom disconnect`** &mdash; Disconnect from zoom (if OAuth is enabled).
 * **`/zoom help`** &mdash; Display help message.
 
-Check our [GitBook](https://app.gitbook.com/@mattermost/s/plugin-zoom/) for further documentation about this plugin.
+Check our [GitBook](https://mattermost.gitbook.io/plugin-zoom/) for further documentation about this plugin.
 
 ## Development
 

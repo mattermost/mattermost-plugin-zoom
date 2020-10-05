@@ -6,7 +6,6 @@ package main
 import (
 	"reflect"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/bot/logger"
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/pkg/errors"
 
@@ -140,8 +139,7 @@ func (p *Plugin) OnConfigurationChange() error {
 			enableDiagnostics = *configValue
 		}
 	}
-	logger := logger.NewLogger(logger.Config{}, p.API, nil, "")
-	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.ID, manifest.Version, "zoom", enableDiagnostics, logger)
+	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.ID, manifest.Version, "zoom", enableDiagnostics)
 
 	if prevConfigEnableOAuth != p.configuration.EnableOAuth {
 		method := telemetryOauthModeJWT
@@ -152,8 +150,14 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	// re-register the plugin command here as a configuration update might change the available commands
-	if err := p.API.RegisterCommand(p.getCommand()); err != nil {
-		return errors.Wrap(err, "OnConfigurationChange: failed to register command")
+	command, err := p.getCommand()
+	if err != nil {
+		return errors.Wrap(err, "failed to get command")
+	}
+
+	err = p.API.RegisterCommand(command)
+	if err != nil {
+		return errors.Wrap(err, "failed to register command")
 	}
 
 	return nil
