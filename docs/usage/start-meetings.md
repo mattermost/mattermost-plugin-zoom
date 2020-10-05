@@ -8,5 +8,4 @@ Once enabled, clicking the video icon in a Mattermost channel invites team membe
 
 ## Slash Command
 
-You can also start a meeting in any chat window by typing `/zoom start`
-
+You can also start a meeting in any chat window by typing `/zoom start`.
