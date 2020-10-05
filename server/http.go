@@ -216,6 +216,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	postID, appErr := p.fetchMeetingPostID(meetingPostID)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
 	}
 
 	post, appErr := p.API.GetPost(postID)
