@@ -14,3 +14,4 @@ Zoom supports two authentication methods for users to connect Mattermost and Zoo
 2. [JWT/Password](zoom-setup-jwt.md)
    * Users don't have to connect their account to use the integration which makes it easy to get started.
    * Uses JWT to pass security tokens. This may not be sufficiently secure for some customers.
+   * The users must have the same email registered both in Zoom and Mattermost.
