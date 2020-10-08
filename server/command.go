@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	helpText      = `* |/zoom start| - Start a zoom meeting`
-	oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
+	helpText       = `* |/zoom start| - Start a zoom meeting`
+	oAuthHelpText  = `* |/zoom disconnect| - Disconnect from zoom`
+	statusHelpText = `* |/zoom status yes/no| - Change automatic status change setting, yes/no`
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -68,6 +69,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runDisconnectCommand(userID)
 	case "help", "":
 		return p.runHelpCommand()
+	case "status":
+		return p.runStatusChange(userID, split[1:])
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -127,6 +130,7 @@ func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 func (p *Plugin) runHelpCommand() (string, error) {
 	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
 	text += strings.Replace(helpText, "|", "`", -1)
+	text += "\n" + strings.Replace(statusHelpText, "|", "`", -1)
 
 	if p.configuration.EnableOAuth {
 		text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
@@ -134,12 +138,32 @@ func (p *Plugin) runHelpCommand() (string, error) {
 	return text, nil
 }
 
+func (p *Plugin) runStatusChange(userID string, args []string) (string, error) {
+	if len(args) < 2 {
+		return "Expecting yes/no", errors.New("Unexpected argument")
+	}
+
+	action := args[1]
+	if action != yes && action != no {
+		return "Expecting yes/no", errors.New("Unexpected argument")
+	}
+
+	appErr := p.API.KVSet(fmt.Sprintf("%v_%v", changeStatusKey, userID), []byte(action))
+	if appErr != nil {
+		p.API.LogDebug("Could not save status change preference ", appErr)
+		return "Could not save status preference", appErr
+	}
+	return "Status preference updated successfully", nil
+}
+
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, help")
+	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, status help")
 
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
+	status := model.NewAutocompleteData("status", "Takes yes/no", "Change automatic status change setting")
 	zoom.AddCommand(start)
+	zoom.AddCommand(status)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if p.configuration.EnableOAuth {

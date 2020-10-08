@@ -22,7 +22,12 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
-const defaultMeetingTopic = "Zoom Meeting"
+const (
+	defaultMeetingTopic = "Zoom Meeting"
+	postActionPath      = "/action/status"
+	yes                 = "yes"
+	no                  = "no"
+)
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
@@ -42,9 +47,44 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.completeUserOAuthToZoom(w, r)
 	case "/deauthorization":
 		p.deauthorizeUser(w, r)
+	case postActionPath:
+		p.postActionConfirm(w, r)
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func (p *Plugin) postActionConfirm(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("Mattermost-User-ID")
+	response := model.PostActionIntegrationResponse{}
+	request := model.PostActionIntegrationRequestFromJson(r.Body)
+	accepted := request.Context["accept"].(bool)
+	meetingID := request.Context["meetingId"].(float64)
+
+	post := &model.Post{}
+	key := fmt.Sprintf("%v_%v", changeStatusKey, userID)
+
+	message := "Ok, the status won't be updated automatically"
+	changeStatus := no
+	if accepted {
+		changeStatus = yes
+		message = "You have accepted automatic status change. Yay!"
+	}
+
+	appErr := p.API.KVSet(key, []byte(changeStatus))
+	if appErr != nil {
+		p.API.LogDebug("Could not save status change preference ", appErr)
+	}
+
+	p.setUserStatus(userID, int(meetingID), false)
+
+	sa := &model.SlackAttachment{
+		Title: "Status Change",
+		Text:  message,
+	}
+	model.ParseSlackAttachment(post, []*model.SlackAttachment{sa})
+	response.Update = post
+	w.Write(response.ToJson())
 }
 
 func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
@@ -288,13 +328,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	// Update user status
-	userID := post.UserId
-	_, appErr = p.API.UpdateUserStatus(userID, model.STATUS_ONLINE)
-	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
-		return
-	}
+	p.setUserStatus(post.UserId, int(meetingID), true)
 
 	appErr = p.API.KVDelete(key)
 	if appErr != nil {
@@ -349,12 +383,16 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		return appErr
 	}
 
-	// Update user status
-	_, appErr = p.API.UpdateUserStatus(creator.Id, model.STATUS_DND)
+	storedStatusPref, appErr := p.API.KVGet(fmt.Sprintf("%v_%v", changeStatusKey, creator.Id))
 	if appErr != nil {
-		p.API.LogDebug("Failed to update user status", "err", appErr)
-		return appErr
+		p.API.LogDebug("Could not get stored status preference from KV ", appErr)
 	}
+
+	if storedStatusPref == nil {
+		p.sendStatusChangeAttachment(creator.Id, p.botUserID, meetingID)
+	}
+
+	p.setUserStatus(creator.Id, meetingID, false)
 
 	appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id), meetingPostIDTTL)
 	if appErr != nil {

@@ -24,7 +24,9 @@ import (
 )
 
 const (
-	postMeetingKey = "post_meeting_"
+	postMeetingKey  = "post_meeting_"
+	oldStatusKey    = "old_status_"
+	changeStatusKey = "zoom_status_change"
 
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
@@ -42,6 +44,7 @@ const (
 	meetingPostIDTTL = 60 * 60 * 24 // One day
 
 	zoomProviderName = "Zoom"
+	pluginURLPath    = "/plugins/" + botUserName
 )
 
 type Plugin struct {
@@ -392,5 +395,114 @@ func (p *Plugin) dm(userID string, message string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (p *Plugin) setUserStatus(userID string, meetingID int, meetingEnd bool) error {
+	statusChangePrefkey := fmt.Sprintf("%v_%v", changeStatusKey, userID)
+	changeStatus, appErr := p.API.KVGet(statusChangePrefkey)
+	if appErr != nil {
+		p.API.LogDebug("Could not get old status from KVStore", "err", appErr.Error())
+		return appErr
+	}
+
+	if string(changeStatus) != yes {
+		return nil
+	}
+
+	statusKey := fmt.Sprintf("%v%v", oldStatusKey, meetingID)
+	if meetingEnd {
+		b, appErr := p.API.KVGet(statusKey)
+		if appErr != nil {
+			p.API.LogDebug("Could not get old status from KVStore", "err", appErr.Error())
+			return appErr
+		}
+
+		newStatus := string(b)
+		if newStatus == "" {
+			newStatus = model.STATUS_ONLINE
+		}
+
+		_, appErr = p.API.UpdateUserStatus(userID, newStatus)
+		if appErr != nil {
+			p.API.LogDebug("Could not get update status", "err", appErr.Error())
+			return appErr
+		}
+
+		return nil
+	}
+
+	currentStatus, appErr := p.API.GetUserStatus(userID)
+	if appErr != nil {
+		p.API.LogDebug("Failed to update user status", "err", appErr)
+		return appErr
+	}
+
+	oldStatus := ""
+	if currentStatus.Manual {
+		oldStatus = currentStatus.Status
+	}
+
+	appErr = p.API.KVSetWithExpiry(statusKey, []byte(oldStatus), meetingPostIDTTL)
+	if appErr != nil {
+		p.API.LogDebug("failed to store old status", "err", appErr)
+		return appErr
+	}
+
+	_, appErr = p.API.UpdateUserStatus(userID, model.STATUS_DND)
+	if appErr != nil {
+		p.API.LogDebug("Failed to update user status", "err", appErr)
+		return appErr
+	}
+
+	return nil
+}
+
+func (p *Plugin) sendStatusChangeAttachment(userID, botUserID string, meetingID int) error {
+	url := pluginURLPath + postActionPath
+	actionYes := &model.PostAction{
+		Name: "Yes",
+		Integration: &model.PostActionIntegration{
+			URL: url,
+			Context: map[string]interface{}{
+				"accept":    true,
+				"meetingId": meetingID,
+			},
+		},
+	}
+
+	actionNo := &model.PostAction{
+		Name: "No",
+		Integration: &model.PostActionIntegration{
+			URL: url,
+			Context: map[string]interface{}{
+				"accept":    false,
+				"meetingId": meetingID,
+			},
+		},
+	}
+
+	sa := &model.SlackAttachment{
+		Title:   "Status change",
+		Text:    "Allow Zoom plugin to automatically change status",
+		Actions: []*model.PostAction{actionYes, actionNo},
+	}
+
+	attachmentPost := model.Post{}
+	model.ParseSlackAttachment(&attachmentPost, []*model.SlackAttachment{sa})
+	directChannel, appErr := p.API.GetDirectChannel(userID, botUserID)
+	if appErr != nil {
+		p.API.LogDebug("Create Attachment: ", appErr)
+		return appErr
+	}
+	attachmentPost.ChannelId = directChannel.Id
+	attachmentPost.UserId = botUserID
+
+	_, appErr = p.API.CreatePost(&attachmentPost)
+	if appErr != nil {
+		p.API.LogDebug("Create Attachment: ", appErr)
+		return appErr
+	}
+
 	return nil
 }
