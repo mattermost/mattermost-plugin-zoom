@@ -139,13 +139,14 @@ func (p *Plugin) runHelpCommand() (string, error) {
 }
 
 func (p *Plugin) runStatusChange(userID string, args []string) (string, error) {
+	errMsg := "Expecting yes/no"
 	if len(args) < 2 {
-		return "Expecting yes/no", errors.New("Unexpected argument")
+		return errMsg, errors.New("unexpected argument")
 	}
 
 	action := args[1]
 	if action != yes && action != no {
-		return "Expecting yes/no", errors.New("Unexpected argument")
+		return errMsg, errors.New("unexpected argument")
 	}
 
 	appErr := p.API.KVSet(fmt.Sprintf("%v_%v", changeStatusKey, userID), []byte(action))

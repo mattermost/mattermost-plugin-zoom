@@ -73,10 +73,13 @@ func (p *Plugin) postActionConfirm(w http.ResponseWriter, r *http.Request) {
 
 	appErr := p.API.KVSet(key, []byte(changeStatus))
 	if appErr != nil {
-		p.API.LogDebug("Could not save status change preference ", appErr)
+		p.API.LogDebug("failed to set status change preference", "error", appErr.Error())
 	}
 
-	p.setUserStatus(userID, int(meetingID), false)
+	err := p.setUserStatus(userID, int(meetingID), false)
+	if appErr != nil {
+		p.API.LogDebug("failed to change user status", "error", err)
+	}
 
 	sa := &model.SlackAttachment{
 		Title: "Status Change",
@@ -84,7 +87,10 @@ func (p *Plugin) postActionConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	model.ParseSlackAttachment(post, []*model.SlackAttachment{sa})
 	response.Update = post
-	w.Write(response.ToJson())
+	_, err = w.Write(response.ToJson())
+	if err != nil {
+		p.API.LogDebug("failed to write response")
+	}
 }
 
 func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
@@ -328,7 +334,10 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	p.setUserStatus(post.UserId, int(meetingID), true)
+	err := p.setUserStatus(post.UserId, int(meetingID), true)
+	if err != nil {
+		p.API.LogDebug("failed to change user status", "error", err)
+	}
 
 	appErr = p.API.KVDelete(key)
 	if appErr != nil {
@@ -336,7 +345,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	_, err := w.Write([]byte(post.ToJson()))
+	_, err = w.Write([]byte(post.ToJson()))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
@@ -389,10 +398,16 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	}
 
 	if storedStatusPref == nil {
-		p.sendStatusChangeAttachment(creator.Id, p.botUserID, meetingID)
+		err := p.sendStatusChangeAttachment(creator.Id, p.botUserID, meetingID)
+		if err != nil {
+			p.API.LogDebug("could not send status change attachment ", "error", err)
+		}
 	}
 
-	p.setUserStatus(creator.Id, meetingID, false)
+	err := p.setUserStatus(creator.Id, meetingID, false)
+	if err != nil {
+		p.API.LogDebug("failed to change user status", "error", err)
+	}
 
 	appErr = p.API.KVSetWithExpiry(fmt.Sprintf("%v%v", postMeetingKey, meetingID), []byte(createdPost.Id), meetingPostIDTTL)
 	if appErr != nil {

@@ -400,10 +400,10 @@ func (p *Plugin) dm(userID string, message string) error {
 
 func (p *Plugin) setUserStatus(userID string, meetingID int, meetingEnd bool) error {
 	statusChangePrefkey := fmt.Sprintf("%v_%v", changeStatusKey, userID)
-	changeStatus, appErr := p.API.KVGet(statusChangePrefkey)
-	if appErr != nil {
-		p.API.LogDebug("Could not get old status from KVStore", "err", appErr.Error())
-		return appErr
+	changeStatus, err := p.API.KVGet(statusChangePrefkey)
+	if err != nil {
+		p.API.LogDebug("Could not get old status from KVStore", "err", err.Error())
+		return err
 	}
 
 	if string(changeStatus) != yes {
