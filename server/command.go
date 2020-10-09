@@ -133,7 +133,7 @@ func (p *Plugin) runHelpCommand() (string, error) {
 	text += "\n" + strings.Replace(statusHelpText, "|", "`", -1)
 
 	if p.configuration.EnableOAuth {
-		text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
+		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
 	return text, nil
 }
