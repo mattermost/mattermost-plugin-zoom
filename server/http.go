@@ -27,6 +27,8 @@ const (
 	postActionPath      = "/action/status"
 	yes                 = "yes"
 	no                  = "no"
+	ContextAccept       = "accept"
+	ContextMeetingID    = "meetingId"
 )
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -58,8 +60,8 @@ func (p *Plugin) postActionConfirm(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-ID")
 	response := model.PostActionIntegrationResponse{}
 	request := model.PostActionIntegrationRequestFromJson(r.Body)
-	accepted := request.Context["accept"].(bool)
-	meetingID := request.Context["meetingId"].(float64)
+	accepted := request.Context[ContextAccept].(bool)
+	meetingID := request.Context[ContextMeetingID].(float64)
 
 	post := &model.Post{}
 	key := fmt.Sprintf("%v_%v", changeStatusKey, userID)
@@ -398,7 +400,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	}
 
 	if storedStatusPref == nil {
-		err := p.sendStatusChangeAttachment(creator.Id, p.botUserID, meetingID)
+		err := p.sendStatusChangeAttachment(creator.Id, p.botUserID, channelID, meetingID)
 		if err != nil {
 			p.API.LogDebug("could not send status change attachment ", "error", err)
 		}
