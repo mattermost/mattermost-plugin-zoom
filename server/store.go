@@ -92,7 +92,11 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 // then stores it in the KV store with and expiry of 5 minutes.
 func (p *Plugin) storeOAuthUserState(userID string, channelID string, justConnect bool) *model.AppError {
 	key := getOAuthUserStateKey(userID)
-	state := fmt.Sprintf("%s_%s_%s", model.NewId()[0:15], userID, channelID, justConnect)
+	connectString := falseString
+	if justConnect {
+		connectString = trueString
+	}
+	state := fmt.Sprintf("%s_%s_%s_%s", model.NewId()[0:15], userID, channelID, connectString)
 	return p.API.KVSetWithExpiry(key, []byte(state), oAuthUserStateTTL)
 }
 

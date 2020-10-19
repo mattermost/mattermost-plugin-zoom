@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/command"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+
+	"github.com/mattermost/mattermost-plugin-api/experimental/command"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
@@ -151,7 +152,10 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 		return alreadyConnectedString, nil
 	}
 
-	p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+	appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+	if appErr != nil {
+		return "", errors.Wrap(appErr, "cannot store state")
+	}
 	return oauthMsg, nil
 }
 

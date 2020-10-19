@@ -25,7 +25,7 @@ import (
 
 const (
 	defaultMeetingTopic      = "Zoom Meeting"
-	zoomOAuthUserStateLength = 3
+	zoomOAuthUserStateLength = 4
 )
 
 type startMeetingRequest struct {
@@ -108,7 +108,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if appErr := p.deleteUserState(userID); appErr != nil {
+	if appErr = p.deleteUserState(userID); appErr != nil {
 		p.API.LogWarn("failed to delete OAuth user state from KV store", "error", appErr.Error())
 	}
 
@@ -126,10 +126,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		http.Error(w, appErr.Error(), http.StatusInternalServerError)
 		return
 	}
-	zoomUser, err := client.GetUser(user)
-	if err != nil {
-		p.API.LogWarn("failed to get user", "error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	zoomUser, authErr := client.GetUser(user)
+	if authErr != nil {
+		p.API.LogWarn("failed to get user", "error", authErr.Error())
+		http.Error(w, authErr.Error(), http.StatusInternalServerError)
 		return
 	}
 	if p.configuration.AccountLevelApp {
@@ -156,12 +156,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	if justConnect {
 		p.postEphemeral(userID, channelID, "Successfully connected to Zoom")
-	} else {
-		if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
-			p.API.LogWarn("Failed to post meeting", "error", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	} else if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
+		p.API.LogWarn("Failed to post meeting", "error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	html := `
