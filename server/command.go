@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/command"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/pkg/errors"
 )
 
 const helpText = `* |/zoom start| - Start a zoom meeting`
@@ -15,16 +17,20 @@ const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 
 const alreadyConnectedString = "Already connected"
 
-func (p *Plugin) getCommand() *model.Command {
-	return &model.Command{
-		Trigger:          "zoom",
-		DisplayName:      "Zoom",
-		Description:      "Zoom Integration.",
-		AutoComplete:     true,
-		AutoCompleteDesc: "Available commands: start, disconnect, help",
-		AutoCompleteHint: "[command]",
-		AutocompleteData: p.getAutocompleteData(),
+func (p *Plugin) getCommand() (*model.Command, error) {
+	iconData, err := command.GetIconData(p.API, "assets/profile.svg")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get icon data")
 	}
+
+	return &model.Command{
+		Trigger:              "zoom",
+		AutoComplete:         true,
+		AutoCompleteDesc:     "Available commands: start, disconnect, help",
+		AutoCompleteHint:     "[command]",
+		AutocompleteData:     p.getAutocompleteData(),
+		AutocompleteIconData: iconData,
+	}, nil
 }
 
 func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
@@ -94,18 +100,22 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 	}
 
-	recentMeeting, recentMeetingID, creatorName, appErr := p.checkPreviousMessages(args.ChannelId)
+	recentMeeting, recentMeetingLink, creatorName, provider, appErr := p.checkPreviousMessages(args.ChannelId)
 	if appErr != nil {
 		return "Error checking previous messages", nil
 	}
 
 	if recentMeeting {
-		p.postConfirm(recentMeetingID, args.ChannelId, "", user.Id, creatorName)
+		p.postConfirm(recentMeetingLink, args.ChannelId, "", user.Id, creatorName, provider)
 		return "", nil
 	}
 
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(user.Id, user.Email, args.ChannelId)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
+			p.API.LogWarn("failed to store user state")
+		}
 		return authErr.Message, authErr.Err
 	}
 
@@ -132,7 +142,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 		return oauthMsg, nil
 	}
 
-	_, err := p.getZoomUserInfo(user.Id)
+	_, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
 	if err == nil {
 		return alreadyConnectedString, nil
 	}
@@ -154,9 +164,8 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 		return "Successfully disconnected from Zoom.", nil
 	}
 
-	err := p.disconnect(user.Id)
-	if err != nil {
-		return "Failed to disconnect the user, err=" + err.Error(), nil
+	if err := p.disconnectOAuthUser(user.Id); err != nil {
+		return fmt.Sprintf("Failed to disconnect the user: %s", err.Error()), nil
 	}
 	return "User disconnected from Zoom.", nil
 }
@@ -164,10 +173,10 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
-	text += strings.Replace(helpText, "|", "`", -1)
+	text += strings.ReplaceAll(helpText, "|", "`")
 
 	if p.canConnect(user) {
-		text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
+		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
 	return text, nil
 }
