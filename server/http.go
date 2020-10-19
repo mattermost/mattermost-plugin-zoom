@@ -402,9 +402,9 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
-	client, authErr := p.getActiveClient(user)
-	if authErr != nil {
-		p.API.LogWarn("could not get the active zoom client", "error", authErr.Error())
+	client, _, err := p.getActiveClient(user)
+	if err != nil {
+		p.API.LogWarn("could not get the active zoom client", "error", err.Error())
 		return defaultURL
 	}
 

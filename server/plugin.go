@@ -23,7 +23,6 @@ const (
 	botDescription = "Created by the Zoom plugin."
 
 	zoomStateLength   = 4
-	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 
 	trueString  = "true"
@@ -118,47 +117,45 @@ func (p *Plugin) registerSiteURL() error {
 }
 
 // getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
-func (p *Plugin) getActiveClient(user *model.User) (Client, error) {
+func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 	config := p.getConfiguration()
 
 	// JWT
 	if !config.EnableOAuth {
-		return p.jwtClient, nil
+		return p.jwtClient, "", nil
 	}
 
 	// OAuth Account Level
 	if config.AccountLevelApp {
+		message := "Zoom App not connected. Contact your System administrator."
 		token, err := p.getSuperuserToken()
-		if err != nil {
-			return nil, errors.Wrap(err, "could not get token")
+		if user.IsSystemAdmin() {
+			message = fmt.Sprintf(zoom.OAuthPrompt, p.siteURL)
 		}
 		if err != nil {
-			return nil, errors.New("zoom app not connected")
+			return nil, message, errors.Wrap(err, "could not get token")
 		}
-		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true), nil
+		if token == nil {
+			return nil, message, errors.New("zoom app not connected")
+		}
+		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true), "", nil
 	}
 
-	// if err != nil {
-	// 	return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: err}
-	// }
-	// if token == nil {
-	// 	return nil, &AuthError{Message: "Zoom App not connected. Contact your System administrator.", Err: errors.New("zoom app not connected")}
-	// }
-
 	// Oauth User Level
+	message := fmt.Sprintf(zoom.OAuthPrompt, p.siteURL)
 	info, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not fetch Zoom OAuth info")
+		return nil, message, errors.Wrap(err, "could not fetch Zoom OAuth info")
 	}
 
 	plainToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
 	if err != nil {
-		return nil, errors.New("could not decrypt OAuth access token")
+		return nil, message, errors.New("could not decrypt OAuth access token")
 	}
 
 	info.OAuthToken.AccessToken = plainToken
 	conf := p.getOAuthConfig()
-	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false), nil
+	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false), "", nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
@@ -184,11 +181,10 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 
 // authenticateAndFetchZoomUser uses the active Zoom client to authenticate and return the Zoom user
 func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zoom.AuthError) {
-	zoomClient, err := p.getActiveClient(user)
+	zoomClient, message, err := p.getActiveClient(user)
 	if err != nil {
-		// this error will occur if the active client is the OAuth client and the user isn't connected
 		return nil, &zoom.AuthError{
-			Message: fmt.Sprintf(zoom.OAuthPrompt, p.siteURL),
+			Message: message,
 			Err:     err,
 		}
 	}

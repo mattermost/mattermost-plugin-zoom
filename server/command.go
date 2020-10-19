@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/command"
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
@@ -131,22 +132,26 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 	}
 
 	oauthMsg := fmt.Sprintf(
-		zoomOAuthMessage,
-		*p.API.GetConfig().ServiceSettings.SiteURL, extra.ChannelId, trueString)
+		zoom.OAuthPrompt,
+		*p.API.GetConfig().ServiceSettings.SiteURL)
 
+	// OAuth Account Level
 	if p.configuration.AccountLevelApp {
 		token, err := p.getSuperuserToken()
 		if err == nil && token != nil {
 			return alreadyConnectedString, nil
 		}
+
 		return oauthMsg, nil
 	}
 
+	// OAuth User Level
 	_, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
 	if err == nil {
 		return alreadyConnectedString, nil
 	}
 
+	p.storeOAuthUserState(user.Id, extra.ChannelId, true)
 	return oauthMsg, nil
 }
 
@@ -183,14 +188,20 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, help")
+	available := "start, help"
+	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+		available = "start, connect, disconnect, help"
+	}
+	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
-	if p.configuration.EnableOAuth {
+	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+		connect := model.NewAutocompleteData("connect", "", "Connect to Zoom")
 		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
+		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
 
