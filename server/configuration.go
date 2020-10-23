@@ -5,11 +5,17 @@ package main
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+)
+
+const (
+	zoomDefaultURL    = "https://zoom.us"
+	zoomDefaultAPIURL = "https://api.zoom.us/v2"
 )
 
 // configuration captures the plugin's external configuration as exposed in the Mattermost server
@@ -130,8 +136,12 @@ func (p *Plugin) OnConfigurationChange() error {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
 
+	if err := p.registerSiteURL(); err != nil {
+		return errors.Wrap(err, "could not register site URL")
+	}
+
 	p.setConfiguration(configuration)
-	p.zoomClient = zoom.NewClient(configuration.ZoomAPIURL, configuration.APIKey, configuration.APISecret)
+	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), configuration.APIKey, configuration.APISecret)
 
 	enableDiagnostics := false
 	if config := p.API.GetConfig(); config != nil {
@@ -161,4 +171,22 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	return nil
+}
+
+// getZoomURL gets the configured Zoom URL. Default URL is https://zoom.us
+func (p *Plugin) getZoomURL() string {
+	zoomURL := strings.TrimSpace(p.getConfiguration().ZoomURL)
+	if zoomURL == "" {
+		zoomURL = zoomDefaultURL
+	}
+	return zoomURL
+}
+
+// getZoomAPIURL gets the configured Zoom API URL. Default URL is https://api.zoom.us/v2.
+func (p *Plugin) getZoomAPIURL() string {
+	apiURL := strings.TrimSpace(p.getConfiguration().ZoomAPIURL)
+	if apiURL == "" {
+		apiURL = zoomDefaultAPIURL
+	}
+	return apiURL
 }

@@ -100,8 +100,12 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, user
 		return "", nil
 	}
 
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(userID, user.Email, args.ChannelId)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(userID, args.ChannelId); appErr != nil {
+			p.API.LogWarn("failed to store user state")
+		}
 		return authErr.Message, authErr.Err
 	}
 
@@ -118,7 +122,7 @@ func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 		return "Invalid attempt to disconnect; OAuth is not enabled.", nil
 	}
 
-	if err := p.disconnect(userID); err != nil {
+	if err := p.disconnectOAuthUser(userID); err != nil {
 		return fmt.Sprintf("Failed to disconnect the user: %s", err.Error()), nil
 	}
 	p.trackDisconnect(userID)
@@ -128,10 +132,10 @@ func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand() (string, error) {
 	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
-	text += strings.Replace(helpText, "|", "`", -1)
+	text += strings.ReplaceAll(helpText, "|", "`")
 
 	if p.configuration.EnableOAuth {
-		text += "\n" + strings.Replace(oAuthHelpText, "|", "`", -1)
+		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
 	return text, nil
 }
