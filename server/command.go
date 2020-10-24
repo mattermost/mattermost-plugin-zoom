@@ -163,6 +163,8 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
 	status := model.NewAutocompleteData("status", "Takes yes/no", "Change automatic status change setting")
+	status.AddTextArgument("Allow automatic status change yes/no", "yes/no", "")
+
 	zoom.AddCommand(start)
 	zoom.AddCommand(status)
 

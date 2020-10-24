@@ -412,13 +412,13 @@ func (p *Plugin) setUserStatus(userID string, meetingID int, meetingEnd bool) er
 
 	statusKey := fmt.Sprintf("%v%v", oldStatusKey, meetingID)
 	if meetingEnd {
-		b, appErr := p.API.KVGet(statusKey)
+		statusVal, appErr := p.API.KVGet(statusKey)
 		if appErr != nil {
 			p.API.LogDebug("Could not get old status from KVStore", "err", appErr.Error())
 			return appErr
 		}
 
-		newStatus := string(b)
+		newStatus := string(statusVal)
 		if newStatus == "" {
 			newStatus = model.STATUS_ONLINE
 		}
@@ -458,15 +458,15 @@ func (p *Plugin) setUserStatus(userID string, meetingID int, meetingEnd bool) er
 	return nil
 }
 
-func (p *Plugin) sendStatusChangeAttachment(userID, botUserID string, meetingID int) error {
+func (p *Plugin) sendStatusChangeAttachment(userID, botUserID, channelID string, meetingID int) error {
 	url := pluginURLPath + postActionPath
 	actionYes := &model.PostAction{
 		Name: "Yes",
 		Integration: &model.PostActionIntegration{
 			URL: url,
 			Context: map[string]interface{}{
-				"accept":    true,
-				"meetingId": meetingID,
+				ContextAccept:    true,
+				ContextMeetingID: meetingID,
 			},
 		},
 	}
@@ -476,8 +476,8 @@ func (p *Plugin) sendStatusChangeAttachment(userID, botUserID string, meetingID 
 		Integration: &model.PostActionIntegration{
 			URL: url,
 			Context: map[string]interface{}{
-				"accept":    false,
-				"meetingId": meetingID,
+				ContextAccept:    false,
+				ContextMeetingID: meetingID,
 			},
 		},
 	}
@@ -490,19 +490,19 @@ func (p *Plugin) sendStatusChangeAttachment(userID, botUserID string, meetingID 
 
 	attachmentPost := model.Post{}
 	model.ParseSlackAttachment(&attachmentPost, []*model.SlackAttachment{sa})
-	directChannel, appErr := p.API.GetDirectChannel(userID, botUserID)
-	if appErr != nil {
-		p.API.LogDebug("Create Attachment: ", appErr)
-		return appErr
-	}
-	attachmentPost.ChannelId = directChannel.Id
+	// directChannel, appErr := p.API.GetDirectChannel(userID, botUserID)
+	// if appErr != nil {
+	// 	p.API.LogDebug("Create Attachment: ", appErr)
+	// 	return appErr
+	// }
+	attachmentPost.ChannelId = channelID
 	attachmentPost.UserId = botUserID
 
-	_, appErr = p.API.CreatePost(&attachmentPost)
-	if appErr != nil {
-		p.API.LogDebug("Create Attachment: ", appErr)
-		return appErr
-	}
+	p.API.SendEphemeralPost(userID, &attachmentPost)
+	// if appErr != nil {
+	// 	p.API.LogDebug("Create Attachment: ", appErr)
+	// 	return appErr.
+	// }
 
 	return nil
 }
