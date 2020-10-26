@@ -129,8 +129,8 @@ func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand() (string, error) {
 	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
-	text += strings.Replace(helpText, "|", "`", -1)
-	text += "\n" + strings.Replace(statusHelpText, "|", "`", -1)
+	text += strings.ReplaceAll(helpText, "|", "`")
+	text += "\n" + strings.ReplaceAll(statusHelpText, "|", "`")
 
 	if p.configuration.EnableOAuth {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
