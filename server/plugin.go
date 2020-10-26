@@ -399,23 +399,28 @@ func (p *Plugin) dm(userID string, message string) error {
 }
 
 func (p *Plugin) setUserStatus(userID string, meetingID int, meetingEnd bool) error {
-	statusChangePrefkey := fmt.Sprintf("%v_%v", changeStatusKey, userID)
-	changeStatus, err := p.API.KVGet(statusChangePrefkey)
-	if err != nil {
-		p.API.LogDebug("Could not get old status from KVStore", "err", err.Error())
-		return err
+	storedStatusPref, appErr := p.API.KVGet(fmt.Sprintf("%v_%v", changeStatusKey, userID))
+	if appErr != nil {
+		p.API.LogDebug("Could not get stored status preference from KV ", appErr)
 	}
 
-	if string(changeStatus) != yes {
+	if storedStatusPref == nil {
+		err := p.sendStatusChangeAttachment(userID, p.botUserID, meetingID)
+		if err != nil {
+			p.API.LogDebug("could not send status change attachment ", "error", err)
+		}
+	}
+
+	if string(storedStatusPref) != yes {
 		return nil
 	}
 
 	statusKey := fmt.Sprintf("%v%v", oldStatusKey, meetingID)
 	if meetingEnd {
-		statusVal, appErr := p.API.KVGet(statusKey)
-		if appErr != nil {
+		statusVal, err := p.API.KVGet(statusKey)
+		if err != nil {
 			p.API.LogDebug("Could not get old status from KVStore", "err", appErr.Error())
-			return appErr
+			return err
 		}
 
 		newStatus := string(statusVal)
@@ -458,7 +463,7 @@ func (p *Plugin) setUserStatus(userID string, meetingID int, meetingEnd bool) er
 	return nil
 }
 
-func (p *Plugin) sendStatusChangeAttachment(userID, botUserID, channelID string, meetingID int) error {
+func (p *Plugin) sendStatusChangeAttachment(userID, botUserID string, meetingID int) error {
 	url := pluginURLPath + postActionPath
 	actionYes := &model.PostAction{
 		Name: "Yes",
@@ -490,19 +495,19 @@ func (p *Plugin) sendStatusChangeAttachment(userID, botUserID, channelID string,
 
 	attachmentPost := model.Post{}
 	model.ParseSlackAttachment(&attachmentPost, []*model.SlackAttachment{sa})
-	// directChannel, appErr := p.API.GetDirectChannel(userID, botUserID)
-	// if appErr != nil {
-	// 	p.API.LogDebug("Create Attachment: ", appErr)
-	// 	return appErr
-	// }
-	attachmentPost.ChannelId = channelID
+	directChannel, appErr := p.API.GetDirectChannel(userID, botUserID)
+	if appErr != nil {
+		p.API.LogDebug("Create Attachment: ", appErr)
+		return appErr
+	}
+	attachmentPost.ChannelId = directChannel.Id
 	attachmentPost.UserId = botUserID
 
-	p.API.SendEphemeralPost(userID, &attachmentPost)
-	// if appErr != nil {
-	// 	p.API.LogDebug("Create Attachment: ", appErr)
-	// 	return appErr.
-	// }
+	_, appErr = p.API.CreatePost(&attachmentPost)
+	if appErr != nil {
+		p.API.LogDebug("Create Attachment: ", appErr)
+		return appErr
+	}
 
 	return nil
 }

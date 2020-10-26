@@ -394,18 +394,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		return appErr
 	}
 
-	storedStatusPref, appErr := p.API.KVGet(fmt.Sprintf("%v_%v", changeStatusKey, creator.Id))
-	if appErr != nil {
-		p.API.LogDebug("Could not get stored status preference from KV ", appErr)
-	}
-
-	if storedStatusPref == nil {
-		err := p.sendStatusChangeAttachment(creator.Id, p.botUserID, channelID, meetingID)
-		if err != nil {
-			p.API.LogDebug("could not send status change attachment ", "error", err)
-		}
-	}
-
 	err := p.setUserStatus(creator.Id, meetingID, false)
 	if err != nil {
 		p.API.LogDebug("failed to change user status", "error", err)
