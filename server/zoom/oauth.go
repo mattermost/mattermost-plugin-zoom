@@ -49,7 +49,7 @@ func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
 	zoomUser, err := c.getUserViaOAuth(user)
 	if err != nil {
 		if c.isAccountLevel {
-			if err == notFoundErr {
+			if err == errNotFound {
 				return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
 			}
 
@@ -107,7 +107,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusNotFound {
-		return nil, notFoundErr
+		return nil, errNotFound
 	}
 
 	if res.StatusCode != http.StatusOK {

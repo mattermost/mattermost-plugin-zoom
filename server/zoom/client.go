@@ -21,7 +21,7 @@ func (err *AuthError) Error() string {
 	return string(msg)
 }
 
-var notFoundErr = errors.New("Not found")
+var errNotFound = errors.New("not found")
 
 type Client interface {
 	GetMeeting(meetingID int) (*Meeting, error)
