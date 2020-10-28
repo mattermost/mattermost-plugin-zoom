@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	defaultMeetingTopic = "Zoom Meeting"
-	postActionPath      = "/action/status"
-	yes                 = "yes"
-	no                  = "no"
-	ContextAccept       = "accept"
-	ContextMeetingID    = "meetingId"
+	defaultMeetingTopic      = "Zoom Meeting"
+	postActionPath           = "/action/status"
+	yes                      = "yes"
+	no                       = "no"
+	ContextAccept            = "accept"
+	ContextMeetingID         = "meetingId"
 	zoomOAuthUserStateLength = 3
 )
 

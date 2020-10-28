@@ -18,10 +18,9 @@ import (
 )
 
 const (
-	postMeetingKey  = "post_meeting_"
 	oldStatusKey    = "old_status_"
 	changeStatusKey = "zoom_status_change"
-  
+
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
