@@ -40,7 +40,7 @@ type OAuthClient struct {
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool) *OAuthClient {
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool) Client {
 	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel}
 }
 
@@ -48,6 +48,14 @@ func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL 
 func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
 	zoomUser, err := c.getUserViaOAuth(user)
 	if err != nil {
+		if c.isAccountLevel {
+			if err == notFoundErr {
+				return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
+			}
+
+			return nil, &AuthError{fmt.Sprintf("Error fetching user: %s", err), err}
+		}
+
 		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
 	}
 
@@ -93,10 +101,14 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
 	}
 	res, err := client.Get(url)
-	if err != nil || res == nil {
+	if err != nil {
 		return nil, errors.Wrap(err, "error fetching zoom user")
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusNotFound {
+		return nil, notFoundErr
+	}
 
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(fmt.Sprintf("%d error returned while fetching zoom user", res.StatusCode))

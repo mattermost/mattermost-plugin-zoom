@@ -155,7 +155,7 @@ func (p *Plugin) getSuperuserToken() (*oauth2.Token, error) {
 	if appErr != nil {
 		return nil, appErr
 	}
-	if rawToken == nil {
+	if len(rawToken) == 0 {
 		return nil, nil
 	}
 

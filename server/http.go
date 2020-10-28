@@ -120,25 +120,34 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL(), p.configuration.AccountLevelApp)
-	user, appErr := p.API.GetUser(userID)
-	if appErr != nil {
-		http.Error(w, appErr.Error(), http.StatusInternalServerError)
-		return
-	}
-	zoomUser, authErr := client.GetUser(user)
-	if authErr != nil {
-		p.API.LogWarn("failed to get user", "error", authErr.Error())
-		http.Error(w, authErr.Error(), http.StatusInternalServerError)
-		return
-	}
 	if p.configuration.AccountLevelApp {
 		err = p.setSuperUserToken(token)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	} else {
+	}
+
+	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL(), p.configuration.AccountLevelApp)
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	zoomUser, authErr := client.GetUser(user)
+	if authErr != nil {
+		if p.configuration.AccountLevelApp && !justConnect {
+			http.Error(w, "Connection completed but there was an error creating the meeting. "+authErr.Message, http.StatusInternalServerError)
+			return
+		}
+
+		p.API.LogWarn("failed to get user", "error", authErr.Error())
+		http.Error(w, "Could not complete the connection: "+authErr.Message, http.StatusInternalServerError)
+		return
+	}
+
+	if !p.configuration.AccountLevelApp {
 		info := &zoom.OAuthUserInfo{
 			ZoomEmail:  zoomUser.Email,
 			ZoomID:     zoomUser.ID,

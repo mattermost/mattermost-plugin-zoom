@@ -31,7 +31,7 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	jwtClient *zoom.JWTClient
+	jwtClient zoom.Client
 
 	// botUserID of the created bot account.
 	botUserID string
