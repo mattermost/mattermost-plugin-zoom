@@ -11,8 +11,13 @@ import (
 )
 
 const (
-	helpText      = `* |/zoom start| - Start a zoom meeting`
-	oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
+	starterText        = "###### Mattermost Zoom Plugin - Slash Command Help\n"
+	helpText           = `* |/zoom start| - Start a zoom meeting`
+	oAuthHelpText      = `* |/zoom disconnect| - Disconnect from zoom`
+	settingHelpText    = `* |/zoom setting| - Configurate setting options`
+	settingPMIHelpText = `* |/zoom setting usePMI [true|false|ask]| - 
+		enable | disable | undecide to use PMI to create meeting
+	`
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -24,7 +29,7 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 	return &model.Command{
 		Trigger:              "zoom",
 		AutoComplete:         true,
-		AutoCompleteDesc:     "Available commands: start, disconnect, help",
+		AutoCompleteDesc:     "Available commands: start, disconnect, help, setting",
 		AutoCompleteHint:     "[command]",
 		AutocompleteData:     p.getAutocompleteData(),
 		AutocompleteIconData: iconData,
@@ -68,6 +73,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runDisconnectCommand(userID)
 	case "help", "":
 		return p.runHelpCommand()
+	case "setting":
+		return p.runSettingCommand(split[2:])
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -129,18 +136,49 @@ func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
 
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand() (string, error) {
-	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
-	text += strings.ReplaceAll(helpText, "|", "`")
-
+	text := starterText
+	text += strings.ReplaceAll(helpText+settingHelpText, "|", "`")
 	if p.configuration.EnableOAuth {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
+
 	return text, nil
+}
+
+// run "/zoom setting" command, e.g: /zoom setting usePMI true
+func (p *Plugin) runSettingCommand(settingCommands []string) (string, error) {
+	settingAction := ""
+	if len(settingCommands) > 0 {
+		settingAction = settingCommands[0]
+	}
+	switch settingAction {
+	case "usePMI":
+		//here process the usePMI command
+		if len(settingCommands) > 1 {
+			return p.runPMISettingCommand(settingCommands[1])
+		}
+		return "Set PMI option to \"true\"|\"false\"|\"ask\"", nil
+	case "":
+		return strings.ReplaceAll(starterText+settingPMIHelpText, "|", "`"), nil
+	default:
+		return fmt.Sprintf("Unknown Action %v", settingAction), nil
+	}
+}
+
+func (p *Plugin) runPMISettingCommand(PMISetting string) (string, error) {
+	switch PMISetting {
+	case "true", "false", "ask":
+		return "", p.API.SavePluginConfig(map[string]interface{}{
+			"use-pmi": PMISetting,
+		})
+	default:
+		return fmt.Sprintf("Unknown setting option %v", PMISetting), nil
+	}
 }
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, help")
+	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, help, setting")
 
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
@@ -150,7 +188,10 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
 		zoom.AddCommand(disconnect)
 	}
-
+	//setting
+	setting := model.NewAutocompleteData("setting", "[command]", "Configurates options")
+	zoom.AddCommand(setting)
+	//help
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)
 
