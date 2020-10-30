@@ -3,7 +3,12 @@
 
 package zoom
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/pkg/errors"
+)
 
 // AuthError represents a Zoom authentication error
 type AuthError struct {
@@ -14,4 +19,11 @@ type AuthError struct {
 func (err *AuthError) Error() string {
 	msg, _ := json.Marshal(err)
 	return string(msg)
+}
+
+var errNotFound = errors.New("not found")
+
+type Client interface {
+	GetMeeting(meetingID int) (*Meeting, error)
+	GetUser(user *model.User) (*User, *AuthError)
 }
