@@ -32,21 +32,30 @@ type OAuthUserInfo struct {
 
 // OAuthClient represents an OAuth-based Zoom client.
 type OAuthClient struct {
-	token   *oauth2.Token
-	config  *oauth2.Config
-	siteURL string
-	apiURL  string
+	token          *oauth2.Token
+	config         *oauth2.Config
+	siteURL        string
+	apiURL         string
+	isAccountLevel bool
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string) *OAuthClient {
-	return &OAuthClient{token, config, siteURL, apiURL}
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool) Client {
+	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel}
 }
 
 // GetUser returns the Zoom user via OAuth.
 func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
-	zoomUser, err := getUserViaOAuth(c.token, c.config, c.apiURL)
+	zoomUser, err := c.getUserViaOAuth(user)
 	if err != nil {
+		if c.isAccountLevel {
+			if err == errNotFound {
+				return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
+			}
+
+			return nil, &AuthError{fmt.Sprintf("Error fetching user: %s", err), err}
+		}
+
 		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
 	}
 
@@ -85,14 +94,21 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	return &meeting, nil
 }
 
-func getUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string) (*User, error) {
-	client := conf.Client(context.Background(), token)
-	url := fmt.Sprintf("%s/users/me", zoomAPIURL)
+func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
+	client := c.config.Client(context.Background(), c.token)
+	url := fmt.Sprintf("%s/users/me", c.apiURL)
+	if c.isAccountLevel {
+		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
+	}
 	res, err := client.Get(url)
-	if err != nil || res == nil {
+	if err != nil {
 		return nil, errors.Wrap(err, "error fetching zoom user")
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusNotFound {
+		return nil, errNotFound
+	}
 
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(fmt.Sprintf("%d error returned while fetching zoom user", res.StatusCode))
@@ -103,10 +119,10 @@ func getUserViaOAuth(token *oauth2.Token, conf *oauth2.Config, zoomAPIURL string
 		return nil, errors.Wrap(err, "could not read response body for zoom user")
 	}
 
-	var user User
-	if err := json.Unmarshal(buf.Bytes(), &user); err != nil {
+	var zoomUser User
+	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal zoom user data")
 	}
 
-	return &user, nil
+	return &zoomUser, nil
 }
