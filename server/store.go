@@ -9,15 +9,17 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 const (
-	postMeetingKey     = "post_meeting_"
-	zoomStateKeyPrefix = "zoomuserstate"
-	zoomUserByMMID     = "zoomtoken_"
-	zoomUserByZoomID   = "zoomtokenbyzoomid_"
+	postMeetingKey        = "post_meeting_"
+	zoomStateKeyPrefix    = "zoomuserstate"
+	zoomUserByMMID        = "zoomtoken_"
+	zoomUserByZoomID      = "zoomtokenbyzoomid_"
+	zoomSuperUserTokenKey = "zoomSuperUserToken_"
 
 	meetingPostIDTTL  = 60 * 60 * 24 // One day
 	oAuthUserStateTTL = 60 * 5       // 5 minutes
@@ -88,9 +90,13 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 
 // storeOAuthUserState generates an OAuth user state that contains the user ID & channel ID,
 // then stores it in the KV store with and expiry of 5 minutes.
-func (p *Plugin) storeOAuthUserState(userID string, channelID string) *model.AppError {
+func (p *Plugin) storeOAuthUserState(userID string, channelID string, justConnect bool) *model.AppError {
 	key := getOAuthUserStateKey(userID)
-	state := fmt.Sprintf("%s_%s_%s", model.NewId()[0:15], userID, channelID)
+	connectString := falseString
+	if justConnect {
+		connectString = trueString
+	}
+	state := fmt.Sprintf("%s_%s_%s_%s", model.NewId()[0:15], userID, channelID, connectString)
 	return p.API.KVSetWithExpiry(key, []byte(state), oAuthUserStateTTL)
 }
 
@@ -141,4 +147,45 @@ func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
 // getOAuthUserStateKey generates and returns the key for storing the OAuth user state in the KV store.
 func getOAuthUserStateKey(userID string) string {
 	return fmt.Sprintf("%s_%s", zoomStateKeyPrefix, userID)
+}
+
+func (p *Plugin) getSuperuserToken() (*oauth2.Token, error) {
+	var token oauth2.Token
+	rawToken, appErr := p.API.KVGet(zoomSuperUserTokenKey)
+	if appErr != nil {
+		return nil, appErr
+	}
+	if len(rawToken) == 0 {
+		return nil, nil
+	}
+
+	err := json.Unmarshal(rawToken, &token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+func (p *Plugin) setSuperUserToken(token *oauth2.Token) error {
+	rawToken, err := json.Marshal(token)
+	if err != nil {
+		return err
+	}
+
+	appErr := p.API.KVSet(zoomSuperUserTokenKey, rawToken)
+	if appErr != nil {
+		return appErr
+	}
+
+	return nil
+}
+
+func (p *Plugin) removeSuperUserToken() error {
+	appErr := p.API.KVDelete(zoomSuperUserTokenKey)
+	if appErr != nil {
+		return appErr
+	}
+
+	return nil
 }

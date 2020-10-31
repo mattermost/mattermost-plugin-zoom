@@ -28,7 +28,7 @@ type JWTClient struct {
 }
 
 // NewJWTClient returns a new JWT-based Zoom API client.
-func NewJWTClient(zoomAPIURL, apiKey, apiSecret string) *JWTClient {
+func NewJWTClient(zoomAPIURL, apiKey, apiSecret string) Client {
 	return &JWTClient{
 		apiKey:     apiKey,
 		apiSecret:  apiSecret,

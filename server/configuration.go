@@ -35,6 +35,7 @@ type configuration struct {
 	APIKey            string
 	APISecret         string
 	EnableOAuth       bool
+	AccountLevelApp   bool
 	OAuthClientID     string
 	OAuthClientSecret string
 	OAuthRedirectURL  string
@@ -156,6 +157,7 @@ func (p *Plugin) OnConfigurationChange() error {
 		if p.configuration.EnableOAuth {
 			method = telemetryOauthModeOauth
 		}
+
 		p.trackOAuthModeChange(method)
 	}
 
