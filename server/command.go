@@ -21,6 +21,8 @@ const (
 		enable | disable | undecide to use PMI to create meeting
 	`
 	alreadyConnectedString = "Already connected"
+	zoomPreferenceCategory = "plugin:zoom"
+	zoomPMISettingName = "use-pmi"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -79,7 +81,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case "help", "":
 		return p.runHelpCommand()
 	case "setting":
-		return p.runSettingCommand(split[2:])
+		return p.runSettingCommand(split[2:], user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -197,7 +199,7 @@ func (p *Plugin) runHelpCommand() (string, error) {
 }
 
 // run "/zoom setting" command, e.g: /zoom setting usePMI true
-func (p *Plugin) runSettingCommand(settingCommands []string) (string, error) {
+func (p *Plugin) runSettingCommand(settingCommands []string, user *model.User) (string, error) {
 	settingAction := ""
 	if len(settingCommands) > 0 {
 		settingAction = settingCommands[0]
@@ -206,7 +208,7 @@ func (p *Plugin) runSettingCommand(settingCommands []string) (string, error) {
 	case "usePMI":
 		//here process the usePMI command
 		if len(settingCommands) > 1 {
-			return p.runPMISettingCommand(settingCommands[1])
+			return p.runPMISettingCommand(settingCommands[1], user)
 		}
 		return "Set PMI option to \"true\"|\"false\"|\"ask\"", nil
 	case "":
@@ -216,14 +218,19 @@ func (p *Plugin) runSettingCommand(settingCommands []string) (string, error) {
 	}
 }
 
-func (p *Plugin) runPMISettingCommand(PMISetting string) (string, error) {
-	switch PMISetting {
+func (p *Plugin) runPMISettingCommand(usePMIValue string, user *model.User) (string, error) {
+	switch usePMIValue {
 	case "true", "false", "ask":
-		return "", p.API.SavePluginConfig(map[string]interface{}{
-			"use-pmi": PMISetting,
+		return "", p.API.UpdatePreferencesForUser(user.Id, []model.Preference{
+			model.Preference{
+				UserId: user.Id,
+				Category: zoomPreferenceCategory,
+				Name: zoomPMISettingName,
+				Value: usePMIValue,
+			},
 		})
 	default:
-		return fmt.Sprintf("Unknown setting option %v", PMISetting), nil
+		return fmt.Sprintf("Unknown setting option %v", usePMIValue), nil
 	}
 }
 
