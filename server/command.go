@@ -17,8 +17,8 @@ const (
 	helpText           = `* |/zoom start| - Start a zoom meeting`
 	oAuthHelpText      = `* |/zoom disconnect| - Disconnect from zoom`
 	settingHelpText    = `* |/zoom setting| - Configurate setting options`
-	settingPMIHelpText = `* |/zoom setting usePMI [true|false|ask]| - 
-		enable | disable | undecide to use PMI to create meeting
+	settingPMIHelpText = `* |/zoom setting usePMI [true/false/ask]| - 
+		enable / disable / undecide to use PMI to create meeting
 	`
 	alreadyConnectedString = "Already connected"
 	zoomPreferenceCategory = "plugin:zoom"
@@ -221,14 +221,17 @@ func (p *Plugin) runSettingCommand(settingCommands []string, user *model.User) (
 func (p *Plugin) runPMISettingCommand(usePMIValue string, user *model.User) (string, error) {
 	switch usePMIValue {
 	case "true", "false", "ask":
-		return "", p.API.UpdatePreferencesForUser(user.Id, []model.Preference{
+		if appError := p.API.UpdatePreferencesForUser(user.Id, []model.Preference{
 			model.Preference{
 				UserId: user.Id,
 				Category: zoomPreferenceCategory,
 				Name: zoomPMISettingName,
 				Value: usePMIValue,
 			},
-		})
+		}); appError != nil {
+			return "Cannot update preference in zoom setting", nil
+		}
+		return fmt.Sprintf("Update successfully, usePMI: %v", usePMIValue), nil
 	default:
 		return fmt.Sprintf("Unknown setting option %v", usePMIValue), nil
 	}
