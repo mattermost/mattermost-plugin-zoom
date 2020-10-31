@@ -17,6 +17,7 @@ const (
 
 	EventTypeMeetingStarted EventType = "meeting.started"
 	EventTypeMeetingEnded   EventType = "meeting.ended"
+	EventTypeMeetingParticipantsJBHost EventType = "meeting.participant_jbh_joined"
 )
 
 type MeetingWebhookObject struct {
@@ -28,10 +29,22 @@ type MeetingWebhookObject struct {
 	ID        string    `json:"id"`
 	Type      int       `json:"type"`
 	UUID      string    `json:"uuid"`
-	HostID    string    `json:"host_id"`
+	HostID    string    `json:"host_id"`	
+}
+
+type MeetingParticipantsJBHObject struct {
+	MeetingWebhookObject
+	Participant struct {
+		UserName string `json:"user_name"`	
+	} `json:"participant"` 
 }
 
 type MeetingWebhookPayload struct {
+	AccountID string               `json:"account_id"`
+	Object    MeetingWebhookObject `json:"object"`
+}
+
+type MeetingParticipantsJBHWebhook struct {
 	AccountID string               `json:"account_id"`
 	Object    MeetingWebhookObject `json:"object"`
 }

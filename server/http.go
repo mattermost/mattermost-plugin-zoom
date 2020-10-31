@@ -219,18 +219,22 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webhook.Event != zoom.EventTypeMeetingEnded {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
+	if webhook.Event != zoom.EventTypeMeetingParticipantsJBHost {
+		if webhookBody, ok := webhook.Payload.(zoom.MeetingParticipantsJBHObject); ok {
+			p.handleParticipantJBHostWebhook(&webhookBody)
+			return
+		}
 	}
 
-	var meetingWebhook zoom.MeetingWebhook
-	if err = json.Unmarshal(b, &meetingWebhook); err != nil {
-		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if webhook.Event == zoom.EventTypeMeetingEnded {
+		var meetingWebhook zoom.MeetingWebhook
+		if err = json.Unmarshal(b, &meetingWebhook); err != nil {
+			p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		p.handleMeetingEnded(w, r, &meetingWebhook)
 	}
-	p.handleMeetingEnded(w, r, &meetingWebhook)
 }
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
@@ -574,6 +578,11 @@ func (p *Plugin) completeCompliance(payload zoom.DeauthorizationPayload) error {
 	}
 
 	return nil
+}
+
+// handle webhook participant join before host in the meeting
+func (p *Plugin) handleParticipantJBHostWebhook(payload *zoom.MeetingParticipantsJBHObject) {
+	
 }
 
 // parseOAuthUserState parses the user ID and the channel ID from the given OAuth user state.
