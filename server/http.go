@@ -30,7 +30,7 @@ const (
 	no                       = "no"
 	ContextAccept            = "accept"
 	ContextMeetingID         = "meetingId"
-	zoomOAuthUserStateLength = 3
+	zoomOAuthUserStateLength = 4
 )
 
 type startMeetingRequest struct {
@@ -142,7 +142,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	userID, channelID, err := parseOAuthUserState(storedState)
+	userID, channelID, justConnect, err := parseOAuthUserState(storedState)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -154,7 +154,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if appErr := p.deleteUserState(userID); appErr != nil {
+	if appErr = p.deleteUserState(userID); appErr != nil {
 		p.API.LogWarn("failed to delete OAuth user state from KV store", "error", appErr.Error())
 	}
 
@@ -166,30 +166,52 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL())
-	user, _ := p.API.GetUser(userID)
+	if p.configuration.AccountLevelApp {
+		err = p.setSuperUserToken(token)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL(), p.configuration.AccountLevelApp)
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	zoomUser, authErr := client.GetUser(user)
 	if authErr != nil {
+		if p.configuration.AccountLevelApp && !justConnect {
+			http.Error(w, "Connection completed but there was an error creating the meeting. "+authErr.Message, http.StatusInternalServerError)
+			return
+		}
+
 		p.API.LogWarn("failed to get user", "error", authErr.Error())
-		http.Error(w, authErr.Error(), http.StatusInternalServerError)
+		http.Error(w, "Could not complete the connection: "+authErr.Message, http.StatusInternalServerError)
 		return
 	}
 
-	info := &zoom.OAuthUserInfo{
-		ZoomEmail:  zoomUser.Email,
-		ZoomID:     zoomUser.ID,
-		UserID:     userID,
-		OAuthToken: token,
+	if !p.configuration.AccountLevelApp {
+		info := &zoom.OAuthUserInfo{
+			ZoomEmail:  zoomUser.Email,
+			ZoomID:     zoomUser.ID,
+			UserID:     userID,
+			OAuthToken: token,
+		}
+
+		if err = p.storeOAuthUserInfo(info); err != nil {
+			msg := "Unable to connect user to Zoom"
+			p.API.LogWarn(msg, "error", err.Error())
+			http.Error(w, msg, http.StatusInternalServerError)
+			return
+		}
 	}
 
-	if err = p.storeOAuthUserInfo(info); err != nil {
-		msg := "Unable to connect user to Zoom"
-		p.API.LogWarn(msg, "error", err.Error())
-		http.Error(w, msg, http.StatusInternalServerError)
-		return
-	}
-
-	if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
+	if justConnect {
+		p.postEphemeral(userID, channelID, "Successfully connected to Zoom")
+	} else if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
 		p.API.LogWarn("Failed to post meeting", "error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -420,7 +442,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(userID, req.ChannelID); appErr != nil {
+		if appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
 			p.API.LogWarn("failed to store user state")
 		}
 
@@ -443,9 +465,9 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
-	client, authErr := p.getActiveClient(user)
-	if authErr != nil {
-		p.API.LogWarn("could not get the active zoom client", "error", authErr.Error())
+	client, _, err := p.getActiveClient(user)
+	if err != nil {
+		p.API.LogWarn("could not get the active zoom client", "error", err.Error())
 		return defaultURL
 	}
 
@@ -483,6 +505,16 @@ func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string,
 }
 
 func (p *Plugin) postAuthenticationMessage(channelID string, userID string, message string) *model.Post {
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channelID,
+		Message:   message,
+	}
+
+	return p.API.SendEphemeralPost(userID, post)
+}
+
+func (p *Plugin) postEphemeral(userID, channelID, message string) *model.Post {
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channelID,
@@ -601,11 +633,11 @@ func (p *Plugin) completeCompliance(payload zoom.DeauthorizationPayload) error {
 }
 
 // parseOAuthUserState parses the user ID and the channel ID from the given OAuth user state.
-func parseOAuthUserState(state string) (userID, channelID string, err error) {
+func parseOAuthUserState(state string) (userID, channelID string, justConnect bool, err error) {
 	stateComponents := strings.Split(state, "_")
 	if len(stateComponents) != zoomOAuthUserStateLength {
-		return "", "", errors.New("invalid OAuth user state")
+		return "", "", false, errors.New("invalid OAuth user state")
 	}
 
-	return stateComponents[1], stateComponents[2], nil
+	return stateComponents[1], stateComponents[2], stateComponents[3] == trueString, nil
 }
