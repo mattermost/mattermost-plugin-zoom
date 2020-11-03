@@ -76,7 +76,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runDisconnectCommand(user)
 	case "help", "":
 		return p.runHelpCommand(user)
-  case "status":
+	case "status":
 		return p.runStatusChange(userID, split[1:])
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
