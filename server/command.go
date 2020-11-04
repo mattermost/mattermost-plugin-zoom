@@ -80,9 +80,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 }
 
 func (p *Plugin) canConnect(user *model.User) bool {
-	return p.configuration.EnableOAuth && // we are not on JWT
-		(!p.configuration.AccountLevelApp || // we are on user managed app
-			user.IsSystemAdmin()) // admins can connect Account level apps
+	return (!p.configuration.AccountLevelApp || // we are on user managed app
+		user.IsSystemAdmin()) // admins can connect Account level apps
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
@@ -143,6 +142,10 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 			return alreadyConnectedString, nil
 		}
 
+		appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+		if appErr != nil {
+			return "", errors.Wrap(appErr, "cannot store state")
+		}
 		return oauthMsg, nil
 	}
 
@@ -193,7 +196,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	available := "start, help"
-	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+	if !p.configuration.AccountLevelApp {
 		available = "start, connect, disconnect, help"
 	}
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
@@ -201,8 +204,8 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
 
-	// no point in showing the 'disconnect' option if OAuth is not enabled
-	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+	// no point in showing the 'disconnect' option if Account level OAuth is enabled
+	if !p.configuration.AccountLevelApp {
 		connect := model.NewAutocompleteData("connect", "", "Connect to Zoom")
 		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
 		zoom.AddCommand(connect)

@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	httpTimeout = time.Second * 10
-	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
+	httpTimeout       = time.Second * 10
+	OAuthPrompt       = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
+	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
