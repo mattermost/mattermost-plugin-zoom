@@ -8,13 +8,14 @@ When a Zoom meeting ends, the original link shared in the channel can be changed
 2. Enable **Event Subscriptions**.
 3. Click **Add New Event Subscription** and give it a name \(e.g. "Meeting Ended"\).
 4. Enter a valid **Event notification endpoint URL** \(`https://SITEURL/plugins/zoom/webhook?secret=WEBHOOKSECRET`\).
-  * `SITEURL` should be your Mattermost server URL.
-  * `WEBHOOKSECRET` is generated during [Mattermost Setup](../mattermost-setup.md).
+   * `SITEURL` should be your Mattermost server URL.
+   * `WEBHOOKSECRET` is generated during [Mattermost Setup](../mattermost-setup.md).
 
-![Feature screen](../../.gitbook/assets/screenshot-from-2020-06-05-19-51-56.png)
+![Feature screen](../../.gitbook/assets/screenshot-from-2020-06-05-19-51-56%20%282%29.png)
 
-* Click **Add events** and select the **End Meeting** event.
+1. Click **Add events** and select the **End Meeting** event.
 
-![Event types screen](../../.gitbook/assets/screenshot-from-2020-06-05-20-43-04.png)
+![Event types screen](../../.gitbook/assets/screenshot-from-2020-06-05-20-43-04%20%282%29.png)
 
-* Click **Done** and then save your app.
+1. Click **Done** and then save your app.
+
