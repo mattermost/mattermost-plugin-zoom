@@ -19,6 +19,7 @@
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
+         "header": "To setup this plugin you must create a 'Zoom App' with a Zoom Administrator's account - See [documentation here](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration)",
         "settings": [
             {
                 "key": "ZoomURL",
