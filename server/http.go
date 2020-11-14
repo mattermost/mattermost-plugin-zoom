@@ -219,11 +219,11 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webhook.Event != zoom.EventTypeMeetingParticipantsJBHost {
+	if webhook.Event == zoom.EventTypeMeetingParticipantsJBHost {
 		if webhookBody, ok := webhook.Payload.(zoom.MeetingParticipantsJBHObject); ok {
-			p.handleParticipantJBHostWebhook(&webhookBody)
-			return
+			p.handleParticipantJBHostWebhook(w,r, &webhookBody)
 		}
+		return
 	}
 
 	if webhook.Event == zoom.EventTypeMeetingEnded {
@@ -236,6 +236,34 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		p.handleMeetingEnded(w, r, &meetingWebhook)
 	}
 }
+
+// handle webhook participant join before host in the meeting
+func (p *Plugin) handleParticipantJBHostWebhook(
+	w http.ResponseWriter, r *http.Request, payload *zoom.MeetingParticipantsJBHObject,
+) {
+	meetingId := payload.ID
+	postId, appErr := p.fetchMeetingPostID(meetingId)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode) 
+		return
+	}
+	post, appErr := p.API.GetPost(postId)
+	if appErr != nil {
+		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+	meetingCreator := post.UserId
+	p.API.SendEphemeralPost(meetingCreator, &model.Post{
+		UserId: p.botUserID,
+		ChannelId: post.ChannelId,
+		Message: fmt.Sprintf(
+			"User %s has joined the meeting before you", payload.Participant.UserName,
+		),
+	})
+	
+}
+
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
 	meetingPostID := webhook.Payload.Object.ID
@@ -578,11 +606,6 @@ func (p *Plugin) completeCompliance(payload zoom.DeauthorizationPayload) error {
 	}
 
 	return nil
-}
-
-// handle webhook participant join before host in the meeting
-func (p *Plugin) handleParticipantJBHostWebhook(payload *zoom.MeetingParticipantsJBHObject) {
-	
 }
 
 // parseOAuthUserState parses the user ID and the channel ID from the given OAuth user state.
