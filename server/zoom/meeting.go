@@ -94,15 +94,15 @@ type CreateMeetingRequest struct {
 		Field string `json:"field"`
 		Value string `json:"value"`
 	} `json:"tracking_fields"`
-	// Recurrence struct {
-	// 	Type           int    `json:"type"`
-	// 	RepeatInterval int    `json:"repeat_interval"`
-	// 	WeeklyDays     string `json:"weekly_days,omitempty"`
-	// 	MonthlyDay     int    `json:"monthly_day,omitempty"`
-	// 	MonthlyWeekDay int    `json:"monthly_week_day,omitempty"`
-	// 	EndTimes       int    `json:"end_times,omitempty"`
-	// 	EndDateTime    int    `json:"end_date_time,omitempty"`
-	// } `json:"recurrence,omitempty"`
+	Recurrence *struct {
+		Type           int    `json:"type"`
+		RepeatInterval int    `json:"repeat_interval"`
+		WeeklyDays     string `json:"weekly_days,omitempty"`
+		MonthlyDay     int    `json:"monthly_day,omitempty"`
+		MonthlyWeekDay int    `json:"monthly_week_day,omitempty"`
+		EndTimes       int    `json:"end_times,omitempty"`
+		EndDateTime    int    `json:"end_date_time,omitempty"`
+	} `json:"recurrence,omitempty"`
 	Settings struct {
 		HostVideo             bool     `json:"host_video"`
 		ParticipantVideo      bool     `json:"participant_video"`
