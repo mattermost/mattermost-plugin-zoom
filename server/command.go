@@ -146,6 +146,10 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 			return alreadyConnectedString, nil
 		}
 
+		appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+		if appErr != nil {
+			return "", errors.Wrap(appErr, "cannot store state")
+		}
 		return oauthMsg, nil
 	}
 
