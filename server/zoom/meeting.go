@@ -7,14 +7,14 @@ package zoom
 type MeetingType int
 
 const (
-	// Instant meeting
-	Instant MeetingType = 1
-	// Scheduled meeting
-	Scheduled MeetingType = 2
-	// RecurringWithNoFixedTime meeting
-	RecurringWithNoFixedTime MeetingType = 3
-	// RecurringWithFixedTime meeting
-	RecurringWithFixedTime MeetingType = 8
+	// MeetingTypeInstant meeting
+	MeetingTypeInstant MeetingType = 1
+	// MeetingTypeScheduled meeting
+	MeetingTypeScheduled MeetingType = 2
+	// MeetingTypeRecurringWithNoFixedTime meeting
+	MeetingTypeRecurringWithNoFixedTime MeetingType = 3
+	// MeetingTypeRecurringWithFixedTime meeting
+	MeetingTypeRecurringWithFixedTime MeetingType = 8
 )
 
 // Meeting is defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting

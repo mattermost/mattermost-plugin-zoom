@@ -100,7 +100,7 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 	client := c.config.Client(context.Background(), c.token)
 	meetingRequest := CreateMeetingRequest{
 		Topic: topic,
-		Type:  Instant,
+		Type:  MeetingTypeInstant,
 	}
 	b, err := json.Marshal(meetingRequest)
 	if err != nil {

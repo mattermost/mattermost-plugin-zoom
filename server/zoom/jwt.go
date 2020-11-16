@@ -59,7 +59,7 @@ func (c *JWTClient) CreateMeeting(user *User, topic string) (*Meeting, error) {
 	var ret Meeting
 	meetingRequest := CreateMeetingRequest{
 		Topic: topic,
-		Type:  Instant,
+		Type:  MeetingTypeInstant,
 	}
 	err := c.request(http.MethodPost, fmt.Sprintf("/users/%s/meetings", user.Email), meetingRequest, &ret)
 	return &ret, err
