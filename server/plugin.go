@@ -4,16 +4,10 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"net/http"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -24,28 +18,20 @@ import (
 )
 
 const (
-	postMeetingKey = "post_meeting_"
-
 	botUserName    = "zoom"
 	botDisplayName = "Zoom"
 	botDescription = "Created by the Zoom plugin."
 
-	zoomDefaultURL       = "https://zoom.us"
-	zoomDefaultAPIURL    = "https://api.zoom.com/v2"
-	zoomTokenKey         = "zoomtoken_"
-	zoomTokenKeyByZoomID = "zoomtokenbyzoomid_"
+	trueString  = "true"
+	falseString = "false"
 
-	zoomStateLength   = 3
-	zoomOAuthMessage  = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect?channelID=%s)"
-	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
-
-	meetingPostIDTTL = 60 * 60 * 24 // One day
+	zoomProviderName = "Zoom"
 )
 
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	zoomClient *zoom.Client
+	jwtClient zoom.Client
 
 	// botUserID of the created bot account.
 	botUserID string
@@ -56,6 +42,8 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+
+	siteURL string
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
@@ -65,8 +53,18 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	if _, err := p.getSiteURL(); err != nil {
-		return err
+	if err := p.registerSiteURL(); err != nil {
+		return errors.Wrap(err, "could not register site URL")
+	}
+
+	command, err := p.getCommand()
+	if err != nil {
+		return errors.Wrap(err, "failed to get command")
+	}
+
+	err = p.API.RegisterCommand(command)
+	if err != nil {
+		return errors.Wrap(err, "failed to register command")
 	}
 
 	botUserID, err := p.Helpers.EnsureBot(&model.Bot{
@@ -84,10 +82,6 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "couldn't get bundle path")
 	}
 
-	if err = p.API.RegisterCommand(getCommand()); err != nil {
-		return errors.WithMessage(err, "OnActivate: failed to register command")
-	}
-
 	profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile.png"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't read profile image")
@@ -97,340 +91,104 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.zoomClient = zoom.NewClient(config.ZoomAPIURL, config.APIKey, config.APISecret)
+	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
 
 	return nil
 }
 
-func (p *Plugin) getSiteURL() (string, error) {
-	siteURLRef := p.API.GetConfig().ServiceSettings.SiteURL
-	if siteURLRef == nil || *siteURLRef == "" {
-		return "", errors.New("error fetching siteUrl")
+// registerSiteURL fetches the site URL and sets it in the plugin object.
+func (p *Plugin) registerSiteURL() error {
+	siteURL := p.API.GetConfig().ServiceSettings.SiteURL
+	if siteURL == nil || *siteURL == "" {
+		return errors.New("could not fetch siteURL")
 	}
 
-	return *siteURLRef, nil
+	p.siteURL = *siteURL
+	return nil
 }
 
-func (p *Plugin) getOAuthConfig() (*oauth2.Config, error) {
+// getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
+func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, string, error) {
 	config := p.getConfiguration()
 
-	clientID := config.OAuthClientID
-	clientSecret := config.OAuthClientSecret
-	zoomURL := config.ZoomURL
-	if zoomURL == "" {
-		zoomURL = zoomDefaultURL
+	// JWT
+	if !config.EnableOAuth {
+		return p.jwtClient, "", nil
 	}
 
-	authURL := fmt.Sprintf("%v/oauth/authorize", zoomURL)
-	tokenURL := fmt.Sprintf("%v/oauth/token", zoomURL)
+	// OAuth Account Level
+	if config.AccountLevelApp {
+		message := "Zoom App not connected. Contact your System administrator."
+		token, err := p.getSuperuserToken()
+		if user.IsSystemAdmin() {
+			message = fmt.Sprintf(zoom.OAuthPrompt, p.siteURL)
+		}
+		if err != nil {
+			return nil, message, errors.Wrap(err, "could not get token")
+		}
+		if token == nil {
+			return nil, message, errors.New("zoom app not connected")
+		}
+		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true), "", nil
+	}
 
-	siteURL, err := p.getSiteURL()
+	// Oauth User Level
+	message := fmt.Sprintf(zoom.OAuthPrompt, p.siteURL)
+	info, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
 	if err != nil {
-		return nil, err
+		return nil, message, errors.Wrap(err, "could not fetch Zoom OAuth info")
 	}
 
-	redirectURL := fmt.Sprintf("%s/plugins/zoom/oauth2/complete", siteURL)
+	plainToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
+	if err != nil {
+		return nil, message, errors.New("could not decrypt OAuth access token")
+	}
+
+	info.OAuthToken.AccessToken = plainToken
+	conf := p.getOAuthConfig()
+	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false), "", nil
+}
+
+// getOAuthConfig returns the Zoom OAuth2 flow configuration.
+func (p *Plugin) getOAuthConfig() *oauth2.Config {
+	config := p.getConfiguration()
+	zoomURL := p.getZoomURL()
 
 	return &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
+		ClientID:     config.OAuthClientID,
+		ClientSecret: config.OAuthClientSecret,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  authURL,
-			TokenURL: tokenURL,
+			AuthURL:  fmt.Sprintf("%v/oauth/authorize", zoomURL),
+			TokenURL: fmt.Sprintf("%v/oauth/token", zoomURL),
 		},
-		RedirectURL: redirectURL,
+		RedirectURL: fmt.Sprintf("%s/plugins/zoom/oauth2/complete", p.siteURL),
 		Scopes: []string{
 			"user:read",
 			"meeting:write",
 			"webinar:write",
 			"recording:write"},
-	}, nil
+	}
 }
 
-type ZoomUserInfo struct {
-	ZoomEmail string
-
-	// Zoom OAuth Token, ttl 15 years
-	OAuthToken *oauth2.Token
-
-	// Mattermost userID
-	UserID string
-
-	// Zoom userID
-	ZoomID string
-}
-
-type AuthError struct {
-	Message string `json:"message"`
-	Err     error  `json:"err"`
-}
-
-func (ae *AuthError) Error() string {
-	errorString, _ := json.Marshal(ae)
-	return string(errorString)
-}
-
-func (p *Plugin) storeZoomUserInfo(info *ZoomUserInfo) error {
-	config := p.getConfiguration()
-
-	encryptedToken, err := encrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
+// authenticateAndFetchZoomUser uses the active Zoom client to authenticate and return the Zoom user
+func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zoom.AuthError) {
+	zoomClient, message, err := p.getActiveClient(user)
 	if err != nil {
-		return err
-	}
-
-	info.OAuthToken.AccessToken = encryptedToken
-
-	jsonInfo, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-
-	if err := p.API.KVSet(zoomTokenKey+info.UserID, jsonInfo); err != nil {
-		return err
-	}
-
-	if err := p.API.KVSet(zoomTokenKeyByZoomID+info.ZoomID, jsonInfo); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *Plugin) getZoomUserInfo(userID string) (*ZoomUserInfo, error) {
-	config := p.getConfiguration()
-
-	var userInfo ZoomUserInfo
-
-	infoBytes, appErr := p.API.KVGet(zoomTokenKey + userID)
-	if appErr != nil || infoBytes == nil {
-		return nil, errors.New("must connect user account to Zoom first")
-	}
-
-	err := json.Unmarshal(infoBytes, &userInfo)
-	if err != nil {
-		return nil, errors.New("unable to parse token")
-	}
-
-	unencryptedToken, err := decrypt([]byte(config.EncryptionKey), userInfo.OAuthToken.AccessToken)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, errors.New("unable to decrypt access token")
-	}
-
-	userInfo.OAuthToken.AccessToken = unencryptedToken
-
-	return &userInfo, nil
-}
-
-func (p *Plugin) authenticateAndFetchZoomUser(userID, userEmail, channelID string) (*zoom.User, *AuthError) {
-	var zoomUser *zoom.User
-	var clientErr *zoom.ClientError
-	var err error
-	config := p.getConfiguration()
-
-	// use OAuth
-	if config.EnableOAuth {
-		zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
-		oauthMsg := fmt.Sprintf(
-			zoomOAuthMessage,
-			*p.API.GetConfig().ServiceSettings.SiteURL, channelID)
-
-		if apiErr != nil || zoomUserInfo == nil {
-			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
-		}
-		zoomUser, err = p.getZoomUserWithToken(zoomUserInfo.OAuthToken)
-		if err != nil || zoomUser == nil {
-			return nil, &AuthError{Message: oauthMsg, Err: apiErr}
-		}
-	} else {
-		// use personal credentials
-		zoomUser, clientErr = p.zoomClient.GetUser(userEmail)
-		if clientErr != nil {
-			includeEmailInErr := fmt.Sprintf(zoomEmailMismatch, userEmail)
-			return nil, &AuthError{Message: includeEmailInErr, Err: clientErr}
+		return nil, &zoom.AuthError{
+			Message: message,
+			Err:     err,
 		}
 	}
-	return zoomUser, nil
+
+	return zoomClient.GetUser(user)
 }
 
-func (p *Plugin) disconnect(userID string) error {
-	rawInfo, appErr := p.API.KVGet(zoomTokenKey + userID)
-	if appErr != nil {
-		return appErr
-	}
-
-	var info ZoomUserInfo
-	err := json.Unmarshal(rawInfo, &info)
-	if err != nil {
-		return err
-	}
-
-	errByMattermostID := p.API.KVDelete(zoomTokenKey + userID)
-	errByZoomID := p.API.KVDelete(zoomTokenKeyByZoomID + info.ZoomID)
-	if errByMattermostID != nil {
-		return errByMattermostID
-	}
-	if errByZoomID != nil {
-		return errByZoomID
-	}
-	return nil
-}
-
-func (p *Plugin) getZoomUserWithToken(token *oauth2.Token) (*zoom.User, error) {
-	config := p.getConfiguration()
-	ctx := context.Background()
-
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	client := conf.Client(ctx, token)
-	apiURL := config.ZoomAPIURL
-	if apiURL == "" {
-		apiURL = zoomDefaultAPIURL
-	}
-
-	url := fmt.Sprintf("%v/users/me", apiURL)
-	res, err := client.Get(url)
-	if err != nil || res == nil {
-		return nil, errors.New("error fetching zoom user, err=" + err.Error())
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("error fetching zoom user")
-	}
-
-	buf := new(bytes.Buffer)
-
-	if _, err = buf.ReadFrom(res.Body); err != nil {
-		return nil, errors.New("error reading response body for zoom user")
-	}
-
-	var zoomUser zoom.User
-
-	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
-		return nil, errors.New("error unmarshaling zoom user")
-	}
-
-	return &zoomUser, nil
-}
-
-func (p *Plugin) GetMeetingOAuth(meetingID int, userID string) (*zoom.Meeting, error) {
-	config := p.getConfiguration()
-	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelFunct()
-
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
-	apiURL := config.ZoomAPIURL
-	if apiURL == "" {
-		apiURL = zoomDefaultAPIURL
-	}
-
-	url := fmt.Sprintf("%v/meetings/%v", apiURL, meetingID)
-	res, err := client.Get(url)
-
-	if err != nil {
-		return nil, errors.New("error fetching zoom user, err=" + err.Error())
-	}
-	if res == nil {
-		return nil, errors.New("error fetching zoom user, empty result returned")
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New("error fetching zoom user")
-	}
-
-	buf, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, errors.New("error reading response body for zoom user")
-	}
-
-	var ret zoom.Meeting
-
-	if err := json.Unmarshal(buf, &ret); err != nil {
-		return nil, errors.New("error unmarshaling zoom user")
-	}
-
-	return &ret, nil
-}
-
-func (p *Plugin) StartMeetingOAuth(userID string) (*zoom.Meeting, error) {
-	config := p.getConfiguration()
-	ctx, cancelFunct := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelFunct()
-
-	conf, err := p.getOAuthConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	zoomUserInfo, apiErr := p.getZoomUserInfo(userID)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	client := conf.Client(ctx, zoomUserInfo.OAuthToken)
-	apiURL := config.ZoomAPIURL
-	if apiURL == "" {
-		apiURL = zoomDefaultAPIURL
-	}
-
-	url := fmt.Sprintf("%v/users/%v/meetings", apiURL, zoomUserInfo.ZoomEmail)
-
-	meetingRequest := zoom.StartMeetingRequest{
-		Topic: "Meeting created on Mattermost",
-		Type:  1,
-	}
-	req, err := json.Marshal(meetingRequest)
-	if err != nil {
-		return nil, errors.New("error marshaling request, err=" + err.Error())
-	}
-	res, err := client.Post(url, "application/json", bytes.NewReader(req))
-
-	if err != nil {
-		return nil, errors.New("error creating meeting, err=" + err.Error())
-	}
-	if res == nil {
-		return nil, errors.New("error creating meeting, empty result returned")
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusCreated {
-		return nil, errors.New("error creating meeting")
-	}
-
-	buf, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, errors.New("error reading response body for meeting")
-	}
-
-	var ret zoom.Meeting
-
-	if err := json.Unmarshal(buf, &ret); err != nil {
-		return nil, errors.New("error unmarshaling meeting")
-	}
-
-	return &ret, nil
-}
-
-func (p *Plugin) dm(userID string, message string) error {
+func (p *Plugin) sendDirectMessage(userID string, message string) error {
 	channel, err := p.API.GetDirectChannel(userID, p.botUserID)
 	if err != nil {
-		p.API.LogInfo("Couldn't get bot's DM channel", "user_id", userID)
-		return err
+		msg := fmt.Sprintf("could not get or create DM channel for bot with ID: %s", p.botUserID)
+		p.API.LogInfo(msg, "user_id", userID)
+		return errors.Wrap(err, msg)
 	}
 
 	post := &model.Post{
@@ -440,8 +198,5 @@ func (p *Plugin) dm(userID string, message string) error {
 	}
 
 	_, err = p.API.CreatePost(post)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

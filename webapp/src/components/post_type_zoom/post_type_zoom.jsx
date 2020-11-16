@@ -153,7 +153,10 @@ export default class PostTypeZoom extends React.PureComponent {
                 </div>
             );
         } else if (props.meeting_status === 'RECENTLY_CREATED') {
-            preText = `${this.props.creatorName} already created a zoom call recently`;
+            preText = `${this.props.creatorName} already created a call with a different provider recently`;
+            if (props.meeting_provider) {
+                preText = `${this.props.creatorName} already created a ${props.meeting_provider} call recently`;
+            }
 
             subtitle = 'What do you want to do?';
             content = (

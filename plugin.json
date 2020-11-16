@@ -4,6 +4,7 @@
     "description": "Zoom audio and video conferencing plugin for Mattermost 5.2+.",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.4.1",
     "icon_path": "assets/profile.svg",
     "version": "1.4.1",
     "min_server_version": "5.12.0",
@@ -38,6 +39,13 @@
                 "display_name": "Enable OAuth (Beta)",
                 "type": "bool",
                 "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n When false, JWT will be used as the authentication means with Zoom. \n If you are currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
+                "default": false
+            },
+            {
+                "key": "AccountLevelApp",
+                "display_name": "OAuth by Account Level App (Beta)",
+                "type": "bool",
+                "help_text": "When true, only an account administrator has to log in. The rest of the users will use their e-mail to log in.",
                 "default": false
             },
             {
