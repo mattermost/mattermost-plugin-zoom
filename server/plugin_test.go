@@ -54,8 +54,8 @@ func TestPlugin(t *testing.T) {
 
 	noAuthMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 
-	personalMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
-	personalMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
+	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
+	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
 	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
@@ -72,8 +72,8 @@ func TestPlugin(t *testing.T) {
 			Request:            noAuthMeetingRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
 		},
-		"ValidPersonalMeetingRequest": {
-			Request:            personalMeetingRequest,
+		"ValidMeetingRequest": {
+			Request:            meetingRequest,
 			ExpectedStatusCode: http.StatusOK,
 		},
 		"ValidStoppedWebhookRequest": {

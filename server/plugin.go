@@ -107,7 +107,7 @@ func (p *Plugin) registerSiteURL() error {
 	return nil
 }
 
-// getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
+// getActiveClient returns an OAuth Zoom client if available, otherwise an error and a user facing error message.
 func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, string, error) {
 	config := p.getConfiguration()
 

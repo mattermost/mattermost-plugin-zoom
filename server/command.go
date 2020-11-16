@@ -127,7 +127,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return "Error creating the client.", nil
 	}
 
-	meeting, err := client.CreateMeeting(user.Id)
+	meeting, err := client.CreateMeeting(user.Email)
 	if err != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return "Error creating the meeting.", nil

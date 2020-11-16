@@ -396,11 +396,11 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
-		p.API.LogWarn("Error creating the client", "err", err)
+		p.API.LogWarn("Error getting the client", "err", err)
 		return
 	}
 
-	meeting, err := client.CreateMeeting(user.Id)
+	meeting, err := client.CreateMeeting(user.Email)
 	if err != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return
