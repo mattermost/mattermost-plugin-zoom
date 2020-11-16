@@ -3,25 +3,39 @@
 
 package zoom
 
+// MeetingType as defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meetingcreate
+type MeetingType int
+
+const (
+	// Instant meeting
+	Instant MeetingType = 1
+	// Scheduled meeting
+	Scheduled MeetingType = 2
+	// RecurringWithNoFixedTime meeting
+	RecurringWithNoFixedTime MeetingType = 3
+	// RecurringWithFixedTime meeting
+	RecurringWithFixedTime MeetingType = 8
+)
+
 // Meeting is defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting
 type Meeting struct {
-	UUID              string `json:"uuid"`
-	ID                int    `json:"id"`
-	HostID            string `json:"host_id"`
-	Topic             string `json:"topic"`
-	Type              int    `json:"type"`
-	Status            string `json:"status"`
-	StartTime         string `json:"start_time"`
-	Duration          int    `json:"duration"`
-	Timezone          string `json:"timezone"`
-	CreatedAt         string `json:"created_at"`
-	Agenda            string `json:"agenda"`
-	JoinURL           string `json:"join_url"`
-	StartURL          string `json:"start_url"`
-	Password          string `json:"password"`
-	H323Password      string `json:"h323_password"`
-	EncryptedPassword string `json:"encrypted_password"`
-	PMI               int    `json:"pmi"`
+	UUID              string      `json:"uuid"`
+	ID                int         `json:"id"`
+	HostID            string      `json:"host_id"`
+	Topic             string      `json:"topic"`
+	Type              MeetingType `json:"type"`
+	Status            string      `json:"status"`
+	StartTime         string      `json:"start_time"`
+	Duration          int         `json:"duration"`
+	Timezone          string      `json:"timezone"`
+	CreatedAt         string      `json:"created_at"`
+	Agenda            string      `json:"agenda"`
+	JoinURL           string      `json:"join_url"`
+	StartURL          string      `json:"start_url"`
+	Password          string      `json:"password"`
+	H323Password      string      `json:"h323_password"`
+	EncryptedPassword string      `json:"encrypted_password"`
+	PMI               int         `json:"pmi"`
 	TrackingFields    []struct {
 		Field string `json:"field"`
 		Value string `json:"value"`
@@ -66,15 +80,16 @@ type Meeting struct {
 	} `json:"settings"`
 }
 
+// CreateMeetingRequest as defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meetingcreate
 type CreateMeetingRequest struct {
-	Topic          string `json:"topic"`
-	Type           int    `json:"type"`
-	StartTime      string `json:"start_time,omitempty"`
-	Duration       int    `json:"duration,omitempty"`
-	ScheduleFor    string `json:"schedule_for,omitempty"`
-	Timezone       string `json:"timezone,omitempty"`
-	Password       string `json:"password"`
-	Agenda         string `json:"agenda"`
+	Topic          string      `json:"topic"`
+	Type           MeetingType `json:"type"`
+	StartTime      string      `json:"start_time,omitempty"`
+	Duration       int         `json:"duration,omitempty"`
+	ScheduleFor    string      `json:"schedule_for,omitempty"`
+	Timezone       string      `json:"timezone,omitempty"`
+	Password       string      `json:"password"`
+	Agenda         string      `json:"agenda"`
 	TrackingFields []struct {
 		Field string `json:"field"`
 		Value string `json:"value"`

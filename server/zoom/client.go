@@ -23,8 +23,9 @@ func (err *AuthError) Error() string {
 
 var errNotFound = errors.New("not found")
 
+// Client interface for Zoom
 type Client interface {
 	GetMeeting(meetingID int) (*Meeting, error)
 	GetUser(user *model.User) (*User, *AuthError)
-	CreateMeeting(userEmail string) (*Meeting, error)
+	CreateMeeting(user *User, topic string) (*Meeting, error)
 }

@@ -54,13 +54,14 @@ func (c *JWTClient) GetUser(user *model.User) (*User, *AuthError) {
 	return &zoomUser, nil
 }
 
-func (c *JWTClient) CreateMeeting(userEmail string) (*Meeting, error) {
+// CreateMeeting creates a new meeting for the user and returns the created meeting.
+func (c *JWTClient) CreateMeeting(user *User, topic string) (*Meeting, error) {
 	var ret Meeting
 	meetingRequest := CreateMeetingRequest{
-		Topic: "Meeting created on Mattermost",
-		Type:  1,
+		Topic: topic,
+		Type:  Instant,
 	}
-	err := c.request(http.MethodPost, fmt.Sprintf("/users/%s/meetings", userEmail), meetingRequest, &ret)
+	err := c.request(http.MethodPost, fmt.Sprintf("/users/%s/meetings", user.Email), meetingRequest, &ret)
 	return &ret, err
 }
 

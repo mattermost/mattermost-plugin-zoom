@@ -112,7 +112,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return "", nil
 	}
 
-	_, authErr := p.authenticateAndFetchZoomUser(user)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
 		// the user state will be needed later while connecting the user to Zoom via OAuth
 		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
@@ -127,7 +127,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return "Error creating the client.", nil
 	}
 
-	meeting, err := client.CreateMeeting(user.Email)
+	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
 	if err != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return "Error creating the meeting.", nil

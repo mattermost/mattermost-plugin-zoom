@@ -378,7 +378,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, authErr := p.authenticateAndFetchZoomUser(user)
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
 		_, err = w.Write([]byte(`{"meeting_url": ""}`))
 		if err != nil {
@@ -400,7 +400,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meeting, err := client.CreateMeeting(user.Email)
+	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
 	if err != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return
