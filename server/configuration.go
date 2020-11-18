@@ -34,6 +34,7 @@ type configuration struct {
 	APIKey            string
 	APISecret         string
 	EnableOAuth       bool
+	AccountLevelApp   bool
 	OAuthClientID     string
 	OAuthClientSecret string
 	OAuthRedirectURL  string

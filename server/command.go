@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+
 	"github.com/mattermost/mattermost-plugin-api/experimental/command"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
 )
 
-const (
-	helpText      = `* |/zoom start| - Start a zoom meeting`
-	oAuthHelpText = `* |/zoom disconnect| - Disconnect from zoom`
-)
+const helpText = `* |/zoom start| - Start a zoom meeting`
+
+const oAuthHelpText = `* |/zoom connect| - Connect to zoom
+* |/zoom disconnect| - Disconnect from zoom`
+
+const alreadyConnectedString = "Already connected"
 
 func (p *Plugin) getCommand() (*model.Command, error) {
 	iconData, err := command.GetIconData(p.API, "assets/profile.svg")
@@ -62,15 +66,23 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	}
 
 	switch action {
+	case "connect":
+		return p.runConnectCommand(user, args)
 	case "start":
-		return p.runStartCommand(args, user, userID)
+		return p.runStartCommand(args, user)
 	case "disconnect":
-		return p.runDisconnectCommand(userID)
+		return p.runDisconnectCommand(user)
 	case "help", "":
-		return p.runHelpCommand()
+		return p.runHelpCommand(user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
+}
+
+func (p *Plugin) canConnect(user *model.User) bool {
+	return p.configuration.EnableOAuth && // we are not on JWT
+		(!p.configuration.AccountLevelApp || // we are on user managed app
+			user.IsSystemAdmin()) // admins can connect Account level apps
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
@@ -85,8 +97,8 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 // runStartCommand runs command to start a Zoom meeting.
-func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, userID string) (string, error) {
-	if _, appErr := p.API.GetChannelMember(args.ChannelId, userID); appErr != nil {
+func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (string, error) {
+	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
 		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 	}
 
@@ -96,14 +108,14 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, user
 	}
 
 	if recentMeeting {
-		p.postConfirm(recentMeetingLink, args.ChannelId, "", userID, creatorName, provider)
+		p.postConfirm(recentMeetingLink, args.ChannelId, "", user.Id, creatorName, provider)
 		return "", nil
 	}
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
 		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(userID, args.ChannelId); appErr != nil {
+		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
 			p.API.LogWarn("failed to store user state")
 		}
 		return authErr.Message, authErr.Err
@@ -115,24 +127,68 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, user
 	return "", nil
 }
 
-// runDisconnectCommand runs command to disconnect from Zoom. Will fail if OAuth is not enabled.
-func (p *Plugin) runDisconnectCommand(userID string) (string, error) {
-	if !p.configuration.EnableOAuth {
-		return "Invalid attempt to disconnect; OAuth is not enabled.", nil
+func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (string, error) {
+	if !p.canConnect(user) {
+		return "Unknown action `connect`", nil
 	}
 
-	if err := p.disconnectOAuthUser(userID); err != nil {
+	oauthMsg := fmt.Sprintf(
+		zoom.OAuthPrompt,
+		*p.API.GetConfig().ServiceSettings.SiteURL)
+
+	// OAuth Account Level
+	if p.configuration.AccountLevelApp {
+		token, err := p.getSuperuserToken()
+		if err == nil && token != nil {
+			return alreadyConnectedString, nil
+		}
+
+		appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+		if appErr != nil {
+			return "", errors.Wrap(appErr, "cannot store state")
+		}
+		return oauthMsg, nil
+	}
+
+	// OAuth User Level
+	_, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
+	if err == nil {
+		return alreadyConnectedString, nil
+	}
+
+	appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+	if appErr != nil {
+		return "", errors.Wrap(appErr, "cannot store state")
+	}
+	return oauthMsg, nil
+}
+
+// runDisconnectCommand runs command to disconnect from Zoom. Will fail if user cannot connect.
+func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
+	if !p.canConnect(user) {
+		return "Unknown action `disconnect`", nil
+	}
+
+	if p.configuration.AccountLevelApp {
+		err := p.removeSuperUserToken()
+		if err != nil {
+			return "Could not disconnect, err=" + err.Error(), nil
+		}
+		return "Successfully disconnected from Zoom.", nil
+	}
+
+	if err := p.disconnectOAuthUser(user.Id); err != nil {
 		return fmt.Sprintf("Failed to disconnect the user: %s", err.Error()), nil
 	}
 	return "User disconnected from Zoom.", nil
 }
 
 // runHelpCommand runs command to display help text.
-func (p *Plugin) runHelpCommand() (string, error) {
+func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
 	text += strings.ReplaceAll(helpText, "|", "`")
 
-	if p.configuration.EnableOAuth {
+	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
 	return text, nil
@@ -140,14 +196,20 @@ func (p *Plugin) runHelpCommand() (string, error) {
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: start, disconnect, help")
+	available := "start, help"
+	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+		available = "start, connect, disconnect, help"
+	}
+	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
-	if p.configuration.EnableOAuth {
+	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+		connect := model.NewAutocompleteData("connect", "", "Connect to Zoom")
 		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
+		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
 
