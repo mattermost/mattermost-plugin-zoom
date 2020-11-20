@@ -394,7 +394,19 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meetingID := zoomUser.Pmi
+	client, _, err := p.getActiveClient(user)
+	if err != nil {
+		p.API.LogWarn("Error getting the client", "err", err)
+		return
+	}
+
+	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
+	if err != nil {
+		p.API.LogWarn("Error creating the meeting", "err", err)
+		return
+	}
+
+	meetingID := meeting.ID
 	if err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

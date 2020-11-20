@@ -102,7 +102,7 @@ export default class PostTypeZoom extends React.PureComponent {
             if (props.meeting_personal) {
                 subtitle = (
                     <span>
-                        {'Personal Meeting ID (PMI) : '}
+                        {'Meeting ID: '}
                         <a
                             rel='noopener noreferrer'
                             target='_blank'
