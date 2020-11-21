@@ -129,20 +129,33 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return authErr.Message, authErr.Err
 	}
 
-	client, _, err := p.getActiveClient(user)
-	if err != nil {
-		p.API.LogWarn("Error creating the client", "err", err)
-		return "Error creating the client.", nil
-	}
+	if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id);
+	getUserPMISettingErr == nil {
+		switch userPMISettingPref {
+		case "", "ask":
+			p.askUserPMIMeeting(user.Id, args.ChannelId)
+			break
+		case "true":
+			p.postMeeting(user, zoomUser.Pmi, args.ChannelId, defaultMeetingTopic)
+			break
+		default:
+			client, _, err := p.getActiveClient(user)
+			if err != nil {
+				p.API.LogWarn("Error creating the client", "err", err)
+				return "Error creating the client.", nil
+			}
 
-	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
-	if err != nil {
-		p.API.LogWarn("Error creating the meeting", "err", err)
-		return "Error creating the meeting.", nil
-	}
-
-	if err := p.postMeeting(user, meeting.ID, args.ChannelId, ""); err != nil {
-		return "Failed to post message. Please try again.", nil
+			meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
+			if err != nil {
+				p.API.LogWarn("Error creating the meeting", "err", err)
+				return "Error creating the meeting.", nil
+			}
+			if err := p.postMeeting(user, meeting.ID, args.ChannelId, ""); err != nil {
+				return "Failed to post message. Please try again.", nil
+			}
+		}
+	} else {
+		p.askUserPMIMeeting(user.Id, args.ChannelId)
 	}
 	return "", nil
 }

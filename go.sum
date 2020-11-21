@@ -449,6 +449,7 @@ github.com/mattermost/mattermost-server/v5 v5.25.1 h1:fifi2RFl/B5KLKxgBVrCH8jgzK
 github.com/mattermost/mattermost-server/v5 v5.25.1/go.mod h1:TVkOfVyk4wGw8j5J2IX3PDCP5R7j20IEP4FAezDK8Wk=
 github.com/mattermost/mattermost-server/v5 v5.28.1 h1:zCPvSlEYCs0REHzGxaf06Dha4UnFlhBVutH3Fthw7J0=
 github.com/mattermost/mattermost-server/v5 v5.28.1/go.mod h1:9FfgZY9Ywx64bzPBYo4mmR05ApyOxO+tr43eDhpWups=
+github.com/mattermost/mattermost-server/v5 v5.29.0 h1:v+qGNpMkgYRJY1qn4Rx2u1W7dbkmes47NnDZLSTIRGU=
 github.com/mattermost/rsc v0.0.0-20160330161541-bbaefb05eaa0/go.mod h1:nV5bfVpT//+B1RPD2JvRnxbkLmJEYXmRaaVl15fsXjs=
 github.com/mattermost/viper v1.0.4/go.mod h1:uc5hKG9lv4/KRwPOt2c1omOyirS/UnuA2TytiZQSFHM=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

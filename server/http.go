@@ -33,6 +33,7 @@ type startMeetingRequest struct {
 	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
 	MeetingID int    `json:"meeting_id"`
+	UsePMI    string `json:"use_pmi"`
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -307,6 +308,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 	}
 
+
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
@@ -332,9 +334,37 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	if appErr = p.storeMeetingPostID(meetingID, createdPost.Id); appErr != nil {
 		p.API.LogDebug("failed to store post id", "err", appErr)
 	}
-
 	return nil
 }
+
+func (p *Plugin) askUserPMIMeeting(userId string, channelId string) {
+	p.API.SendEphemeralPost(userId, &model.Post{
+		ChannelId: channelId,
+		UserId: p.botUserID,
+		Message: "Would you like to create a meeting with your PMI?",
+		Type: "custom_zoom",
+		Props: map[string]interface{}{
+			"type": "custom_zoom",
+			"task": "setting/use_PMI",
+		},
+	})
+}
+
+func (p *Plugin) getPMISettingData(userId string) (string, error){
+	if preferences, reqErr := p.API.GetPreferencesForUser(userId); reqErr == nil {
+		for _, pref := range(preferences){
+			if  pref.UserId != userId || 
+				pref.Category != zoomPreferenceCategory ||
+				pref.Name != zoomPMISettingName {
+				continue
+			}
+			return pref.Value, nil
+		}
+		return "", nil
+	}
+	return "", errors.New("Something wrong while getting setting data")
+}
+
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-Id")
@@ -393,30 +423,67 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
 		return
 	}
-
-	client, _, err := p.getActiveClient(user)
-	if err != nil {
-		p.API.LogWarn("Error getting the client", "err", err)
-		return
+	// topic
+	topic := req.Topic
+	if topic == ""  {
+		topic = defaultMeetingTopic;
 	}
 
-	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
-	if err != nil {
+	usePMI := req.UsePMI
+	var meetingID int = -1
+	var createMeetingErr error = nil
+	switch usePMI {
+	case "":
+		if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id);
+		getUserPMISettingErr == nil {
+		switch userPMISettingPref {
+			case "", "ask":
+				p.askUserPMIMeeting(user.Id, req.ChannelID)
+			case "true":
+				meetingID = zoomUser.Pmi
+			default:
+				meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+			}
+		} else {
+			p.askUserPMIMeeting(user.Id, req.ChannelID)
+		}
+	case "true":
+		meetingID = zoomUser.Pmi
+	default:
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+	}
+	
+	if createMeetingErr != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return
 	}
-
-	meetingID := meeting.ID
-	if err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if meetingID >= 0 {
+		if err = p.postMeeting(user, meetingID, req.ChannelID, topic); err == nil {
+			meetingURL := p.getMeetingURL(user, meetingID)
+			_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+			if err != nil {
+				p.API.LogWarn("failed to write response", "error", err.Error())
+			}
+			return
+		}
 	}
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
 
-	meetingURL := p.getMeetingURL(user, meetingID)
-	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+func (p *Plugin) createMeetingWithoutPMI(
+	user *model.User, zoomUser *zoom.User, channelID string, topic string,
+) (int, error) {
+	client, _, err := p.getActiveClient(user)
 	if err != nil {
-		p.API.LogWarn("failed to write response", "error", err.Error())
+		p.API.LogWarn("Error getting the client", "err", err)
+		return -1, err
 	}
+	meeting, err := client.CreateMeeting(zoomUser, topic)
+	if err != nil {
+		p.API.LogWarn("Error creating the meeting", "err", err)
+		return -1, err
+	}
+	return meeting.ID, nil
 }
 
 func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
