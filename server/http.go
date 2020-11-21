@@ -308,7 +308,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 	}
 
-
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
@@ -337,12 +336,12 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	return nil
 }
 
-func (p *Plugin) askUserPMIMeeting(userId string, channelId string) {
-	p.API.SendEphemeralPost(userId, &model.Post{
-		ChannelId: channelId,
-		UserId: p.botUserID,
-		Message: "Would you like to create a meeting with your PMI?",
-		Type: "custom_zoom",
+func (p *Plugin) askUserPMIMeeting(userID string, channelID string) {
+	p.API.SendEphemeralPost(userID, &model.Post{
+		ChannelId: channelID,
+		UserId:    p.botUserID,
+		Message:   "Would you like to create a meeting with your PMI?",
+		Type:      "custom_zoom",
 		Props: map[string]interface{}{
 			"type": "custom_zoom",
 			"task": "setting/use_PMI",
@@ -350,10 +349,10 @@ func (p *Plugin) askUserPMIMeeting(userId string, channelId string) {
 	})
 }
 
-func (p *Plugin) getPMISettingData(userId string) (string, error){
-	if preferences, reqErr := p.API.GetPreferencesForUser(userId); reqErr == nil {
-		for _, pref := range(preferences){
-			if  pref.UserId != userId || 
+func (p *Plugin) getPMISettingData(userID string) (string, error) {
+	if preferences, reqErr := p.API.GetPreferencesForUser(userID); reqErr == nil {
+		for _, pref := range preferences {
+			if pref.UserId != userID ||
 				pref.Category != zoomPreferenceCategory ||
 				pref.Name != zoomPMISettingName {
 				continue
@@ -362,9 +361,8 @@ func (p *Plugin) getPMISettingData(userId string) (string, error){
 		}
 		return "", nil
 	}
-	return "", errors.New("Something wrong while getting setting data")
+	return "", errors.New("something wrong while getting setting data")
 }
-
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("Mattermost-User-Id")
@@ -425,8 +423,8 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	// topic
 	topic := req.Topic
-	if topic == ""  {
-		topic = defaultMeetingTopic;
+	if topic == "" {
+		topic = defaultMeetingTopic
 	}
 
 	usePMI := req.UsePMI
@@ -434,12 +432,11 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	var createMeetingErr error = nil
 	switch usePMI {
 	case "":
-		if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id);
-		getUserPMISettingErr == nil {
-		switch userPMISettingPref {
-			case "", "ask":
+		if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id); getUserPMISettingErr == nil {
+			switch userPMISettingPref {
+			case "", zoomPMISettingValueAsk:
 				p.askUserPMIMeeting(user.Id, req.ChannelID)
-			case "true":
+			case trueString:
 				meetingID = zoomUser.Pmi
 			default:
 				meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
@@ -447,12 +444,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		} else {
 			p.askUserPMIMeeting(user.Id, req.ChannelID)
 		}
-	case "true":
+	case trueString:
 		meetingID = zoomUser.Pmi
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
 	}
-	
+
 	if createMeetingErr != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return
@@ -612,7 +609,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
 	}
 
-	if req.Payload.UserDataRetention == "false" {
+	if req.Payload.UserDataRetention == falseString {
 		if err := p.completeCompliance(req.Payload); err != nil {
 			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
 		}

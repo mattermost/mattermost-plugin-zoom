@@ -16,13 +16,14 @@ const (
 	starterText        = "###### Mattermost Zoom Plugin - Slash Command Help\n"
 	helpText           = `* |/zoom start| - Start a zoom meeting`
 	oAuthHelpText      = `* |/zoom disconnect| - Disconnect from zoom`
-	settingHelpText    = `* |/zoom setting| - Configurate setting options`
+	settingHelpText    = `* |/zoom setting| - Configure setting options`
 	settingPMIHelpText = `* |/zoom setting usePMI [true/false/ask]| - 
 		enable / disable / undecide to use PMI to create meeting
 	`
 	alreadyConnectedString = "Already connected"
 	zoomPreferenceCategory = "plugin:zoom"
-	zoomPMISettingName = "use-pmi"
+	zoomPMISettingName     = "use-pmi"
+	zoomPMISettingValueAsk = "ask"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -129,15 +130,14 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return authErr.Message, authErr.Err
 	}
 
-	if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id);
-	getUserPMISettingErr == nil {
+	if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id); getUserPMISettingErr == nil {
 		switch userPMISettingPref {
-		case "", "ask":
+		case "", zoomPMISettingValueAsk:
 			p.askUserPMIMeeting(user.Id, args.ChannelId)
-			break
-		case "true":
-			p.postMeeting(user, zoomUser.Pmi, args.ChannelId, defaultMeetingTopic)
-			break
+		case trueString:
+			if err := p.postMeeting(user, zoomUser.Pmi, args.ChannelId, defaultMeetingTopic); err == nil {
+				return "", err
+			}
 		default:
 			client, _, err := p.getActiveClient(user)
 			if err != nil {
@@ -235,7 +235,7 @@ func (p *Plugin) runSettingCommand(settingCommands []string, user *model.User) (
 	}
 	switch settingAction {
 	case "usePMI":
-		//here process the usePMI command
+		// here process the usePMI command
 		if len(settingCommands) > 1 {
 			return p.runPMISettingCommand(settingCommands[1], user)
 		}
@@ -249,13 +249,13 @@ func (p *Plugin) runSettingCommand(settingCommands []string, user *model.User) (
 
 func (p *Plugin) runPMISettingCommand(usePMIValue string, user *model.User) (string, error) {
 	switch usePMIValue {
-	case "true", "false", "ask":
+	case trueString, falseString, zoomPMISettingValueAsk:
 		if appError := p.API.UpdatePreferencesForUser(user.Id, []model.Preference{
-			model.Preference{
-				UserId: user.Id,
+			{
+				UserId:   user.Id,
 				Category: zoomPreferenceCategory,
-				Name: zoomPMISettingName,
-				Value: usePMIValue,
+				Name:     zoomPMISettingName,
+				Value:    usePMIValue,
 			},
 		}); appError != nil {
 			return "Cannot update preference in zoom setting", nil
@@ -284,10 +284,10 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
-	//setting
+	// setting
 	setting := model.NewAutocompleteData("setting", "[command]", "Configurates options")
 	zoom.AddCommand(setting)
-	//help
+	// help
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)
 

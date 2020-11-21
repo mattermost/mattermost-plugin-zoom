@@ -76,7 +76,6 @@ export default class PostTypeZoom extends React.PureComponent {
         const post = this.props.post;
         const props = post.props || {};
 
-
         let preText;
         let content;
         let subtitle;
@@ -186,28 +185,28 @@ export default class PostTypeZoom extends React.PureComponent {
                                 dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
                             />
                             {'JOIN EXISTING MEETING'}
-                        </a>    
+                        </a>
                     </div>
                 </div>
             );
-        } else if (props.task === 'setting/use_PMI'){
-            preText = 'Do you like to create meeting with'
+        } else if (props.task === 'setting/use_PMI') {
+            preText = 'Do you like to create meeting with';
             content = (
                 <AskPMIMeeting
                     styles={style}
                     currentChannelId={this.props.currentChannelId}
                     actions={{
-                        startMeetingWithoutPMI: () => this.props
-                            .actions.startMeeting(
-                                this.props.currentChannelId, true, "false"
+                        startMeetingWithoutPMI: () => this.props.
+                            actions.startMeeting(
+                                this.props.currentChannelId, true, 'false',
                             ),
-                        startMeetingWithPMI: () => this.props
-                            .actions.startMeeting(
-                                this.props.currentChannelId, true, "true"
+                        startMeetingWithPMI: () => this.props.
+                            actions.startMeeting(
+                                this.props.currentChannelId, true, 'true',
                             ),
                     }}
                 />
-            )
+            );
         }
 
         let title = 'Zoom Meeting';
