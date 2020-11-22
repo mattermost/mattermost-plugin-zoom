@@ -15,9 +15,9 @@ const (
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 	RecentlyCreated              = "RECENTLY_CREATED"
 
-	EventTypeMeetingStarted EventType = "meeting.started"
-	EventTypeMeetingEnded   EventType = "meeting.ended"
-	EventTypeMeetingParticipantsJBHost EventType = "meeting.participant_jbh_joined"
+	EventTypeMeetingStarted           EventType = "meeting.started"
+	EventTypeMeetingEnded             EventType = "meeting.ended"
+	EventTypeMeetingParticipantJoined EventType = "meeting.participant_joined"
 )
 
 type MeetingWebhookObject struct {
@@ -29,14 +29,7 @@ type MeetingWebhookObject struct {
 	ID        string    `json:"id"`
 	Type      int       `json:"type"`
 	UUID      string    `json:"uuid"`
-	HostID    string    `json:"host_id"`	
-}
-
-type MeetingParticipantsJBHObject struct {
-	MeetingWebhookObject
-	Participant struct {
-		UserName string `json:"user_name"`	
-	} `json:"participant"` 
+	HostID    string    `json:"host_id"`
 }
 
 type MeetingWebhookPayload struct {
@@ -44,9 +37,19 @@ type MeetingWebhookPayload struct {
 	Object    MeetingWebhookObject `json:"object"`
 }
 
-type MeetingParticipantsJBHWebhook struct {
-	AccountID string               `json:"account_id"`
-	Object    MeetingWebhookObject `json:"object"`
+type MeetingParticipantsJoinedWebhook struct {
+	Event   EventType `json:"event"`
+	Payload struct {
+		AccountID string `json:"account_id"`
+		Object    struct {
+			MeetingWebhookObject
+			Participant struct {
+				ParticipantID string `json:"user_id"`
+				UserName      string `json:"user_name"`
+				RegistrantID  string `json:"id"`
+			}
+		} `json:"object"`
+	} `json:"payload"`
 }
 
 type MeetingWebhook struct {

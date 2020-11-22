@@ -219,13 +219,16 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webhook.Event == zoom.EventTypeMeetingParticipantsJBHost {
-		if webhookBody, ok := webhook.Payload.(zoom.MeetingParticipantsJBHObject); ok {
-			p.handleParticipantJBHostWebhook(w,r, &webhookBody)
+	if webhook.Event == zoom.EventTypeMeetingParticipantJoined {
+		var meetingWebhook zoom.MeetingParticipantsJoinedWebhook
+		if err = json.Unmarshal(b, &meetingWebhook); err != nil {
+			p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
+		p.handleParticipantJoinedWebhook(w, r, &meetingWebhook)
 		return
 	}
-
 	if webhook.Event == zoom.EventTypeMeetingEnded {
 		var meetingWebhook zoom.MeetingWebhook
 		if err = json.Unmarshal(b, &meetingWebhook); err != nil {
@@ -234,36 +237,62 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		p.handleMeetingEnded(w, r, &meetingWebhook)
+		return
 	}
+	http.Error(w, "Not implemented", http.StatusNotImplemented)
 }
 
 // handle webhook participant join before host in the meeting
-func (p *Plugin) handleParticipantJBHostWebhook(
-	w http.ResponseWriter, r *http.Request, payload *zoom.MeetingParticipantsJBHObject,
+func (p *Plugin) handleParticipantJoinedWebhook(
+	w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingParticipantsJoinedWebhook,
 ) {
-	meetingId := payload.ID
-	postId, appErr := p.fetchMeetingPostID(meetingId)
+	meetingID := webhook.Payload.Object.ID
+	postID, appErr := p.fetchMeetingPostID(meetingID)
 	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode) 
+		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
-	post, appErr := p.API.GetPost(postId)
+	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
 		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 	meetingCreator := post.UserId
-	p.API.SendEphemeralPost(meetingCreator, &model.Post{
-		UserId: p.botUserID,
-		ChannelId: post.ChannelId,
-		Message: fmt.Sprintf(
-			"User %s has joined the meeting before you", payload.Participant.UserName,
-		),
-	})
-	
+	participant := webhook.Payload.Object.Participant
+	isHostJoined, isBool := post.Props["meeting_host_joined"].(bool)
+	if !isBool {
+		isHostJoined = false
+	}
+	waitingCnt, isNum := post.Props["meeting_waiting_count"].(float64)
+	if !isNum {
+		waitingCnt = 0
+	}
+	// if host has joined, then no need to proceed further
+	if isHostJoined {
+		return
+	}
+	// check whether participant is host
+	if participant.RegistrantID == webhook.Payload.Object.HostID {
+		isHostJoined = true
+	} else {
+		waitingCnt++
+		p.API.SendEphemeralPost(meetingCreator, &model.Post{
+			UserId:    p.botUserID,
+			ChannelId: post.ChannelId,
+			Message: fmt.Sprintf(
+				"User %s has joined the meeting before you", participant.UserName,
+			),
+		})
+	}
+	post.Props["meeting_host_joined"] = isHostJoined
+	post.Props["meeting_waiting_count"] = waitingCnt
+	_, updatePostErr := p.API.UpdatePost(post)
+	_, err := w.Write([]byte(post.ToJson()))
+	if err != nil || updatePostErr != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
 }
-
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
 	meetingPostID := webhook.Payload.Object.ID
@@ -353,12 +382,15 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 			"meeting_topic":            topic,
 			"meeting_creator_username": creator.Username,
 			"meeting_provider":         zoomProviderName,
+			"meeting_waiting_count":    0,
+			"meeting_host_joined":      false,
 		},
 	}
 
 	createdPost, appErr := p.API.CreatePost(post)
 	if appErr != nil {
-		return appErr
+		p.API.LogError(appErr.Error())
+		return errors.New(appErr.Error())
 	}
 
 	if appErr = p.storeMeetingPostID(meetingID, createdPost.Id); appErr != nil {

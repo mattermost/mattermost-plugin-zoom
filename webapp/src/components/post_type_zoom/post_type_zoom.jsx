@@ -83,20 +83,36 @@ export default class PostTypeZoom extends React.PureComponent {
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
             }
+            let announcementText = '';
+            if (props.meeting_host_joined) {
+                announcementText = 'Host already in the meeting';
+            } else {
+                if (props.meeting_waiting_count === 1) {
+                    announcementText = '1 participant waiting for host';
+                }
+                if (props.meeting_waiting_count > 1) {
+                    announcementText = `${props.meeting_waiting_count} participants waiting for host`;
+                }
+            }
             content = (
-                <a
-                    className='btn btn-lg btn-primary'
-                    style={style.button}
-                    rel='noopener noreferrer'
-                    target='_blank'
-                    href={props.meeting_link}
-                >
-                    <i
-                        style={style.buttonIcon}
-                        dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
-                    />
-                    {'JOIN MEETING'}
-                </a>
+                <>
+                    <div>
+                        <a
+                            className='btn btn-lg btn-primary'
+                            style={style.button}
+                            rel='noopener noreferrer'
+                            target='_blank'
+                            href={props.meeting_link}
+                        >
+                            <i
+                                style={style.buttonIcon}
+                                dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
+                            />
+                            {'JOIN MEETING'}
+                        </a>
+                    </div>
+                    <p>{announcementText}</p>
+                </>
             );
 
             if (props.meeting_personal) {
