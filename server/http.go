@@ -337,7 +337,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 }
 
 func (p *Plugin) askUserPMIMeeting(userID string, channelID string) {
-	p.API.SendEphemeralPost(userID, &model.Post{
+	_ = p.API.SendEphemeralPost(userID, &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
 		Message:   "Would you like to create a meeting with your PMI?",
@@ -450,11 +450,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
 	}
 
-	if createMeetingErr != nil {
-		p.API.LogWarn("Error creating the meeting", "err", err)
-		return
-	}
-	if meetingID >= 0 {
+	if meetingID >= 0 && createMeetingErr == nil {
 		if err = p.postMeeting(user, meetingID, req.ChannelID, topic); err == nil {
 			meetingURL := p.getMeetingURL(user, meetingID)
 			_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
