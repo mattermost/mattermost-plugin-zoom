@@ -1,8 +1,9 @@
 package main
 
 const (
-	telemetryOauthModeJWT   = "JWT"
-	telemetryOauthModeOauth = "Oauth"
+	telemetryOauthModeJWT               = "JWT"
+	telemetryOauthModeOauth             = "Oauth"
+	telemetryOauthModeOauthAccountLevel = "Oauth Account Level"
 
 	telemetryStartSourceWebapp  = "webapp"
 	telemetryStartSourceCommand = "command"

@@ -131,6 +131,10 @@ func (p *Plugin) OnConfigurationChange() error {
 	if p.configuration != nil {
 		prevConfigEnableOAuth = p.configuration.EnableOAuth
 	}
+	prevConfigAccountLevelOAuth := false
+	if p.configuration != nil {
+		prevConfigAccountLevelOAuth = p.configuration.AccountLevelApp
+	}
 
 	// Load the public configuration fields from the Mattermost server configuration.
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
@@ -156,6 +160,14 @@ func (p *Plugin) OnConfigurationChange() error {
 		method := telemetryOauthModeJWT
 		if p.configuration.EnableOAuth {
 			method = telemetryOauthModeOauth
+		}
+
+		p.trackOAuthModeChange(method)
+	}
+	if prevConfigAccountLevelOAuth != p.configuration.AccountLevelApp {
+		method := telemetryOauthModeOauth
+		if p.configuration.AccountLevelApp {
+			method = telemetryOauthModeOauthAccountLevel
 		}
 
 		p.trackOAuthModeChange(method)
