@@ -33,6 +33,7 @@ type startMeetingRequest struct {
 	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
 	MeetingID int    `json:"meeting_id"`
+	UsePMI    string `json:"use_pmi"`
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -332,8 +333,35 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	if appErr = p.storeMeetingPostID(meetingID, createdPost.Id); appErr != nil {
 		p.API.LogDebug("failed to store post id", "err", appErr)
 	}
-
 	return nil
+}
+
+func (p *Plugin) askUserPMIMeeting(userID string, channelID string) {
+	_ = p.API.SendEphemeralPost(userID, &model.Post{
+		ChannelId: channelID,
+		UserId:    p.botUserID,
+		Message:   "Would you like to create a meeting with your PMI?",
+		Type:      "custom_zoom",
+		Props: map[string]interface{}{
+			"type": "custom_zoom",
+			"task": "setting/use_PMI",
+		},
+	})
+}
+
+func (p *Plugin) getPMISettingData(userID string) (string, error) {
+	if preferences, reqErr := p.API.GetPreferencesForUser(userID); reqErr == nil {
+		for _, pref := range preferences {
+			if pref.UserId != userID ||
+				pref.Category != zoomPreferenceCategory ||
+				pref.Name != zoomPMISettingName {
+				continue
+			}
+			return pref.Value, nil
+		}
+		return "", nil
+	}
+	return "", errors.New("something wrong while getting setting data")
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
@@ -393,18 +421,62 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
 		return
 	}
-
-	meetingID := zoomUser.Pmi
-	if err = p.postMeeting(user, meetingID, req.ChannelID, req.Topic); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	// topic
+	topic := req.Topic
+	if topic == "" {
+		topic = defaultMeetingTopic
 	}
 
-	meetingURL := p.getMeetingURL(user, meetingID)
-	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+	usePMI := req.UsePMI
+	var meetingID int = -1
+	var createMeetingErr error = nil
+	switch usePMI {
+	case "":
+		if userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id); getUserPMISettingErr == nil {
+			switch userPMISettingPref {
+			case "", zoomPMISettingValueAsk:
+				p.askUserPMIMeeting(user.Id, req.ChannelID)
+			case trueString:
+				meetingID = zoomUser.Pmi
+			default:
+				meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+			}
+		} else {
+			p.askUserPMIMeeting(user.Id, req.ChannelID)
+		}
+	case trueString:
+		meetingID = zoomUser.Pmi
+	default:
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+	}
+
+	if meetingID >= 0 && createMeetingErr == nil {
+		if err = p.postMeeting(user, meetingID, req.ChannelID, topic); err == nil {
+			meetingURL := p.getMeetingURL(user, meetingID)
+			_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
+			if err != nil {
+				p.API.LogWarn("failed to write response", "error", err.Error())
+			}
+			return
+		}
+	}
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
+
+func (p *Plugin) createMeetingWithoutPMI(
+	user *model.User, zoomUser *zoom.User, channelID string, topic string,
+) (int, error) {
+	client, _, err := p.getActiveClient(user)
 	if err != nil {
-		p.API.LogWarn("failed to write response", "error", err.Error())
+		p.API.LogWarn("Error getting the client", "err", err)
+		return -1, err
 	}
+	meeting, err := client.CreateMeeting(zoomUser, topic)
+	if err != nil {
+		p.API.LogWarn("Error creating the meeting", "err", err)
+		return -1, err
+	}
+	return meeting.ID, nil
 }
 
 func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
@@ -533,7 +605,7 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
 	}
 
-	if req.Payload.UserDataRetention == "false" {
+	if req.Payload.UserDataRetention == falseString {
 		if err := p.completeCompliance(req.Payload); err != nil {
 			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
 		}

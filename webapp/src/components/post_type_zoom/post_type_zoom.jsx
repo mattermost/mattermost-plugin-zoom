@@ -8,6 +8,7 @@ import {makeStyleFromTheme} from 'mattermost-redux/utils/theme_utils';
 
 import {Svgs} from '../../constants';
 import {formatDate} from '../../utils/date_utils';
+import AskPMIMeeting from '../zoom-setting/ask_pmi_meeting';
 
 export default class PostTypeZoom extends React.PureComponent {
     static propTypes = {
@@ -102,7 +103,7 @@ export default class PostTypeZoom extends React.PureComponent {
             if (props.meeting_personal) {
                 subtitle = (
                     <span>
-                        {'Personal Meeting ID (PMI) : '}
+                        {'Meeting ID: '}
                         <a
                             rel='noopener noreferrer'
                             target='_blank'
@@ -187,6 +188,24 @@ export default class PostTypeZoom extends React.PureComponent {
                         </a>
                     </div>
                 </div>
+            );
+        } else if (props.task === 'setting/use_PMI') {
+            preText = 'Do you like to create meeting with';
+            content = (
+                <AskPMIMeeting
+                    styles={style}
+                    currentChannelId={this.props.currentChannelId}
+                    actions={{
+                        startMeetingWithoutPMI: () => this.props.
+                            actions.startMeeting(
+                                this.props.currentChannelId, true, 'false',
+                            ),
+                        startMeetingWithPMI: () => this.props.
+                            actions.startMeeting(
+                                this.props.currentChannelId, true, 'true',
+                            ),
+                    }}
+                />
             );
         }
 
