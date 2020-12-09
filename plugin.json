@@ -19,6 +19,7 @@
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
+        "header": "To set up this plugin you first need to create a Zoom App using a Zoom Administrator account. Visit the [documentation for configuration steps](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
         "settings": [
             {
                 "key": "ZoomURL",
@@ -86,7 +87,6 @@
                 "help_text": "The secret used to authenticate the webhook to Mattermost.",
                 "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin."
             }
-        ],
-        "footer": "Use this webhook URL to set up the Zoom plugin. See [documentation](https://app.gitbook.com/@mattermost/s/plugin-zoom) to learn more.\n\n```https://SITEURL/plugins/zoom/webhook?secret=WEBHOOKSECRET```"
+        ]
     }
 }
