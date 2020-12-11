@@ -4,42 +4,47 @@
     "description": "Zoom audio and video conferencing plugin for Mattermost 5.2+.",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
-    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.4.1",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.5.0",
     "icon_path": "assets/profile.svg",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "min_server_version": "5.12.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",
             "darwin-amd64": "server/dist/plugin-darwin-amd64",
             "windows-amd64": "server/dist/plugin-windows-amd64.exe"
-        }
+        },
+        "executable": ""
     },
     "webapp": {
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
         "header": "To set up this plugin you first need to create a Zoom App using a Zoom Administrator account. Visit the [documentation for configuration steps](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
+        "footer": "",
         "settings": [
             {
                 "key": "ZoomURL",
                 "display_name": "Zoom URL",
                 "type": "text",
                 "help_text": "The URL for a self-hosted private cloud or on-premise Zoom server. For example, https://yourzoom.com. Leave blank if you're using Zoom's vendor-hosted SaaS service.",
-                "placeholder": "https://zoom.us"
+                "placeholder": "https://zoom.us",
+                "default": null
             },
             {
                 "key": "ZoomAPIURL",
                 "display_name": "Zoom API URL",
                 "type": "text",
                 "help_text": "The API URL for a self-hosted private cloud or on-premise Zoom server. For example, https://api.yourzoom.com/v2. Leave blank if you're using Zoom's vendor-hosted SaaS service.",
-                "placeholder": "https://api.zoom.us/v2"
+                "placeholder": "https://api.zoom.us/v2",
+                "default": null
             },
             {
                 "key": "EnableOAuth",
                 "display_name": "Enable OAuth",
                 "type": "bool",
                 "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n When false, JWT will be used as the authentication means with Zoom. \n If you are currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
+                "placeholder": "",
                 "default": false
             },
             {
@@ -47,45 +52,58 @@
                 "display_name": "OAuth by Account Level App (Beta)",
                 "type": "bool",
                 "help_text": "When true, only an account administrator has to log in. The rest of the users will use their e-mail to log in.",
+                "placeholder": "",
                 "default": false
             },
             {
                 "key": "OAuthClientID",
                 "display_name": "Zoom OAuth Client ID",
                 "type": "text",
-                "help_text": "The Client ID for the OAuth app registered with Zoom. Leave blank if not using OAuth"
+                "help_text": "The Client ID for the OAuth app registered with Zoom. Leave blank if not using OAuth",
+                "placeholder": "",
+                "default": null
             },
             {
                 "key": "OAuthClientSecret",
                 "display_name": "Zoom OAuth Client Secret",
                 "type": "text",
-                "help_text": "The Client Secret for the OAuth app registered with Zoom. Leave blank if not using OAuth"
+                "help_text": "The Client Secret for the OAuth app registered with Zoom. Leave blank if not using OAuth",
+                "placeholder": "",
+                "default": null
             },
             {
                 "key": "EncryptionKey",
                 "display_name": "At Rest Token Encryption Key",
                 "type": "generated",
                 "help_text": "The AES encryption key used to encrypt stored access tokens.",
-                "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth Token. Regenerating the key invalidates your existing Zoom OAuth."
+                "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth Token. Regenerating the key invalidates your existing Zoom OAuth.",
+                "placeholder": "",
+                "default": null
             },
             {
                 "key": "APIKey",
                 "display_name": "API Key",
                 "type": "text",
-                "help_text": "The API Key generated by Zoom, used to create meetings and pull user data."
+                "help_text": "The API Key generated by Zoom, used to create meetings and pull user data.",
+                "placeholder": "",
+                "default": null
             },
             {
                 "key": "APISecret",
                 "display_name": "API Secret",
                 "type": "text",
-                "help_text": "The API Secret generated by Zoom for your API key."
+                "help_text": "The API Secret generated by Zoom for your API key.",
+                "placeholder": "",
+                "default": null
             },
             {
                 "key": "WebhookSecret",
                 "display_name": "Webhook Secret",
                 "type": "generated",
                 "help_text": "The secret used to authenticate the webhook to Mattermost.",
-                "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin."
+                "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin.",
+                "placeholder": "",
+                "default": null
             }
         ]
     }
