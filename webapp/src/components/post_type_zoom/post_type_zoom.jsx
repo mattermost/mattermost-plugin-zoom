@@ -50,7 +50,7 @@ export default class PostTypeZoom extends React.PureComponent {
         /*
          * Whether the post was sent from a bot. Used for backwards compatibility.
          */
-        fromBot: PropTypes.bool.isRequired,
+        fromBot: PropTypes.bool,
 
         actions: PropTypes.shape({
             startMeeting: PropTypes.func.isRequired,
