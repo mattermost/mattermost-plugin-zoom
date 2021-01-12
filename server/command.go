@@ -136,6 +136,9 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 	if err := p.postMeeting(user, meeting.ID, args.ChannelId, ""); err != nil {
 		return "Failed to post message. Please try again.", nil
 	}
+
+	p.trackMeetingStart(args.UserId, telemetryStartSourceCommand)
+
 	return "", nil
 }
 
@@ -192,6 +195,9 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	if err := p.disconnectOAuthUser(user.Id); err != nil {
 		return fmt.Sprintf("Failed to disconnect the user: %s", err.Error()), nil
 	}
+
+	p.trackDisconnect(user.Id)
+
 	return "User disconnected from Zoom.", nil
 }
 
