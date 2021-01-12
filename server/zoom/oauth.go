@@ -107,7 +107,7 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 		return nil, err
 	}
 
-	res, err := client.Post(fmt.Sprintf("/users/%s/meetings", user.Email), "application/json", bytes.NewReader(b))
+	res, err := client.Post(fmt.Sprintf("%s/users/%s/meetings", c.apiURL, user.Email), "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
