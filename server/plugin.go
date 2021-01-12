@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
@@ -44,6 +45,9 @@ type Plugin struct {
 	configuration *configuration
 
 	siteURL string
+
+	telemetryClient telemetry.Client
+	tracker         telemetry.Tracker
 }
 
 // Client defines a common interface for the API and OAuth Zoom clients
@@ -98,6 +102,22 @@ func (p *Plugin) OnActivate() error {
 	}
 
 	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
+
+	p.telemetryClient, err = telemetry.NewRudderClient()
+	if err != nil {
+		p.API.LogWarn("telemetry client not started", "error", err.Error())
+	}
+
+	return nil
+}
+
+func (p *Plugin) OnDeactivate() error {
+	if p.telemetryClient != nil {
+		err := p.telemetryClient.Close()
+		if err != nil {
+			p.API.LogWarn("OnDeactivate: failed to close telemetryClient", "error", err.Error())
+		}
+	}
 
 	return nil
 }

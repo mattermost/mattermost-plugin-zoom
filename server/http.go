@@ -163,6 +163,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	p.trackConnect(userID)
+
 	if justConnect {
 		p.postEphemeral(userID, channelID, "Successfully connected to Zoom")
 	} else if err = p.postMeeting(user, zoomUser.Pmi, channelID, ""); err != nil {
@@ -400,6 +402,12 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.trackMeetingStart(userID, telemetryStartSourceWebapp)
+
+	if r.URL.Query().Get("force") != "" {
+		p.trackMeetingForced(userID)
+	}
+
 	meetingURL := p.getMeetingURL(user, meetingID)
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
@@ -444,6 +452,8 @@ func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string,
 			"meeting_provider":         provider,
 		},
 	}
+
+	p.trackMeetingDuplication(userID)
 
 	return p.API.SendEphemeralPost(userID, post)
 }
