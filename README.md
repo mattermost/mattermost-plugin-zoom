@@ -10,14 +10,6 @@
 
 Start and join voice calls, video calls and use screen sharing with your team members via Zoom. Check our [GitBook](https://mattermost.gitbook.io/plugin-zoom/) for further documentation about this plugin.
 
-## Usage and Set Up Guide
-
-### Commands
-
-* **`/zoom start`** &mdash; Start a Zoom meeting.
-* **`/zoom disconnect`** &mdash; Disconnect from Zoom (if OAuth is enabled).
-* **`/zoom help`** &mdash; Display help message.
-
 ## Development
 
 This plugin contains both a server and web app portion. Read our documentation about the [Developer Workflow](https://developers.mattermost.com/extend/plugins/developer-workflow/) and [Developer Setup](https://developers.mattermost.com/extend/plugins/developer-setup/) for more information about developing and extending plugins.
