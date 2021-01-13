@@ -42,7 +42,7 @@ oom has one last option called **Install**. There is no need to perform this act
 
 ## Deauthorization
 
-This plugin allows users to be deauthorized directly from Zoom, in order to comply with Zoom’s commitment to security and the protection of user data. If you **would like to publish on Zoom Marketplace**, you will be able to set up a Deauthorization URL.
+This plugin allows users to be deauthorized directly from Zoom, in order to comply with Zoom’s commitment to security and the protection of user data. If you **would like to publish on Zoom Marketplace**, you can set up a deauthorization URL.
 
 1. Click on **Information**.
 2. Near the end of the page is a section called **Deauthorization Notification**.
