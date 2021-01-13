@@ -3,12 +3,7 @@
 
 package zoom
 
-import (
-	"fmt"
-	"net/http"
-)
-
-// The User object defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting.
+// Meeting is defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting
 type Meeting struct {
 	UUID              string `json:"uuid"`
 	ID                int    `json:"id"`
@@ -68,10 +63,4 @@ type Meeting struct {
 		AuthenticationDomains        string `json:"authentication_domains"`
 		AuthenticationName           string `json:"authentication_name"`
 	} `json:"settings"`
-}
-
-func (c *Client) GetMeeting(meetingID int) (*Meeting, *ClientError) {
-	var ret Meeting
-	err := c.request(http.MethodGet, fmt.Sprintf("/meetings/%v", meetingID), "", &ret)
-	return &ret, err
 }

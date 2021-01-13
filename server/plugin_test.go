@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
@@ -126,6 +127,7 @@ func TestPlugin(t *testing.T) {
 				WebhookSecret: "thewebhooksecret",
 			})
 			p.SetAPI(api)
+			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
 
 			helpers := &plugintest.Helpers{}
 			helpers.On("EnsureBot", mock.AnythingOfType("*model.Bot")).Return(botUserID, nil)
