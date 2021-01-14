@@ -59,7 +59,7 @@
                 "key": "OAuthClientID",
                 "display_name": "Zoom OAuth Client ID",
                 "type": "text",
-                "help_text": "The Client ID for the OAuth app registered with Zoom. Leave blank if not using OAuth",
+                "help_text": "The Client ID for the OAuth app registered with Zoom. Leave blank if not using OAuth.",
                 "placeholder": "",
                 "default": null
             },
@@ -67,7 +67,7 @@
                 "key": "OAuthClientSecret",
                 "display_name": "Zoom OAuth Client Secret",
                 "type": "text",
-                "help_text": "The Client Secret for the OAuth app registered with Zoom. Leave blank if not using OAuth",
+                "help_text": "The Client Secret for the OAuth app registered with Zoom. Leave blank if not using OAuth.",
                 "placeholder": "",
                 "default": null
             },
