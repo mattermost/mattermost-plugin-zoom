@@ -11,11 +11,11 @@ When a Zoom meeting ends, the original link shared in the channel can be changed
    * `SITEURL` should be your Mattermost server URL.
    * `WEBHOOKSECRET` is generated during [Mattermost Setup](../mattermost-setup.md).
 
-![Feature screen](../../.gitbook/assets/screenshot-from-2020-06-05-19-51-56%20%282%29.png)
+![Feature screen](../../.gitbook/assets/screenshot-from-2020-06-05-19-51-56%20%284%29.png)
 
 * Click **Add events** and select the **End Meeting** event.
 
-![Event types screen](../../.gitbook/assets/screenshot-from-2020-06-05-20-43-04%20%282%29.png)
+![Event types screen](../../.gitbook/assets/screenshot-from-2020-06-05-20-43-04%20%282%29%20%281%29.png)
 
 * Click **Done** and then save your app.
 

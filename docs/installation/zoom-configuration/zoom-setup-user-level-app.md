@@ -46,11 +46,12 @@ This plugin allows users to be deauthorized directly from Zoom, in order to comp
 1. Select **Information**.
 2. Near the end of the page is a section called **Deauthorization Notification**.
 3. Enter a valid **Endpoint URL** \(`https://SITEURL/plugins/zoom/deauthorization?secret=WEBHOOKSECRET`\). 
-  * `SITEURL` should be your Mattermost server URL.
-  * `WEBHOOKSECRET` is generated during [Mattermost Setup](../mattermost-setup.md).
+   * `SITEURL` should be your Mattermost server URL.
+   * `WEBHOOKSECRET` is generated during [Mattermost Setup](../mattermost-setup.md).
 
 ![Deauthorization Notification section](../../.gitbook/assets/screenshot-from-2020-06-05-20-04-33%20%282%29.png)
 
 ## Finish setting up Mattermost server
 
 Follow the instructions for [Mattermost Setup](../mattermost-setup.md)
+
