@@ -113,6 +113,10 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != http.StatusCreated {
+		return nil, errors.New(res.Status)
+	}
+
 	var ret Meeting
 	err = json.NewDecoder(res.Body).Decode(&ret)
 	if err != nil {
