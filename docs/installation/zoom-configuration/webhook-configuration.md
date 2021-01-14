@@ -17,4 +17,6 @@ When a Zoom meeting ends, the original link shared in the channel can be changed
 
 ![Event types screen](../../.gitbook/assets/event_types.png)
 
+* Click **Done** and then save your app.
+
 6. Select **Done** and then save your app.
