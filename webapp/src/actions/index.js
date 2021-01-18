@@ -5,11 +5,11 @@ import {PostTypes} from 'mattermost-redux/action_types';
 
 import Client from '../client';
 
-export function startMeeting(channelId, force = false) {
+export function startMeeting(channelId, force = false, topic = '') {
     return async (dispatch, getState) => {
         try {
             const startFunction = force ? Client.forceStartMeeting : Client.startMeeting;
-            const meetingURL = await startFunction(channelId, true);
+            const meetingURL = await startFunction(channelId, true, topic);
             if (meetingURL) {
                 window.open(meetingURL);
             }
