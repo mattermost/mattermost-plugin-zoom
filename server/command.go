@@ -64,7 +64,7 @@ func (p *Plugin) parseCommand(rawCommand string) (cmd, action, topic string) {
 }
 
 func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
-	command, action, _ := p.parseCommand(args.Command)
+	command, action, topic := p.parseCommand(args.Command)
 
 	if command != "/zoom" {
 		return fmt.Sprintf("Command '%s' is not /zoom. Please try again.", command), nil
@@ -84,7 +84,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case actionConnect:
 		return p.runConnectCommand(user, args)
 	case actionStart:
-		return p.runStartCommand(args, user)
+		return p.runStartCommand(args, user, topic)
 	case actionDisconnect:
 		return p.runDisconnectCommand(user)
 	case actionHelp, "":
@@ -112,7 +112,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 // runStartCommand runs command to start a Zoom meeting.
-func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (string, error) {
+func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topic string) (string, error) {
 	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
 		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 	}
@@ -121,8 +121,6 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 	if appErr != nil {
 		return "Error checking previous messages", nil
 	}
-
-	_, _, topic := p.parseCommand(args.Command)
 
 	if recentMeeting {
 		p.postConfirm(recentMeetingLink, args.ChannelId, topic, user.Id, creatorName, provider)
