@@ -274,7 +274,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		),
 	}
 
-	post.Message = "I have ended the meeting."
+	post.Message = "The meeting has ended."
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
 	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
