@@ -50,3 +50,4 @@ This plugin allows users to be deauthorized directly from Zoom, in order to comp
 ## Finish Setting up Mattermost Server
 
 * Follow the instructions for [Mattermost Setup](../mattermost-setup.md)
+

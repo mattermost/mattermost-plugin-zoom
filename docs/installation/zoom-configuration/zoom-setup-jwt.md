@@ -27,3 +27,4 @@ Users will need to sign up for their own Zoom account using the same email addre
 ## Finish Setting up the Mattermost Server
 
 * Follow the instructions for [Mattermost Setup](../mattermost-setup.md)
+

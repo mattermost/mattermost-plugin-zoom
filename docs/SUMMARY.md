@@ -15,6 +15,6 @@
 
 * [Connect your Account](usage/connect-your-account.md)
 * [Start Meetings](usage/start-meetings.md)
-* [Development](development.md)
-* [Help and Support](help-and-support.md)
+* [Development](usage/development.md)
+* [Help and Support](usage/help-and-support.md)
 

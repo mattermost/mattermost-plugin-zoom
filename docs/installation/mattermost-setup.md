@@ -11,7 +11,7 @@ description: Configuration steps for the Mattermost server
 ### First steps
 
 * Enable settings for [overriding usernames](https://docs.mattermost.com/administration/config-settings.html#enable-integrations-to-override-usernames) and [overriding profile picture icons](https://docs.mattermost.com/administration/config-settings.html#enable-integrations-to-override-profile-picture-icons).
-* Go to **System Console > Plugins > Zoom** to configure the Zoom Plugin.
+* Go to **System Console &gt; Plugins &gt; Zoom** to configure the Zoom Plugin.
 
 ![](../.gitbook/assets/image%20%281%29.png)
 
@@ -37,3 +37,4 @@ description: Configuration steps for the Mattermost server
     * Use the API Key and API Secret generated during [Zoom Configuration](zoom-configuration/zoom-setup-jwt.md) to fill in the fields **API Key** and **API Secret**.
 * If you are using Webhooks or Deauthorization, make sure you hit the **Regenerate** button on **Webhook Secret** field.
 * Click **Save**.
+
