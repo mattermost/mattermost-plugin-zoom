@@ -65,7 +65,13 @@ func (p *Plugin) fetchOAuthUserInfo(tokenKey, userID string) (*zoom.OAuthUserInf
 }
 
 func (p *Plugin) disconnectOAuthUser(userID string) error {
+	// according to the definition encoded would be nil
+	// that means that the account is not linked
 	encoded, err := p.API.KVGet(zoomUserByMMID + userID)
+	if len(encoded) == 0 {
+		return errors.Wrap(err, "Your Zoom account is not currently linked")
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "could not find OAuth user info")
 	}

@@ -181,7 +181,7 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	}
 
 	if err := p.disconnectOAuthUser(user.Id); err != nil {
-		return fmt.Sprintf("Failed to disconnect the user: %s", err.Error()), nil
+		return "Your Zoom account is not currently linked.", nil
 	}
 
 	p.trackDisconnect(user.Id)
