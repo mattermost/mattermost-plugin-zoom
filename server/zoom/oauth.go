@@ -107,7 +107,11 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 		if err != nil {
 			log.Printf("error getting user token: %s", err)
 		}
-		json.Unmarshal(savedToken, &currentToken)
+
+		uErr := json.Unmarshal(savedToken, &currentToken)
+		if uErr != nil {
+			log.Printf("error parsing user token: %s", err)
+		}
 
 		tokenSource := c.config.TokenSource(context.Background(), currentToken)
 		updatedToken, tsErr := tokenSource.Token()
