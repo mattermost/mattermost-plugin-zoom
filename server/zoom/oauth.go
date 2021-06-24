@@ -99,42 +99,32 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 }
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
-	// client := c.config.Client(context.Background(), c.token)
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
 	currentToken := c.token
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
-		savedToken, sErr := c.api.KVGet(zoomSuperUserTokenKey)
-		if sErr != nil {
-			log.Printf("error getting user token: %s", sErr)
+		savedToken, err := c.api.KVGet(zoomSuperUserTokenKey)
+		if err != nil {
+			log.Printf("error getting user token: %s", err)
 		}
+		json.Unmarshal(savedToken, &currentToken)
 
-		uErr := json.Unmarshal(savedToken, &currentToken)
-		if uErr != nil {
-			log.Printf("error decoding user token: %s", uErr)
-		}
-	}
+		tokenSource := c.config.TokenSource(context.Background(), currentToken)
+		updatedToken, tsErr := tokenSource.Token()
 
-	// res, err := client.Get(url)
-	tokenSource := c.config.TokenSource(context.Background(), currentToken)
-	updatedToken, updateErr := tokenSource.Token()
-
-	if updateErr == nil {
-		if updatedToken.AccessToken != currentToken.AccessToken {
-			newToken, newErr := json.Marshal(updatedToken)
-			if newErr != nil {
-				log.Printf("error while encoding user token: %s", newErr)
-			}
-			log.Printf("New Token: %s", newToken)
-
-			appErr := c.api.KVSet(zoomSuperUserTokenKey, newToken)
-			if appErr != nil {
-				return nil, errors.Wrap(appErr, "error setting new token")
+		if tsErr == nil {
+			if updatedToken.AccessToken != currentToken.AccessToken {
+				newToken, _ := json.Marshal(updatedToken)
+				kvErr := c.api.KVSet(zoomSuperUserTokenKey, newToken)
+				if kvErr != nil {
+					return nil, errors.Wrap(kvErr, "error setting new token")
+				}
 			}
 		}
+		currentToken = updatedToken
 	}
 
-	client := c.config.Client(context.Background(), updatedToken)
+	client := c.config.Client(context.Background(), currentToken)
 
 	res, err := client.Get(url)
 	if err != nil {
