@@ -155,7 +155,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 		if token == nil {
 			return nil, message, errors.New("zoom app not connected")
 		}
-		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true), "", nil
+		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true, p.API), "", nil
 	}
 
 	// Oauth User Level
@@ -172,7 +172,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 
 	info.OAuthToken.AccessToken = plainToken
 	conf := p.getOAuthConfig()
-	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false), "", nil
+	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false, p.API), "", nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
@@ -180,6 +180,10 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 	config := p.getConfiguration()
 	zoomURL := p.getZoomURL()
 
+	adminString := ""
+	if p.configuration.AccountLevelApp {
+		adminString = "admin"
+	}
 	return &oauth2.Config{
 		ClientID:     config.OAuthClientID,
 		ClientSecret: config.OAuthClientSecret,
@@ -189,10 +193,10 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 		},
 		RedirectURL: fmt.Sprintf("%s/plugins/zoom/oauth2/complete", p.siteURL),
 		Scopes: []string{
-			"user:read",
-			"meeting:write",
-			"webinar:write",
-			"recording:write"},
+			"user:read:" + adminString,
+			"meeting:write:" + adminString,
+			"webinar:write:" + adminString,
+			"recording:write:" + adminString},
 	}
 }
 

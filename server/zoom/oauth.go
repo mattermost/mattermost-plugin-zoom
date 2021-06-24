@@ -9,17 +9,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
 const (
-	httpTimeout = time.Second * 10
-	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
+	httpTimeout           = time.Second * 10
+	OAuthPrompt           = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
+	zoomSuperUserTokenKey = "zoomSuperUserToken_"
 )
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
@@ -37,11 +40,12 @@ type OAuthClient struct {
 	siteURL        string
 	apiURL         string
 	isAccountLevel bool
+	api            plugin.API
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool) Client {
-	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel}
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api plugin.API) Client {
+	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel, api}
 }
 
 // GetUser returns the Zoom user via OAuth.
@@ -95,15 +99,48 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 }
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
-	client := c.config.Client(context.Background(), c.token)
+	// client := c.config.Client(context.Background(), c.token)
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
+	currentToken := c.token
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
+		savedToken, sErr := c.api.KVGet(zoomSuperUserTokenKey)
+		if sErr != nil {
+			log.Printf("error getting user token: %s", sErr)
+		}
+
+		uErr := json.Unmarshal(savedToken, &currentToken)
+		if uErr != nil {
+			log.Printf("error decoding user token: %s", uErr)
+		}
 	}
+
+	// res, err := client.Get(url)
+	tokenSource := c.config.TokenSource(context.Background(), currentToken)
+	updatedToken, updateErr := tokenSource.Token()
+
+	if updateErr == nil {
+		if updatedToken.AccessToken != currentToken.AccessToken {
+			newToken, newErr := json.Marshal(updatedToken)
+			if newErr != nil {
+				log.Printf("error while encoding user token: %s", newErr)
+			}
+			log.Printf("New Token: %s", newToken)
+
+			appErr := c.api.KVSet(zoomSuperUserTokenKey, newToken)
+			if appErr != nil {
+				return nil, errors.Wrap(appErr, "error setting new token")
+			}
+		}
+	}
+
+	client := c.config.Client(context.Background(), updatedToken)
+
 	res, err := client.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching zoom user")
 	}
+
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusNotFound {
