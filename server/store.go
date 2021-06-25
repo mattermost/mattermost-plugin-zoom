@@ -72,7 +72,7 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 		return errors.Wrap(err, "could not find OAuth user info")
 	}
 	if encoded == nil {
-		return errors.New("You are not connected to Zoom yet")
+		return errors.New("you are not connected to Zoom yet")
 	}
 
 	var info zoom.OAuthUserInfo
