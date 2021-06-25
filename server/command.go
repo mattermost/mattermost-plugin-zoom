@@ -175,13 +175,15 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	if p.configuration.AccountLevelApp {
 		err := p.removeSuperUserToken()
 		if err != nil {
-			return "Could not disconnect, err=" + err.Error(), nil
+			return "Error disconnecting, " + err.Error(), nil
 		}
 		return "Successfully disconnected from Zoom.", nil
 	}
 
-	if err := p.disconnectOAuthUser(user.Id); err != nil {
-		return "Your Zoom account is not currently linked.", nil
+	err := p.disconnectOAuthUser(user.Id)
+
+	if err != nil {
+		return "Could not disconnect OAuth from zoom, " + err.Error(), nil
 	}
 
 	p.trackDisconnect(user.Id)
