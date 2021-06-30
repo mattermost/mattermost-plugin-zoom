@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -40,11 +39,16 @@ type OAuthClient struct {
 	siteURL        string
 	apiURL         string
 	isAccountLevel bool
-	api            plugin.API
+	api            ZoomPluginAPI
+}
+
+type ZoomPluginAPI interface {
+	GetZoomSuperUserToken() (*oauth2.Token, error)
+	SetZoomSuperUserToken(*oauth2.Token) error
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api plugin.API) Client {
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api ZoomPluginAPI) Client {
 	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel, api}
 }
 
@@ -103,25 +107,21 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 	currentToken := c.token
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
-		savedToken, err := c.api.KVGet(zoomSuperUserTokenKey)
+		savedToken, err := c.api.GetZoomSuperUserToken()
 		if err != nil {
 			log.Printf("error getting user token: %s", err)
+			return nil, err
 		}
 
-		uErr := json.Unmarshal(savedToken, &currentToken)
-		if uErr != nil {
-			log.Printf("error parsing user token: %s", err)
-		}
-
-		tokenSource := c.config.TokenSource(context.Background(), currentToken)
+		tokenSource := c.config.TokenSource(context.Background(), savedToken)
 		updatedToken, tsErr := tokenSource.Token()
 
 		if tsErr == nil {
 			if updatedToken.AccessToken != currentToken.AccessToken {
-				newToken, _ := json.Marshal(updatedToken)
-				kvErr := c.api.KVSet(zoomSuperUserTokenKey, newToken)
-				if kvErr != nil {
-					return nil, errors.Wrap(kvErr, "error setting new token")
+				setErr := c.api.SetZoomSuperUserToken(updatedToken)
+				if setErr != nil {
+					log.Printf("error setting user token: %s", err)
+					return nil, setErr
 				}
 			}
 		}
