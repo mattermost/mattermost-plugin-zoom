@@ -54,6 +54,17 @@ func (c *JWTClient) GetUser(user *model.User) (*User, *AuthError) {
 	return &zoomUser, nil
 }
 
+// CreateMeeting creates a new meeting for the user and returns the created meeting.
+func (c *JWTClient) CreateMeeting(user *User, topic string) (*Meeting, error) {
+	var ret Meeting
+	meetingRequest := CreateMeetingRequest{
+		Topic: topic,
+		Type:  MeetingTypeInstant,
+	}
+	err := c.request(http.MethodPost, fmt.Sprintf("/users/%s/meetings", user.Email), meetingRequest, &ret)
+	return &ret, err
+}
+
 func (c *JWTClient) generateJWT() (string, error) {
 	claims := jwt.MapClaims{}
 	claims["iss"] = c.apiKey

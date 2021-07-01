@@ -13,7 +13,7 @@ description: Configuration steps for the Mattermost server
 * Enable settings for [overriding usernames](https://docs.mattermost.com/administration/config-settings.html#enable-integrations-to-override-usernames) and [overriding profile picture icons](https://docs.mattermost.com/administration/config-settings.html#enable-integrations-to-override-profile-picture-icons).
 * Go to **System Console &gt; Plugins &gt; Zoom** to configure the Zoom Plugin.
 
-![](../.gitbook/assets/image%20%281%29%20%282%29.png)
+![](../.gitbook/assets/system_console.png)
 
 ### Plugin configuration
 
