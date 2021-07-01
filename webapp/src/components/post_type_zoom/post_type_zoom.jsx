@@ -166,7 +166,7 @@ export default class PostTypeZoom extends React.PureComponent {
                             className='btn btn-lg btn-primary'
                             style={style.button}
                             rel='noopener noreferrer'
-                            onClick={() => this.props.actions.startMeeting(this.props.currentChannelId, true)}
+                            onClick={() => this.props.actions.startMeeting(this.props.currentChannelId, true, props.meeting_topic)}
                         >
                             {'CREATE NEW MEETING'}
                         </a>
