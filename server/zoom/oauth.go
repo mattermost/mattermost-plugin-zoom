@@ -118,7 +118,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 
 		if tsErr == nil {
 			if updatedToken.AccessToken != currentToken.AccessToken {
-				newToken, _ := json.Marshal(updatedToken)
+				tokenBytes, _ := json.Marshal(updatedToken)
 				kvErr := c.api.KVSet(zoomSuperUserTokenKey, newToken)
 				if kvErr != nil {
 					return nil, errors.Wrap(kvErr, "error setting new token")
