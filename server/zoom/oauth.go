@@ -105,12 +105,12 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
 		savedToken, err := c.api.KVGet(zoomSuperUserTokenKey)
 		if err != nil {
-			log.Printf("error getting user token: %s", err)
+			return nil, errors.Wrap(err, "error getting user token")
 		}
 
 		uErr := json.Unmarshal(savedToken, &currentToken)
 		if uErr != nil {
-			log.Printf("error parsing user token: %s", err)
+			return nil, errors.Wrap(uErr, "error parsing user token")
 		}
 
 		tokenSource := c.config.TokenSource(context.Background(), currentToken)
