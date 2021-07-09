@@ -18,9 +18,8 @@ import (
 )
 
 const (
-	httpTimeout           = time.Second * 10
-	OAuthPrompt           = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
-	zoomSuperUserTokenKey = "zoomSuperUserToken_"
+	httpTimeout = time.Second * 10
+	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
 )
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
@@ -107,13 +106,13 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
 		currentToken, err := c.api.GetZoomSuperUserToken()
 		if err != nil {
-			errors.Wrap(err, "error getting zoom super user token")
+			return nil, errors.Wrap(err, "error getting zoom super user token")
 		}
 
 		tokenSource := c.config.TokenSource(context.Background(), currentToken)
-		updatedToken, tsErr := tokenSource.Token()
-		if tsErr != nil {
-			return nil, errors.Wrap(tsErr, "error getting token from token source")
+		updatedToken, err := tokenSource.Token()
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting token from token source")
 		}
 
 		if updatedToken.AccessToken != currentToken.AccessToken {
