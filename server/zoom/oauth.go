@@ -37,16 +37,16 @@ type OAuthClient struct {
 	siteURL        string
 	apiURL         string
 	isAccountLevel bool
-	api            ZoomPluginAPI
+	api            PluginAPI
 }
 
-type ZoomPluginAPI interface {
+type PluginAPI interface {
 	GetZoomSuperUserToken() (*oauth2.Token, error)
 	SetZoomSuperUserToken(*oauth2.Token) error
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api ZoomPluginAPI) Client {
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api PluginAPI) Client {
 	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel, api}
 }
 
