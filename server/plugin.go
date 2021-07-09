@@ -203,7 +203,8 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 			"user:read" + adminString,
 			"meeting:write" + adminString,
 			"webinar:write" + adminString,
-			"recording:write" + adminString},
+			"recording:write" + adminString,
+		},
 	}
 }
 

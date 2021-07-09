@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -104,31 +103,30 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
-	currentToken := c.token
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
-		savedToken, err := c.api.GetZoomSuperUserToken()
+		currentToken, err := c.api.GetZoomSuperUserToken()
 		if err != nil {
-			log.Printf("error getting user token: %s", err)
-			return nil, err
+			errors.Wrap(err, "error getting zoom super user token")
 		}
 
-		tokenSource := c.config.TokenSource(context.Background(), savedToken)
+		tokenSource := c.config.TokenSource(context.Background(), currentToken)
 		updatedToken, tsErr := tokenSource.Token()
+		if tsErr != nil {
+			return nil, errors.Wrap(tsErr, "error getting token from token source")
+		}
 
-		if tsErr == nil {
-			if updatedToken.AccessToken != currentToken.AccessToken {
-				setErr := c.api.SetZoomSuperUserToken(updatedToken)
-				if setErr != nil {
-					log.Printf("error setting user token: %s", err)
-					return nil, setErr
-				}
+		if updatedToken.AccessToken != currentToken.AccessToken {
+			kvErr := c.api.SetZoomSuperUserToken(updatedToken)
+			if kvErr != nil {
+				return nil, errors.Wrap(kvErr, "error setting new token")
 			}
 		}
-		currentToken = updatedToken
+
+		c.token = updatedToken
 	}
 
-	client := c.config.Client(context.Background(), currentToken)
+	client := c.config.Client(context.Background(), c.token)
 
 	res, err := client.Get(url)
 	if err != nil {
