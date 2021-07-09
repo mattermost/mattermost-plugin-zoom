@@ -48,12 +48,19 @@ type Plugin struct {
 
 	telemetryClient telemetry.Client
 	tracker         telemetry.Tracker
+
+	zoomPluginAPI ZoomPluginAPI
 }
 
 // Client defines a common interface for the API and OAuth Zoom clients
 type Client interface {
 	GetMeeting(meetingID int) (*zoom.Meeting, error)
 	GetUser(user *model.User) (*zoom.User, *zoom.AuthError)
+}
+
+type ZoomPluginAPI interface {
+	GetZoomSuperUserToken() (*oauth2.Token, error)
+	SetZoomSuperUserToken(*oauth2.Token) error
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
@@ -155,7 +162,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 		if token == nil {
 			return nil, message, errors.New("zoom app not connected")
 		}
-		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true), "", nil
+		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true, p.zoomPluginAPI), "", nil
 	}
 
 	// Oauth User Level
@@ -172,7 +179,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 
 	info.OAuthToken.AccessToken = plainToken
 	conf := p.getOAuthConfig()
-	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false), "", nil
+	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false, p.zoomPluginAPI), "", nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
@@ -180,6 +187,10 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 	config := p.getConfiguration()
 	zoomURL := p.getZoomURL()
 
+	adminString := ""
+	if p.configuration.AccountLevelApp {
+		adminString = ":admin"
+	}
 	return &oauth2.Config{
 		ClientID:     config.OAuthClientID,
 		ClientSecret: config.OAuthClientSecret,
@@ -189,10 +200,11 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 		},
 		RedirectURL: fmt.Sprintf("%s/plugins/zoom/oauth2/complete", p.siteURL),
 		Scopes: []string{
-			"user:read",
-			"meeting:write",
-			"webinar:write",
-			"recording:write"},
+			"user:read" + adminString,
+			"meeting:write" + adminString,
+			"webinar:write" + adminString,
+			"recording:write" + adminString,
+		},
 	}
 }
 
@@ -225,4 +237,23 @@ func (p *Plugin) sendDirectMessage(userID string, message string) error {
 
 	_, err = p.API.CreatePost(post)
 	return err
+}
+
+func (p *Plugin) GetZoomSuperUserToken() (*oauth2.Token, error) {
+	token, err := p.getSuperuserToken()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get token")
+	}
+	if token == nil {
+		return nil, errors.New("zoom app not connected")
+	}
+	return token, nil
+}
+
+func (p *Plugin) SetZoomSuperUserToken(token *oauth2.Token) error {
+	err := p.setSuperUserToken(token)
+	if err != nil {
+		return errors.Wrap(err, "could not set token")
+	}
+	return nil
 }
