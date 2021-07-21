@@ -8,6 +8,7 @@ import (
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
 )
 
 // AuthError represents a Zoom authentication error
@@ -26,4 +27,9 @@ var errNotFound = errors.New("not found")
 type Client interface {
 	GetMeeting(meetingID int) (*Meeting, error)
 	GetUser(user *model.User) (*User, *AuthError)
+}
+
+type ZoomPluginAPI interface {
+	GetZoomSuperUserToken() (*oauth2.Token, error)
+	SetZoomSuperUserToken(*oauth2.Token) error
 }

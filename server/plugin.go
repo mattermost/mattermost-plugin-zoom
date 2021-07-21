@@ -48,19 +48,12 @@ type Plugin struct {
 
 	telemetryClient telemetry.Client
 	tracker         telemetry.Tracker
-
-	zoomPluginAPI ZoomPluginAPI
 }
 
 // Client defines a common interface for the API and OAuth Zoom clients
 type Client interface {
 	GetMeeting(meetingID int) (*zoom.Meeting, error)
 	GetUser(user *model.User) (*zoom.User, *zoom.AuthError)
-}
-
-type ZoomPluginAPI interface {
-	GetZoomSuperUserToken() (*oauth2.Token, error)
-	SetZoomSuperUserToken(*oauth2.Token) error
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
@@ -162,7 +155,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 		if token == nil {
 			return nil, message, errors.New("zoom app not connected")
 		}
-		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true, p.zoomPluginAPI), "", nil
+		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true, p), "", nil
 	}
 
 	// Oauth User Level
@@ -179,7 +172,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 
 	info.OAuthToken.AccessToken = plainToken
 	conf := p.getOAuthConfig()
-	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false, p.zoomPluginAPI), "", nil
+	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false, p), "", nil
 }
 
 // getOAuthConfig returns the Zoom OAuth2 flow configuration.
