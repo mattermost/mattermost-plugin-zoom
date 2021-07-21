@@ -29,7 +29,7 @@ type Client interface {
 	GetUser(user *model.User) (*User, *AuthError)
 }
 
-type ZoomPluginAPI interface {
+type PluginAPI interface {
 	GetZoomSuperUserToken() (*oauth2.Token, error)
 	SetZoomSuperUserToken(*oauth2.Token) error
 }
