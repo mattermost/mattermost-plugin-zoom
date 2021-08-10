@@ -180,10 +180,6 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 	config := p.getConfiguration()
 	zoomURL := p.getZoomURL()
 
-	adminString := ""
-	if p.configuration.AccountLevelApp {
-		adminString = ":admin"
-	}
 	return &oauth2.Config{
 		ClientID:     config.OAuthClientID,
 		ClientSecret: config.OAuthClientSecret,
@@ -192,12 +188,6 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 			TokenURL: fmt.Sprintf("%v/oauth/token", zoomURL),
 		},
 		RedirectURL: fmt.Sprintf("%s/plugins/zoom/oauth2/complete", p.siteURL),
-		Scopes: []string{
-			"user:read" + adminString,
-			"meeting:write" + adminString,
-			"webinar:write" + adminString,
-			"recording:write" + adminString,
-		},
 	}
 }
 
