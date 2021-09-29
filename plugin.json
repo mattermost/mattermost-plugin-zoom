@@ -7,7 +7,7 @@
     "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.5.0",
     "icon_path": "assets/profile.svg",
     "version": "1.5.0",
-    "min_server_version": "5.12.0",
+    "min_server_version": "5.38.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",
@@ -23,6 +23,13 @@
         "header": "To set up this plugin you first need to create a Zoom App using a Zoom Administrator account. Visit the [documentation for configuration steps](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
         "footer": "",
         "settings": [
+            {
+                "key": "UsePreregisteredApplication",
+                "display_name": "Use Preregistered OAuth Application:",
+                "type": "bool",
+                "help_text": "When true, instructs the plugin to use the preregistered Zoom OAuth application - application registration steps can be skipped. Requires [Chimera Proxy](https://github.com/mattermost/chimera) URL to be configured for the server. Can be used only with Zoom's vendor-hosted SaaS service. **This setting is intended to be used with Mattermost Cloud instances only.**",
+                "default": false
+            },
             {
                 "key": "ZoomURL",
                 "display_name": "Zoom URL:",

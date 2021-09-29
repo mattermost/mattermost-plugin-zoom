@@ -30,17 +30,18 @@ const (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	ZoomURL           string
-	ZoomAPIURL        string
-	APIKey            string
-	APISecret         string
-	EnableOAuth       bool
-	AccountLevelApp   bool
-	OAuthClientID     string
-	OAuthClientSecret string
-	OAuthRedirectURL  string
-	EncryptionKey     string
-	WebhookSecret     string
+	ZoomURL                     string
+	ZoomAPIURL                  string
+	APIKey                      string
+	APISecret                   string
+	EnableOAuth                 bool
+	AccountLevelApp             bool
+	OAuthClientID               string
+	OAuthClientSecret           string
+	OAuthRedirectURL            string
+	EncryptionKey               string
+	WebhookSecret               string
+	UsePreregisteredApplication bool
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -55,6 +56,9 @@ func (c *configuration) IsValid() error {
 	switch {
 	case !c.EnableOAuth:
 		switch {
+		case c.UsePreregisteredApplication:
+			return errors.New("pre-registered application can work only with OAuth enabled")
+
 		case len(c.APIKey) == 0:
 			return errors.New("please configure APIKey")
 
@@ -62,14 +66,21 @@ func (c *configuration) IsValid() error {
 			return errors.New("please configure APISecret")
 		}
 	case c.EnableOAuth:
-		switch {
-		case len(c.OAuthClientSecret) == 0:
-			return errors.New("please configure OAuthClientSecret")
+		if !c.UsePreregisteredApplication {
+			if len(c.OAuthClientSecret) == 0 {
+				return errors.New("please configure OAuthClientSecret")
+			}
+			if len(c.OAuthClientID) == 0 {
+				return errors.New("please configure OAuthClientID")
+			}
+		} else {
+			zoomURL := strings.TrimSuffix(c.ZoomURL, "/")
+			if zoomURL != "https://zoom.us" && zoomURL != "" {
+				return errors.New("pre-registered application can only be used with official Zoom's vendor-hosted SaaS service")
+			}
+		}
 
-		case len(c.OAuthClientID) == 0:
-			return errors.New("please configure OAuthClientID")
-
-		case len(c.EncryptionKey) == 0:
+		if len(c.EncryptionKey) == 0 {
 			return errors.New("please generate EncryptionKey from Zoom plugin settings")
 		}
 	default:

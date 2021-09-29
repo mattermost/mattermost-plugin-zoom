@@ -144,3 +144,38 @@ func TestPlugin(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOAuthConfig(t *testing.T) {
+
+	t.Run("get Zoom OAuth config", func(t *testing.T) {
+		p := Plugin{
+			configuration: &configuration{
+				OAuthClientID:     "id",
+				OAuthClientSecret: "secret",
+			},
+		}
+
+		config := p.getOAuthConfig()
+		assert.Equal(t, "secret", config.ClientSecret)
+		assert.Equal(t, "id", config.ClientID)
+		assert.Equal(t, "https://zoom.us/oauth/authorize", config.Endpoint.AuthURL)
+		assert.Equal(t, "https://zoom.us/oauth/token", config.Endpoint.TokenURL)
+	})
+
+	t.Run("get Chimera OAuth config", func(t *testing.T) {
+		p := Plugin{
+			configuration: &configuration{
+				OAuthClientID:               "id",
+				OAuthClientSecret:           "secret",
+				UsePreregisteredApplication: true,
+			},
+			chimeraURL: "https://chimera.cloud.mattermost.com",
+		}
+
+		config := p.getOAuthConfig()
+		assert.Equal(t, "placeholder", config.ClientSecret)
+		assert.Equal(t, "placeholder", config.ClientID)
+		assert.Equal(t, "https://chimera.cloud.mattermost.com/v1/zoom/plugin-zoom-user-level/oauth/authorize", config.Endpoint.AuthURL)
+		assert.Equal(t, "https://chimera.cloud.mattermost.com/v1/zoom/plugin-zoom-user-level/oauth/token", config.Endpoint.TokenURL)
+	})
+}
