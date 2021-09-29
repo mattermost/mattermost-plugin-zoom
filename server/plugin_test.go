@@ -146,7 +146,6 @@ func TestPlugin(t *testing.T) {
 }
 
 func TestGetOAuthConfig(t *testing.T) {
-
 	t.Run("get Zoom OAuth config", func(t *testing.T) {
 		p := Plugin{
 			configuration: &configuration{

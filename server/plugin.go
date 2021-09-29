@@ -225,7 +225,7 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 }
 
 func (p *Plugin) getOAuthConfigForChimeraApp(redirectURL string) *oauth2.Config {
-	baseURL := fmt.Sprintf("%s/v1/zoom/%s", p.chimeraURL, p.getZoomAppId())
+	baseURL := fmt.Sprintf("%s/v1/zoom/%s", p.chimeraURL, p.getZoomAppID())
 	authURL, _ := url.Parse(baseURL)
 	tokenURL, _ := url.Parse(baseURL)
 
@@ -244,7 +244,7 @@ func (p *Plugin) getOAuthConfigForChimeraApp(redirectURL string) *oauth2.Config 
 	}
 }
 
-func (p *Plugin) getZoomAppId() string {
+func (p *Plugin) getZoomAppID() string {
 	if p.getConfiguration().AccountLevelApp {
 		return chimeraZoomAccountLevelAppIdentifier
 	}
