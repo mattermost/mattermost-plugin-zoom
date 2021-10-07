@@ -167,7 +167,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	if justConnect {
 		p.postEphemeral(userID, channelID, "Successfully connected to Zoom")
-	} else if err = p.postMeeting(user, zoomUser.Pmi, channelID, "", "", ""); err != nil {
+	} else if err = p.postMeeting(user, zoomUser.Pmi, channelID, "", ""); err != nil {
 		p.API.LogWarn("Failed to post meeting", "error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -296,7 +296,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 	}
 }
 
-func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, rootID string, parentID string, topic string) error {
+func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, rootID string, topic string) error {
 	meetingURL := p.getMeetingURL(creator, meetingID)
 
 	if topic == "" {
@@ -312,6 +312,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	post := &model.Post{
 		UserId:    creator.Id,
 		ChannelId: channelID,
+		RootId:    rootID,
 		Message:   "I have started a meeting",
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
@@ -324,10 +325,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 			"meeting_creator_username": creator.Username,
 			"meeting_provider":         zoomProviderName,
 		},
-	}
-	if parentID != "" {
-		post.ParentId = parentID
-		post.RootId = rootID
 	}
 
 	createdPost, appErr := p.API.CreatePost(post)
@@ -379,7 +376,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
-			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, "", "", creatorName, provider)
+			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, "", creatorName, provider)
 			return
 		}
 	}
@@ -401,7 +398,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	meetingID := zoomUser.Pmi
-	if err = p.postMeeting(user, meetingID, req.ChannelID, "", "", req.Topic); err != nil {
+	if err = p.postMeeting(user, meetingID, req.ChannelID, "", req.Topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -435,7 +432,7 @@ func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
 	return meeting.JoinURL
 }
 
-func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string, userID string, rootID string, parentID string, creatorName string, provider string) *model.Post {
+func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string, userID string, rootID string, creatorName string, provider string) *model.Post {
 	message := "There is another recent meeting created on this channel."
 	if provider != zoomProviderName {
 		message = fmt.Sprintf("There is another recent meeting created on this channel with %s.", provider)
@@ -444,6 +441,7 @@ func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string,
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channelID,
+		RootId:    rootID,
 		Message:   message,
 		Type:      "custom_zoom",
 		Props: map[string]interface{}{
@@ -457,10 +455,6 @@ func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string,
 		},
 	}
 
-	if parentID != "" {
-		post.ParentId = parentID
-		post.RootId = rootID
-	}
 	p.trackMeetingDuplication(userID)
 
 	return p.API.SendEphemeralPost(userID, post)

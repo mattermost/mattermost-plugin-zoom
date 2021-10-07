@@ -108,7 +108,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 	}
 
 	if recentMeeting {
-		p.postConfirm(recentMeetingLink, args.ChannelId, "", user.Id, args.RootId, args.ParentId, creatorName, provider)
+		p.postConfirm(recentMeetingLink, args.ChannelId, "", user.Id, args.RootId, creatorName, provider)
 		return "", nil
 	}
 
@@ -121,7 +121,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return authErr.Message, authErr.Err
 	}
 
-	if err := p.postMeeting(user, zoomUser.Pmi, args.ChannelId, args.RootId, args.ParentId, ""); err != nil {
+	if err := p.postMeeting(user, zoomUser.Pmi, args.ChannelId, args.RootId, ""); err != nil {
 		return "Failed to post message. Please try again.", nil
 	}
 
