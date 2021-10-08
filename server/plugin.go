@@ -32,8 +32,6 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	jwtClient zoom.Client
-
 	// botUserID of the created bot account.
 	botUserID string
 
@@ -101,8 +99,6 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
-
 	p.telemetryClient, err = telemetry.NewRudderClient()
 	if err != nil {
 		p.API.LogWarn("telemetry client not started", "error", err.Error())
@@ -136,11 +132,6 @@ func (p *Plugin) registerSiteURL() error {
 // getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
 func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 	config := p.getConfiguration()
-
-	// JWT
-	if !config.EnableOAuth {
-		return p.jwtClient, "", nil
-	}
 
 	// OAuth Account Level
 	if config.AccountLevelApp {
