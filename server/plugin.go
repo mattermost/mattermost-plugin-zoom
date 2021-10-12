@@ -77,8 +77,8 @@ func (p *Plugin) OnActivate() error {
 	p.registerChimeraURL()
 	if config.UsePreregisteredApplication && p.chimeraURL == "" {
 		return errors.New("cannot use pre-registered application if Chimera URL is not set or empty. " +
-			"For now using pre-registered application is intended for Cloud instances only. " +
-			"If you are running on-prem disable the setting and use a custom application, otherwise set PluginSettings.ChimeraOAuthProxyURL " +
+			"For now, using pre-registered application is intended for Cloud instances only. " +
+			"If you are running on-prem, disable the setting and use a custom application, otherwise set PluginSettings.ChimeraOAuthProxyURL " +
 			"or MM_PLUGINSETTINGS_CHIMERAOAUTHPROXYURL environment variable")
 	}
 
