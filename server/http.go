@@ -53,6 +53,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.completeUserOAuthToZoom(w, r)
 	case "/deauthorization":
 		p.deauthorizeUser(w, r)
+	case "/presence-status":
+		p.handleZoomPresenceWebhook(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -412,6 +414,40 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
+}
+
+func (p *Plugin) handleZoomPresenceWebhook(w http.ResponseWriter, r *http.Request) {
+	var pe zoom.PresenceEvent
+	err := json.NewDecoder(r.Body).Decode(&pe)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	user, uerr := p.API.GetUserByEmail(pe.Payload.Object.Email)
+	if uerr != nil {
+		http.Error(w, "User not found", http.StatusBadRequest)
+	}
+	currentStatus, csErr := p.API.GetUserStatus(user.Id)
+	if csErr != nil {
+		http.Error(w, "Couldn't determine user's current status", http.StatusInternalServerError)
+	}
+
+	var newStatus string
+
+	if pe.Payload.Object.PresenceStatus == "Available" && currentStatus.Status == "dnd" {
+		newStatus = "online"
+	} else if pe.Payload.Object.PresenceStatus == "In_Meeting" &&
+		(currentStatus.Status == "online" || currentStatus.Status == "away") {
+		newStatus = "dnd"
+	} else {
+		return
+	}
+
+	_, updateErr := p.API.UpdateUserStatus(user.Id, newStatus)
+	if updateErr != nil {
+		http.Error(w, "Oops", http.StatusInternalServerError)
+	} else {
+		fmt.Fprint(w, "OK") // I don't think Zoom actually cares what we send back
 	}
 }
 
