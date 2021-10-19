@@ -7,7 +7,7 @@ type ParticipantJoinedLeftEvent struct {
 }
 
 type ParticipantJoinedLeftEventPayload struct {
-	AccountId string                           `json:"account_id"`
+	AccountID string                           `json:"account_id"`
 	Object    ParticipantJoinedLeftEventObject `json:"object"`
 }
 
@@ -24,7 +24,7 @@ const (
 )
 
 type ParticipantJoinedLeftEventObject struct {
-	Id          string                                `json:"id"`
+	ID          string                                `json:"id"`
 	UUID        string                                `json:"uuid"`
 	HostID      string                                `json:"host_id"`
 	Topic       string                                `json:"topic"`
@@ -36,9 +36,9 @@ type ParticipantJoinedLeftEventObject struct {
 }
 
 type ParticipantJoinedLeftEventParticipant struct {
-	UserId            string `json:"user_id"`
+	UserID            string `json:"user_id"`
 	UserName          string `json:"user_name"`
-	Id                string `json:"id"`
+	ID                string `json:"id"`
 	LeaveTime         string `json:"leave_time"`
 	LeaveReason       string `json:"leave_reason"`
 	Email             string `json:"email"`
