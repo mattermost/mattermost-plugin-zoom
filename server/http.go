@@ -53,8 +53,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.completeUserOAuthToZoom(w, r)
 	case "/deauthorization":
 		p.deauthorizeUser(w, r)
-	case "/presence-status":
-		p.handleZoomPresenceWebhook(w, r)
+	case "/user-leave-join":
+		p.handleUserJoinedLeftWebhook(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -417,13 +417,18 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) handleZoomPresenceWebhook(w http.ResponseWriter, r *http.Request) {
-	var pe zoom.PresenceEvent
-	err := json.NewDecoder(r.Body).Decode(&pe)
+func (p *Plugin) handleUserJoinedLeftWebhook(w http.ResponseWriter, r *http.Request) {
+	if !p.verifyWebhookSecret(r) {
+		p.API.LogWarn("Could not verify webhook secreet")
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+	var event zoom.ParticipantJoinedLeftEvent
+	err := json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	user, uerr := p.API.GetUserByEmail(pe.Payload.Object.Email)
+	user, uerr := p.API.GetUserByEmail(event.Payload.Object.Participant.Email)
 	if uerr != nil {
 		http.Error(w, "User not found", http.StatusBadRequest)
 	}
@@ -431,18 +436,15 @@ func (p *Plugin) handleZoomPresenceWebhook(w http.ResponseWriter, r *http.Reques
 	if csErr != nil {
 		http.Error(w, "Couldn't determine user's current status", http.StatusInternalServerError)
 	}
-
 	var newStatus string
-
-	if pe.Payload.Object.PresenceStatus == "Available" && currentStatus.Status == "dnd" {
-		newStatus = "online"
-	} else if pe.Payload.Object.PresenceStatus == "In_Meeting" &&
-		(currentStatus.Status == "online" || currentStatus.Status == "away") {
+	if event.EventType == "meeting.participant_joined" &&
+		(currentStatus.Status == "online" || currentStatus.Status == "away" )  {
 		newStatus = "dnd"
+	} else if event.EventType == "meeting.participant_left" && currentStatus.Status == "dnd" {
+		newStatus = "online"
 	} else {
 		return
 	}
-
 	_, updateErr := p.API.UpdateUserStatus(user.Id, newStatus)
 	if updateErr != nil {
 		http.Error(w, "Oops", http.StatusInternalServerError)
