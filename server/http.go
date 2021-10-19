@@ -419,10 +419,17 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) handleUserJoinedLeftWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyWebhookSecret(r) {
-		p.API.LogWarn("Could not verify webhook secreet")
+		p.API.LogWarn("Could not verify webhook secret")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
+
+	const (
+		online = "online"
+		away = "away"
+		dnd = "dnd"
+	)
+
 	var event zoom.ParticipantJoinedLeftEvent
 	err := json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {
@@ -438,10 +445,10 @@ func (p *Plugin) handleUserJoinedLeftWebhook(w http.ResponseWriter, r *http.Requ
 	}
 	var newStatus string
 	if event.EventType == "meeting.participant_joined" &&
-		(currentStatus.Status == "online" || currentStatus.Status == "away" )  {
-		newStatus = "dnd"
-	} else if event.EventType == "meeting.participant_left" && currentStatus.Status == "dnd" {
-		newStatus = "online"
+		(currentStatus.Status == online || currentStatus.Status == away )  {
+		newStatus = dnd
+	} else if event.EventType == "meeting.participant_left" && currentStatus.Status == dnd {
+		newStatus = online
 	} else {
 		return
 	}
