@@ -452,8 +452,8 @@ func (p *Plugin) handleUserJoinedLeftWebhook(w http.ResponseWriter, r *http.Requ
 
 	const (
 		online = "online"
-		away = "away"
-		dnd = "dnd"
+		away   = "away"
+		dnd    = "dnd"
 	)
 
 	var event zoom.ParticipantJoinedLeftEvent
@@ -471,7 +471,7 @@ func (p *Plugin) handleUserJoinedLeftWebhook(w http.ResponseWriter, r *http.Requ
 	}
 	var newStatus string
 	if event.EventType == "meeting.participant_joined" &&
-		(currentStatus.Status == online || currentStatus.Status == away )  {
+		(currentStatus.Status == online || currentStatus.Status == away) {
 		newStatus = dnd
 	} else if event.EventType == "meeting.participant_left" && currentStatus.Status == dnd {
 		newStatus = online
