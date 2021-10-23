@@ -88,6 +88,8 @@ func TestPlugin(t *testing.T) {
 				Email: "theuseremail",
 			}, nil)
 
+			api.On("HasPermissionToChannel", "theuserid", "thechannelid", model.PERMISSION_CREATE_POST).Return(true)
+
 			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
 
 			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
