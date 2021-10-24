@@ -53,8 +53,6 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.completeUserOAuthToZoom(w, r)
 	case "/deauthorization":
 		p.deauthorizeUser(w, r)
-	case "/user-leave-join":
-		p.handleUserJoinedLeftWebhook(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -258,7 +256,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	if webhook.Event == zoom.EventTypeParticipantJoined || webhook.Event == zoom.EventTypeParticipantLeft {
 		p.API.LogDebug("Handling Zoom event " + string(webhook.Event))
-
 		var event zoom.ParticipantJoinedLeftEvent
 
 		err := json.Unmarshal(b, &event)
@@ -519,49 +516,6 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL)))
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
-	}
-}
-
-func (p *Plugin) handleUserJoinedLeftWebhook(w http.ResponseWriter, r *http.Request) {
-	if !p.verifyWebhookSecret(r) {
-		p.API.LogWarn("Could not verify webhook secret")
-		http.Error(w, "Not authorized", http.StatusUnauthorized)
-		return
-	}
-
-	const (
-		online = "online"
-		away   = "away"
-		dnd    = "dnd"
-	)
-
-	var event zoom.ParticipantJoinedLeftEvent
-	err := json.NewDecoder(r.Body).Decode(&event)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	user, uerr := p.API.GetUserByEmail(event.Payload.Object.Participant.Email)
-	if uerr != nil {
-		http.Error(w, "User not found", http.StatusBadRequest)
-	}
-	currentStatus, csErr := p.API.GetUserStatus(user.Id)
-	if csErr != nil {
-		http.Error(w, "Couldn't determine user's current status", http.StatusInternalServerError)
-	}
-	var newStatus string
-	if event.EventType == "meeting.participant_joined" &&
-		(currentStatus.Status == online || currentStatus.Status == away) {
-		newStatus = dnd
-	} else if event.EventType == "meeting.participant_left" && currentStatus.Status == dnd {
-		newStatus = online
-	} else {
-		return
-	}
-	_, updateErr := p.API.UpdateUserStatus(user.Id, newStatus)
-	if updateErr != nil {
-		http.Error(w, "Oops", http.StatusInternalServerError)
-	} else {
-		fmt.Fprint(w, "OK") // I don't think Zoom actually cares what we send back
 	}
 }
 
