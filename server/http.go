@@ -303,7 +303,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		topic = defaultMeetingTopic
 	}
 
-	if !p.API.HasPermissionToChannel(creator.Id, channelID, model.PERMISSION_CREATE_POST){
+	if !p.API.HasPermissionToChannel(creator.Id, channelID, model.PERMISSION_CREATE_POST) {
 		return errors.New("this channel is not accessible, you might not have permissions to write in this channel. Contact the administrator of this channel to find out if you have access permissions")
 	}
 
