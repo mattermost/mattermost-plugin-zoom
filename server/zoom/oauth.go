@@ -38,11 +38,12 @@ type OAuthClient struct {
 	siteURL        string
 	apiURL         string
 	isAccountLevel bool
+	api            PluginAPI
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
-func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool) Client {
-	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel}
+func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api PluginAPI) Client {
+	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel, api}
 }
 
 // GetUser returns the Zoom user via OAuth.
@@ -127,15 +128,37 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 }
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
-	client := c.config.Client(context.Background(), c.token)
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
+		currentToken, err := c.api.GetZoomSuperUserToken()
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting zoom super user token")
+		}
+
+		tokenSource := c.config.TokenSource(context.Background(), currentToken)
+		updatedToken, err := tokenSource.Token()
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting token from token source")
+		}
+
+		if updatedToken.AccessToken != currentToken.AccessToken {
+			kvErr := c.api.SetZoomSuperUserToken(updatedToken)
+			if kvErr != nil {
+				return nil, errors.Wrap(kvErr, "error setting new token")
+			}
+		}
+
+		c.token = updatedToken
 	}
+
+	client := c.config.Client(context.Background(), c.token)
+
 	res, err := client.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching zoom user")
 	}
+
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusNotFound {

@@ -24,3 +24,7 @@ webapp/dist
 # Mac
 *.swp
 .DS_Store
+
+#IDEs
+/.idea
+/.vscode
