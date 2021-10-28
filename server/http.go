@@ -128,7 +128,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL(), p.configuration.AccountLevelApp)
+	client := zoom.NewOAuthClient(token, conf, p.siteURL, p.getZoomAPIURL(), p.configuration.AccountLevelApp, p)
 	user, appErr := p.API.GetUser(userID)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), http.StatusInternalServerError)
@@ -274,7 +274,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		),
 	}
 
-	post.Message = "I have ended the meeting."
+	post.Message = "The meeting has ended."
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
 	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
