@@ -12,15 +12,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
+	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
+	"github.com/mattermost/mattermost-server/v6/plugin/plugintest/mock"
 )
 
 func TestPlugin(t *testing.T) {
