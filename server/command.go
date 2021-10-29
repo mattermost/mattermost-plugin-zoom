@@ -17,6 +17,8 @@ const helpText = `* |/zoom start| - Start a zoom meeting`
 const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
 
+const followStatusHelpText = `* $/zoom follow_status [on|off] $ - Automatically update your Mattermost status based on Zoom status"`
+
 const alreadyConnectedString = "Already connected"
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -72,6 +74,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runStartCommand(args, user)
 	case "disconnect":
 		return p.runDisconnectCommand(user)
+	case "follow_status":
+		return p.runEnableDisableFollowStatus(user, args)
 	case "help", "":
 		return p.runHelpCommand(user)
 	default:
@@ -199,14 +203,56 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
+
+	text += "\n" + strings.ReplaceAll(followStatusHelpText, "$", "`")
+
 	return text, nil
+}
+
+func (p *Plugin) runEnableDisableFollowStatus(user *model.User, args *model.CommandArgs) (string, error) {
+	split := strings.Fields(args.Command)
+
+	if len(split) == 2 { // get and show status
+		enabled, appErr := p.getFollowStatusForUser(user.Id)
+		if appErr == nil {
+			var status string
+			if enabled {
+				status = "on"
+			} else {
+				status = "off"
+			}
+			return fmt.Sprintf("Your current `follow_status` setting is `%v`", status), nil
+		} else {
+			return "Your current `follow_status` setting is not set.", nil
+		}
+	}
+	if len(split) == 3 {
+		var err *model.AppError
+		var text string
+		switch split[2] {
+		case "on":
+			err = p.setFollowStatusForUser(user.Id, true)
+			text = "Automatically following your Zoom status."
+		case "off":
+			err = p.setFollowStatusForUser(user.Id, false)
+			text = "Not following your Zoom status."
+		default:
+			text = fmt.Sprintf("Invalid value `%v`. Accepted values: `on`, `off`.", split[2])
+		}
+		if err != nil {
+			return "Could not set your `follow_status` settings", err
+		}
+		return text, nil
+	} else {
+		return "Incorrect number of arguments. Usage: `/zoom follow_status [on|off]`", nil
+	}
 }
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	available := "start, help"
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
-		available = "start, connect, disconnect, help"
+		available = "start, connect, disconnect, follow_status [ on | off ], help"
 	}
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 
@@ -216,10 +262,17 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
 		connect := model.NewAutocompleteData("connect", "", "Connect to Zoom")
-		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
+		disconnect := model.NewAutocompleteData("disconnect", "", "Disconnects from Zoom")
 		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
+
+	followStatus := model.NewAutocompleteData("follow_status", "[on|off]", "Automatically sets your Mattermost status to `dnd` when in a Zoom meeting")
+	followStatus.AddStaticListArgument("value", true, []model.AutocompleteListItem{
+		{HelpText: "Follow Zoom status automatically", Item: "on"},
+		{HelpText: "Do not follow Zoom status", Item: "off"},
+	})
+	zoom.AddCommand(followStatus)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)

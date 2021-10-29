@@ -247,6 +247,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	if webhook.Event == zoom.EventTypeParticipantJoined || webhook.Event == zoom.EventTypeParticipantLeft {
 		p.API.LogDebug("Handling Zoom event " + string(webhook.Event))
+
 		var event zoom.ParticipantJoinedLeftEvent
 
 		err := json.Unmarshal(b, &event)
@@ -260,6 +261,11 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			errMsg := "failed to get Mattermost user id for Zoom user"
 			p.API.LogWarn(errMsg, "err", err.Error())
 			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+
+		followStatus, _ := p.getFollowStatusForUser(userID)
+		if followStatus == false {
 			return
 		}
 
