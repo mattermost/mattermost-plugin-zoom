@@ -54,38 +54,38 @@ func TestPlugin(t *testing.T) {
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
 	for name, tc := range map[string]struct {
-		Request            *http.Request
-		ExpectedStatusCode int
+		Request                *http.Request
+		ExpectedStatusCode     int
 		HasPermissionToChannel bool
 	}{
 		"UnauthorizedMeetingRequest": {
-			Request:            noAuthMeetingRequest,
-			ExpectedStatusCode: http.StatusUnauthorized,
+			Request:                noAuthMeetingRequest,
+			ExpectedStatusCode:     http.StatusUnauthorized,
 			HasPermissionToChannel: true,
 		},
 		"ValidPersonalMeetingRequest": {
-			Request:            personalMeetingRequest,
-			ExpectedStatusCode: http.StatusOK,
+			Request:                personalMeetingRequest,
+			ExpectedStatusCode:     http.StatusOK,
 			HasPermissionToChannel: true,
 		},
 		"ValidStoppedWebhookRequest": {
-			Request:            validStoppedWebhookRequest,
-			ExpectedStatusCode: http.StatusOK,
+			Request:                validStoppedWebhookRequest,
+			ExpectedStatusCode:     http.StatusOK,
 			HasPermissionToChannel: true,
 		},
 		"ValidStartedWebhookRequest": {
-			Request:            validStartedWebhookRequest,
-			ExpectedStatusCode: http.StatusNotImplemented,
+			Request:                validStartedWebhookRequest,
+			ExpectedStatusCode:     http.StatusNotImplemented,
 			HasPermissionToChannel: true,
 		},
 		"NoSecretWebhookRequest": {
-			Request:            noSecretWebhookRequest,
-			ExpectedStatusCode: http.StatusUnauthorized,
+			Request:                noSecretWebhookRequest,
+			ExpectedStatusCode:     http.StatusUnauthorized,
 			HasPermissionToChannel: true,
 		},
 		"UnauthorizedChannelPermissions": {
-			Request:            personalMeetingRequest,
-			ExpectedStatusCode: http.StatusBadRequest,
+			Request:                personalMeetingRequest,
+			ExpectedStatusCode:     http.StatusBadRequest,
 			HasPermissionToChannel: false,
 		},
 	} {
