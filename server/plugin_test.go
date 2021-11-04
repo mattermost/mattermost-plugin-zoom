@@ -56,26 +56,37 @@ func TestPlugin(t *testing.T) {
 	for name, tc := range map[string]struct {
 		Request            *http.Request
 		ExpectedStatusCode int
+		HasPermissionToChannel bool
 	}{
 		"UnauthorizedMeetingRequest": {
 			Request:            noAuthMeetingRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
+			HasPermissionToChannel: true,
 		},
 		"ValidPersonalMeetingRequest": {
 			Request:            personalMeetingRequest,
 			ExpectedStatusCode: http.StatusOK,
+			HasPermissionToChannel: true,
 		},
 		"ValidStoppedWebhookRequest": {
 			Request:            validStoppedWebhookRequest,
 			ExpectedStatusCode: http.StatusOK,
+			HasPermissionToChannel: true,
 		},
 		"ValidStartedWebhookRequest": {
 			Request:            validStartedWebhookRequest,
 			ExpectedStatusCode: http.StatusNotImplemented,
+			HasPermissionToChannel: true,
 		},
 		"NoSecretWebhookRequest": {
 			Request:            noSecretWebhookRequest,
 			ExpectedStatusCode: http.StatusUnauthorized,
+			HasPermissionToChannel: true,
+		},
+		"UnauthorizedChannelPermissions": {
+			Request:            personalMeetingRequest,
+			ExpectedStatusCode: http.StatusBadRequest,
+			HasPermissionToChannel: false,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -88,7 +99,7 @@ func TestPlugin(t *testing.T) {
 				Email: "theuseremail",
 			}, nil)
 
-			api.On("HasPermissionToChannel", "theuserid", "thechannelid", model.PERMISSION_CREATE_POST).Return(true)
+			api.On("HasPermissionToChannel", "theuserid", "thechannelid", model.PERMISSION_CREATE_POST).Return(tc.HasPermissionToChannel)
 
 			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
 
