@@ -53,6 +53,9 @@ func TestPlugin(t *testing.T) {
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
+	unauthorizedUserRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
+	unauthorizedUserRequest.Header.Add("Mattermost-User-Id", "theuserid")
+
 	for name, tc := range map[string]struct {
 		Request                *http.Request
 		ExpectedStatusCode     int
@@ -84,8 +87,8 @@ func TestPlugin(t *testing.T) {
 			HasPermissionToChannel: true,
 		},
 		"UnauthorizedChannelPermissions": {
-			Request:                personalMeetingRequest,
-			ExpectedStatusCode:     http.StatusBadRequest,
+			Request:                unauthorizedUserRequest,
+			ExpectedStatusCode:     http.StatusInternalServerError,
 			HasPermissionToChannel: false,
 		},
 	} {
