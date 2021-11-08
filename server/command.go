@@ -17,7 +17,7 @@ const helpText = `* |/zoom start| - Start a zoom meeting`
 const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
 
-const followStatusHelpText = `* $/zoom follow_status [on|off] $ - Automatically update your Mattermost status based on Zoom status"`
+const followStatusHelpText = `* $/zoom status_sync [on|off] $ - Automatically update your Mattermost status based on Zoom status"`
 
 const alreadyConnectedString = "Already connected"
 
@@ -249,9 +249,9 @@ func (p *Plugin) runEnableDisableFollowStatus(user *model.User, args *model.Comm
 			} else {
 				status = "off"
 			}
-			return fmt.Sprintf("Your current `follow_status` setting is `%v`", status), nil
+			return fmt.Sprintf("Your current `status_sync` setting is `%v`", status), nil
 		} else {
-			return "Your current `follow_status` setting is not set.", nil
+			return "Your current `status_sync` setting is not set.", nil
 		}
 	}
 	if len(split) == 3 {
@@ -268,11 +268,11 @@ func (p *Plugin) runEnableDisableFollowStatus(user *model.User, args *model.Comm
 			text = fmt.Sprintf("Invalid value `%v`. Accepted values: `on`, `off`.", split[2])
 		}
 		if err != nil {
-			return "Could not set your `follow_status` settings", err
+			return "Could not set your `status_sync` settings", err
 		}
 		return text, nil
 	} else {
-		return "Incorrect number of arguments. Usage: `/zoom follow_status [on|off]`", nil
+		return "Incorrect number of arguments. Usage: `/zoom status_sync [on|off]`", nil
 	}
 }
 
@@ -280,7 +280,7 @@ func (p *Plugin) runEnableDisableFollowStatus(user *model.User, args *model.Comm
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	available := "start, help"
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
-		available = "start, connect, disconnect, follow_status [ on | off ], help"
+		available = "start, connect, disconnect, status_sync [ on | off ], help"
 	}
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 
@@ -295,7 +295,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 		zoom.AddCommand(disconnect)
 	}
 
-	followStatus := model.NewAutocompleteData("follow_status", "[on|off]", "Automatically sets your Mattermost status to `dnd` when in a Zoom meeting")
+	followStatus := model.NewAutocompleteData("status_sync", "[on|off]", "Automatically sets your Mattermost status to `dnd` when in a Zoom meeting")
 	followStatus.AddStaticListArgument("value", true, []model.AutocompleteListItem{
 		{HelpText: "Follow Zoom status automatically", Item: "on"},
 		{HelpText: "Do not follow Zoom status", Item: "off"},
