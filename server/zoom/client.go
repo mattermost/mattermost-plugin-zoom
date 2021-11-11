@@ -13,8 +13,8 @@ import (
 
 // AuthError represents a Zoom authentication error
 type AuthError struct {
-	Err     error  `json:"err"`
 	Message string `json:"message"`
+	Err     error  `json:"err"`
 }
 
 func (err *AuthError) Error() string {

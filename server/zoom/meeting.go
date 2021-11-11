@@ -4,7 +4,7 @@
 package zoom
 
 // Meeting is defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meeting
-type Meeting struct { // nolint: govet
+type Meeting struct {
 	UUID              string `json:"uuid"`
 	ID                int    `json:"id"`
 	HostID            string `json:"host_id"`
@@ -25,29 +25,29 @@ type Meeting struct { // nolint: govet
 		Field string `json:"field"`
 		Value string `json:"value"`
 	} `json:"tracking_fields"`
-	Occurrences []struct { // nolint: govet
+	Occurrences []struct {
 		OccurrenceID string `json:"occurrence_id"`
 		StartTime    string `json:"start_time"`
 		Duration     int    `json:"duration"`
 		Status       string `json:"status"`
 	} `json:"occurrences"`
-	Settings struct { // nolint: govet
-		HostVideo             bool       `json:"host_video"`
-		ParticipantVideo      bool       `json:"participant_video"`
-		CNMeeting             bool       `json:"cn_meeting"`
-		INMeeting             bool       `json:"in_meeting"`
-		JoinBeforeHost        bool       `json:"join_before_host"`
-		MuteUponEntry         bool       `json:"mute_upon_entry"`
-		Watermark             bool       `json:"watermark"`
-		UsePMI                bool       `json:"use_pmi"`
-		ApprovalType          int        `json:"approval_type"`
-		RegistrationType      int        `json:"registration_type"`
-		Audio                 string     `json:"audio"`
-		AutoRecording         string     `json:"auto_recording"`
-		AlternativeHosts      string     `json:"alternative_hosts"`
-		WaitingRoom           bool       `json:"waiting_room"`
-		GlobalDialInCountries []string   `json:"global_dial_in_countries"`
-		GlobalDialInNumbers   []struct { // nolint: govet
+	Settings struct {
+		HostVideo             bool     `json:"host_video"`
+		ParticipantVideo      bool     `json:"participant_video"`
+		CNMeeting             bool     `json:"cn_meeting"`
+		INMeeting             bool     `json:"in_meeting"`
+		JoinBeforeHost        bool     `json:"join_before_host"`
+		MuteUponEntry         bool     `json:"mute_upon_entry"`
+		Watermark             bool     `json:"watermark"`
+		UsePMI                bool     `json:"use_pmi"`
+		ApprovalType          int      `json:"approval_type"`
+		RegistrationType      int      `json:"registration_type"`
+		Audio                 string   `json:"audio"`
+		AutoRecording         string   `json:"auto_recording"`
+		AlternativeHosts      string   `json:"alternative_hosts"`
+		WaitingRoom           bool     `json:"waiting_room"`
+		GlobalDialInCountries []string `json:"global_dial_in_countries"`
+		GlobalDialInNumbers   []struct {
 			Country     string `json:"country"`
 			CountryName string `json:"country_name"`
 			City        string `json:"city"`

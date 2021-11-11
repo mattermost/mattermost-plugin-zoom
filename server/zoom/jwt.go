@@ -48,10 +48,7 @@ func (c *JWTClient) GetMeeting(meetingID int) (*Meeting, error) {
 func (c *JWTClient) GetUser(user *model.User) (*User, *AuthError) {
 	var zoomUser User
 	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", user.Email), "", &zoomUser); err != nil {
-		return nil, &AuthError{
-			Message: fmt.Sprintf(zoomEmailMismatch, user.Email),
-			Err:     err,
-		}
+		return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
 	}
 
 	return &zoomUser, nil

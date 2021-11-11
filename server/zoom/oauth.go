@@ -32,17 +32,17 @@ type OAuthUserInfo struct {
 
 // OAuthClient represents an OAuth-based Zoom client.
 type OAuthClient struct {
-	api            PluginAPI
 	token          *oauth2.Token
 	config         *oauth2.Config
 	siteURL        string
 	apiURL         string
 	isAccountLevel bool
+	api            PluginAPI
 }
 
 // NewOAuthClient creates a new Zoom OAuthClient instance.
 func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL string, isAccountLevel bool, api PluginAPI) Client {
-	return &OAuthClient{api, token, config, siteURL, apiURL, isAccountLevel}
+	return &OAuthClient{token, config, siteURL, apiURL, isAccountLevel, api}
 }
 
 // GetUser returns the Zoom user via OAuth.
@@ -51,22 +51,13 @@ func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
 	if err != nil {
 		if c.isAccountLevel {
 			if err == errNotFound {
-				return nil, &AuthError{
-					Message: fmt.Sprintf(zoomEmailMismatch, user.Email),
-					Err:     err,
-				}
+				return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
 			}
 
-			return nil, &AuthError{
-				Message: fmt.Sprintf("Error fetching user: %s", err),
-				Err:     err,
-			}
+			return nil, &AuthError{fmt.Sprintf("Error fetching user: %s", err), err}
 		}
 
-		return nil, &AuthError{
-			Message: fmt.Sprintf(OAuthPrompt, c.siteURL),
-			Err:     err,
-		}
+		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
 	}
 
 	return zoomUser, nil
