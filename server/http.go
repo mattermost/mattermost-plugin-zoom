@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -290,8 +290,8 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	_, err := w.Write([]byte(post.ToJson()))
-	if err != nil {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(post); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
 }
@@ -301,6 +301,10 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 	if topic == "" {
 		topic = defaultMeetingTopic
+	}
+
+	if !p.API.HasPermissionToChannel(creator.Id, channelID, model.PermissionCreatePost) {
+		return errors.New("this channel is not accessible, you might not have permissions to write in this channel. Contact the administrator of this channel to find out if you have access permissions")
 	}
 
 	slackAttachment := model.SlackAttachment{
