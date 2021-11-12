@@ -156,7 +156,7 @@ func (p *Plugin) registerSiteURL() error {
 
 // registerChimeraURL fetches the Chimera URL from server settings or env var and sets it in the plugin object.
 func (p *Plugin) registerChimeraURL() {
-	chimeraURLSetting := p.API.GetConfig().PluginSettings.ChimeraOAuthProxyUrl
+	chimeraURLSetting := p.API.GetConfig().PluginSettings.ChimeraOAuthProxyURL
 	if chimeraURLSetting != nil && *chimeraURLSetting != "" {
 		p.chimeraURL = *chimeraURLSetting
 		return
