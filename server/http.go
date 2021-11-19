@@ -254,6 +254,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 
 		p.handleParticipantJoinedLeftEvent(w, &event)
+		return
 	} else if webhook.Event != zoom.EventTypeMeetingEnded {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
