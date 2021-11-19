@@ -220,7 +220,7 @@ func (p *Plugin) getMattermostUserIdFromZoomParticipant(participant zoom.Partici
 
 	info, err := p.fetchOAuthUserInfo(zoomUserByZoomID, participant.ParticipantUserID)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to fetch OAuth user info for zoom user")
+		return "", errors.Wrap(err, "failed to fetch OAuth user info for Zoom user")
 	}
 
 	return info.UserID, nil
