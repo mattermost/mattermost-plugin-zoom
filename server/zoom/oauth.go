@@ -97,27 +97,48 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
-	currentToken, err := c.api.GetZoomSuperUserToken()
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting zoom super user token")
-	}
 
-	tokenSource := c.config.TokenSource(context.Background(), currentToken)
-	updatedToken, err := tokenSource.Token()
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting token from token source")
-	}
-
-	if updatedToken.AccessToken != currentToken.AccessToken {
-		kvErr := c.api.SetZoomSuperUserToken(updatedToken)
-		if kvErr != nil {
-			return nil, errors.Wrap(kvErr, "error setting new token")
-		}
-	}
-
-	c.token = updatedToken
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
+		currentToken, err := c.api.GetZoomSuperUserToken()
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting zoom super user token")
+		}
+
+		tokenSource := c.config.TokenSource(context.Background(), currentToken)
+		updatedToken, err := tokenSource.Token()
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting token from token source")
+		}
+
+		if updatedToken.AccessToken != currentToken.AccessToken {
+			kvErr := c.api.SetZoomSuperUserToken(updatedToken)
+			if kvErr != nil {
+				return nil, errors.Wrap(kvErr, "error setting new token")
+			}
+		}
+
+		c.token = updatedToken
+	} else {
+		currentToken, err := c.api.GetZoomUserToken(user.Id)
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting zoom user token")
+		}
+
+		tokenSource := c.config.TokenSource(context.Background(), currentToken)
+		updatedToken, err := tokenSource.Token()
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting token from token source")
+		}
+
+		if updatedToken.AccessToken != currentToken.AccessToken {
+			kvErr := c.api.SetZoomUserToken(user.Id, updatedToken)
+			if kvErr != nil {
+				return nil, errors.Wrap(kvErr, "error setting new token")
+			}
+		}
+
+		c.token = updatedToken
 	}
 
 	client := c.config.Client(context.Background(), c.token)

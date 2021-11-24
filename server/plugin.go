@@ -175,7 +175,10 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 	if err != nil {
 		return nil, message, errors.New("could not decrypt OAuth access token")
 	}
-
+	oldToken, err := p.getUserToken(user.Id)
+	if err == nil {
+		p.API.LogInfo(fmt.Sprintf("oldTokenIs===========================%s", *oldToken))
+	}
 	info.OAuthToken.AccessToken = plainToken
 	conf := p.getOAuthConfig()
 	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false, p), "", nil
@@ -241,6 +244,25 @@ func (p *Plugin) GetZoomSuperUserToken() (*oauth2.Token, error) {
 
 func (p *Plugin) SetZoomSuperUserToken(token *oauth2.Token) error {
 	err := p.setSuperUserToken(token)
+	if err != nil {
+		return errors.Wrap(err, "could not set token")
+	}
+	return nil
+}
+
+func (p *Plugin) GetZoomUserToken(userID string) (*oauth2.Token, error) {
+	token, err := p.getUserToken(userID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get token")
+	}
+	if token == nil {
+		return nil, errors.New("zoom app not connected")
+	}
+	return token, nil
+}
+
+func (p *Plugin) SetZoomUserToken(userID string, token *oauth2.Token) error {
+	err := p.setUserToken(userID, token)
 	if err != nil {
 		return errors.Wrap(err, "could not set token")
 	}
