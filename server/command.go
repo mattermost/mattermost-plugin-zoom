@@ -7,8 +7,8 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/command"
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 	"github.com/pkg/errors"
 )
 
@@ -18,6 +18,13 @@ const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
 
 const alreadyConnectedString = "Already connected"
+
+const (
+	actionConnect    = "connect"
+	actionStart      = "start"
+	actionDisconnect = "disconnect"
+	actionHelp       = "help"
+)
 
 func (p *Plugin) getCommand() (*model.Command, error) {
 	iconData, err := command.GetIconData(p.API, "assets/profile.svg")
@@ -44,18 +51,26 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 	_ = p.API.SendEphemeralPost(args.UserId, post)
 }
 
+func (p *Plugin) parseCommand(rawCommand string) (cmd, action, topic string) {
+	split := strings.Fields(rawCommand)
+	cmd = split[0]
+	if len(split) > 1 {
+		action = split[1]
+	}
+	if action == actionStart {
+		topic = strings.Join(split[2:], " ")
+	}
+	return cmd, action, topic
+}
+
 func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
-	split := strings.Fields(args.Command)
-	command := split[0]
-	action := ""
+	command, action, topic := p.parseCommand(args.Command)
 
 	if command != "/zoom" {
 		return fmt.Sprintf("Command '%s' is not /zoom. Please try again.", command), nil
 	}
 
-	if len(split) > 1 {
-		action = split[1]
-	} else {
+	if action == "" {
 		return "Please specify an action for /zoom command.", nil
 	}
 
@@ -66,13 +81,13 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	}
 
 	switch action {
-	case "connect":
+	case actionConnect:
 		return p.runConnectCommand(user, args)
-	case "start":
-		return p.runStartCommand(args, user)
-	case "disconnect":
+	case actionStart:
+		return p.runStartCommand(args, user, topic)
+	case actionDisconnect:
 		return p.runDisconnectCommand(user)
-	case "help", "":
+	case actionHelp, "":
 		return p.runHelpCommand(user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
@@ -97,7 +112,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 // runStartCommand runs command to start a Zoom meeting.
-func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (string, error) {
+func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topic string) (string, error) {
 	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
 		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
 	}
@@ -108,7 +123,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 	}
 
 	if recentMeeting {
-		p.postConfirm(recentMeetingLink, args.ChannelId, "", user.Id, creatorName, provider)
+		p.postConfirm(recentMeetingLink, args.ChannelId, topic, user.Id, creatorName, provider)
 		return "", nil
 	}
 
@@ -127,13 +142,13 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 		return "Error creating the client.", nil
 	}
 
-	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
+	meeting, err := client.CreateMeeting(zoomUser, topic)
 	if err != nil {
 		p.API.LogWarn("Error creating the meeting", "err", err)
 		return "Error creating the meeting.", nil
 	}
 
-	if err := p.postMeeting(user, meeting.ID, args.ChannelId, ""); err != nil {
+	if err := p.postMeeting(user, meeting.ID, args.ChannelId, topic); err != nil {
 		return "Failed to post message. Please try again.", nil
 	}
 
@@ -222,7 +237,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	}
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 
-	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
+	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
