@@ -97,7 +97,6 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
-
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
 		currentToken, err := c.api.GetZoomSuperUserToken()
