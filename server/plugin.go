@@ -264,6 +264,7 @@ func (p *Plugin) GetZoomUserToken(userID string) (*oauth2.Token, error) {
 func (p *Plugin) SetZoomUserToken(userID string, token *oauth2.Token) error {
 	err := p.setUserToken(userID, token)
 	if err != nil {
+		p.API.LogError("could not set token", err)
 		return errors.Wrap(err, "could not set token")
 	}
 	return nil
