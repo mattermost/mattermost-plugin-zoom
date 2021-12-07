@@ -7,7 +7,8 @@ import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
 import {id as pluginId} from './manifest';
 
-import Icon from './components/icon';
+import ChannelHeaderIcon from './components/channel-header-icon';
+import AppBarIcon from './components/app-bar-icon/app-bar-icon';
 import PostTypeZoom from './components/post_type_zoom';
 import {startMeeting} from './actions';
 import Client from './client';
@@ -16,12 +17,24 @@ class Plugin {
     // eslint-disable-next-line no-unused-vars
     initialize(registry, store) {
         registry.registerChannelHeaderButtonAction(
-            <Icon/>,
+            <ChannelHeaderIcon/>,
             (channel) => {
                 startMeeting(channel.id)(store.dispatch, store.getState);
             },
             'Start Zoom Meeting',
+            'Start Zoom Meeting',
         );
+
+        if ('registerAppBarComponent' in registry) {
+            registry.registerAppBarComponent(
+                <AppBarIcon/>,
+                (channel) => {
+                    startMeeting(channel.id)(store.dispatch, store.getState);
+                },
+                'Start Zoom Meeting',
+            );
+        }
+
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         Client.setServerRoute(getServerRoute(store.getState()));
     }
