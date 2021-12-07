@@ -18,6 +18,6 @@ If your server doesn't have internet access, you can download the [latest plugin
 1. Go to **Main Menu > Marketplace** in Mattermost.
 2. Select **Choose File** and select the downloaded file.
 3. Choose **Upload**.
-4. When the plugin has been uploaded, navigate to **Plugins > Zoom** and enable it.
+4. When the plugin has been uploaded, navigate to **Plugins > Zoom**, choose **Enable Plugin > true**, then select **Save**
 5. Next, follow the instructions on [Zoom Configuration](zoom-configuration/).
 6. After finishing the [Zoom Configuration](zoom-configuration/), follow the instructions on [Mattermost Setup](mattermost-setup.md).
