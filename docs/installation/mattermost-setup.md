@@ -4,7 +4,7 @@ description: Configuration steps for the Mattermost server
 
 # Mattermost Setup
 
-## Zoom Plugin Setup Guide
+## Zoom plugin setup guide
 
 **Note:** You need a paid Zoom account to use the plugin.
 
