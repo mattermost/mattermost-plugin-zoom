@@ -1,13 +1,13 @@
 import React from 'react';
 import {useSelector} from 'react-redux';
 
-import {getSiteURL} from '../../selectors';
+import {getPluginURL} from '../../selectors';
 
-const appBarIconPath = '/plugins/zoom/public/app-bar-icon.png';
+const appBarIconPath = '/public/app-bar-icon.png';
 
 export default function AppBarIcon() {
-    const siteURL = useSelector(getSiteURL);
-    const iconURL = siteURL + appBarIconPath;
+    const pluginURL = useSelector(getPluginURL);
+    const iconURL = pluginURL + appBarIconPath;
 
     return (
         <img src={iconURL}/>
