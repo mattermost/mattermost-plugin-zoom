@@ -309,10 +309,10 @@ func (p *Plugin) handleParticipantJoinedLeftEvent(w http.ResponseWriter, event *
 
 	var newStatus string
 	if event.EventType == zoom.EventTypeParticipantJoined &&
-		(currentStatus.Status == model.STATUS_ONLINE || currentStatus.Status == model.STATUS_AWAY) {
-		newStatus = model.STATUS_DND
-	} else if event.EventType == zoom.EventTypeParticipantLeft && currentStatus.Status == model.STATUS_DND {
-		newStatus = model.STATUS_ONLINE
+		(currentStatus.Status == model.StatusOnline || currentStatus.Status == model.StatusAway) {
+		newStatus = model.StatusDnd
+	} else if event.EventType == zoom.EventTypeParticipantLeft && currentStatus.Status == model.StatusDnd {
+		newStatus = model.StatusOnline
 	} else {
 		return
 	}

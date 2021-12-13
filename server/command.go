@@ -38,7 +38,7 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 	return &model.Command{
 		Trigger:              "zoom",
 		AutoComplete:         true,
-		AutoCompleteDesc:     "Available commands: start, disconnect, help",
+		AutoCompleteDesc:     "Available commands: start, disconnect, status_sync, help",
 		AutoCompleteHint:     "[command]",
 		AutocompleteData:     p.getAutocompleteData(),
 		AutocompleteIconData: iconData,
