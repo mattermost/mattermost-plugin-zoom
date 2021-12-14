@@ -3,7 +3,6 @@
 
 import React from 'react';
 
-
 import {id as pluginId} from './manifest';
 
 import ChannelHeaderIcon from './components/channel-header-icon';

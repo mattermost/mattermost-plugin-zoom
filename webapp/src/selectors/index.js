@@ -20,4 +20,4 @@ export const getServerRoute = (state) => {
 export const getPluginURL = (state) => {
     const siteURL = getServerRoute(state);
     return siteURL + '/plugins/' + id;
-}
+};
