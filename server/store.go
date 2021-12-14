@@ -194,35 +194,3 @@ func (p *Plugin) removeSuperUserToken() error {
 
 	return nil
 }
-
-func (p *Plugin) setUserToken(userID string, token *oauth2.Token) error {
-	rawToken, err := json.Marshal(token)
-	if err != nil {
-		return err
-	}
-
-	appErr := p.API.KVSet(fmt.Sprintf("%s%s_", zoomSuperUserTokenKey, userID), rawToken)
-	if appErr != nil {
-		return appErr
-	}
-
-	return nil
-}
-
-func (p *Plugin) getUserToken(userID string) (*oauth2.Token, error) {
-	var token oauth2.Token
-	rawToken, appErr := p.API.KVGet(fmt.Sprintf("%s%s_", zoomSuperUserTokenKey, userID))
-	if appErr != nil {
-		return nil, appErr
-	}
-	if len(rawToken) == 0 {
-		return nil, nil
-	}
-
-	err := json.Unmarshal(rawToken, &token)
-	if err != nil {
-		return nil, err
-	}
-
-	return &token, nil
-}
