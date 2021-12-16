@@ -123,7 +123,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	}
 
 	if recentMeeting {
-		p.postConfirm(recentMeetingLink, args.ChannelId, topic, user.Id, creatorName, provider)
+		p.postConfirm(recentMeetingLink, args.ChannelId, topic, user.Id, args.RootId, creatorName, provider)
 		return "", nil
 	}
 
@@ -148,7 +148,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		return "Error creating the meeting.", nil
 	}
 
-	if err := p.postMeeting(user, meeting.ID, args.ChannelId, topic); err != nil {
+	if err := p.postMeeting(user, meeting.ID, args.ChannelId, args.RootId, topic); err != nil {
 		return "Failed to post message. Please try again.", nil
 	}
 
