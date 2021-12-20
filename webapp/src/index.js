@@ -23,7 +23,7 @@ class Plugin {
             'Start Zoom Meeting',
         );
 
-        if ('registerAppBarComponent' in registry) {
+        if (registry.registerAppBarComponent) {
             const appBarIconPath = '/public/app-bar-icon.png';
             const pluginURL = getPluginURL(store.getState());
             const iconURL = pluginURL + appBarIconPath;
