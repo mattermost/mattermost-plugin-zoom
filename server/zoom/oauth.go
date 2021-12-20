@@ -19,6 +19,7 @@ import (
 
 const (
 	httpTimeout = time.Second * 10
+	// OAuthPrompt stores the template to show the users to connect to Zoom
 	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
 )
 
@@ -93,6 +94,37 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	}
 
 	return &meeting, nil
+}
+
+// CreateMeeting creates a new meeting for the user and returns the created meeting.
+func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) {
+	client := c.config.Client(context.Background(), c.token)
+	meetingRequest := CreateMeetingRequest{
+		Topic: topic,
+		Type:  MeetingTypeInstant,
+	}
+	b, err := json.Marshal(meetingRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := client.Post(fmt.Sprintf("%s/users/%s/meetings", c.apiURL, user.Email), "application/json", bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusCreated {
+		return nil, errors.New(res.Status)
+	}
+
+	var ret Meeting
+	err = json.NewDecoder(res.Body).Decode(&ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ret, err
 }
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
