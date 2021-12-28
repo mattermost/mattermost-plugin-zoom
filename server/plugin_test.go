@@ -30,11 +30,23 @@ func TestPlugin(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/users/theuseremail" {
 			user := &zoom.User{
-				ID:  "thezoomuserid",
-				Pmi: 123,
+				ID:    "thezoomuserid",
+				Email: "theuseremail",
+				Pmi:   123,
 			}
 
 			str, _ := json.Marshal(user)
+
+			if _, err := w.Write(str); err != nil {
+				require.NoError(t, err)
+			}
+		}
+		if r.URL.Path == "/users/theuseremail/meetings" {
+			meeting := &zoom.Meeting{
+				ID: 234,
+			}
+
+			str, _ := json.Marshal(meeting)
 
 			if _, err := w.Write(str); err != nil {
 				require.NoError(t, err)
@@ -45,8 +57,8 @@ func TestPlugin(t *testing.T) {
 
 	noAuthMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 
-	personalMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
-	personalMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
+	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
+	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
 	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
@@ -68,8 +80,8 @@ func TestPlugin(t *testing.T) {
 			ExpectedStatusCode:     http.StatusUnauthorized,
 			HasPermissionToChannel: true,
 		},
-		"ValidPersonalMeetingRequest": {
-			Request:                personalMeetingRequest,
+		"ValidMeetingRequest": {
+			Request:                meetingRequest,
 			ExpectedStatusCode:     http.StatusOK,
 			HasPermissionToChannel: true,
 		},
