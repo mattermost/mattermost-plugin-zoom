@@ -24,10 +24,7 @@ class Plugin {
         );
 
         if (registry.registerAppBarComponent) {
-            const appBarIconPath = '/public/app-bar-icon.png';
-            const pluginURL = getPluginURL(store.getState());
-            const iconURL = pluginURL + appBarIconPath;
-
+            const iconURL = getPluginURL(store.getState()) + '/public/app-bar-icon.png';
             registry.registerAppBarComponent(
                 iconURL,
                 (channel) => {
