@@ -13,8 +13,8 @@ When a Zoom meeting ends, the original link shared in the channel can be changed
 
 ![Feature screen](../../.gitbook/assets/feature.png)
 
-* Select **Add events** and select the **End Meeting** event.
+5. Select **Add events** and select the **End Meeting** event.
 
 ![Event types screen](../../.gitbook/assets/event_types.png)
 
-  * Select **Done** and then save your app.
+6. Select **Done** and then save your app.
