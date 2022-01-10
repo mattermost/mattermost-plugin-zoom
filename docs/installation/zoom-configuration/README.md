@@ -11,11 +11,11 @@ Zoom version 1.5 supports one authentication method for users to connect Matterm
 * There are two types of OAuth Zoom apps you can create - **Account** or **User** level apps. You can use either one with this Zoom plugin depending on your organization's security and UX preferences.
 
   * **Account-level app**
-    * Users don't need to authorize their Zoom accounts before starting their first Zoom meeting. The only requirement is that their Mattermost account uses the same email address as their Zoom account.
-    * Users can't connect their Mattermost/Zoom accounts if their emails do not match.
+    * Users don't need to authorize their Zoom accounts before starting their first Zoom meeting. The only requirement is that your Mattermost account uses the same email address as your Zoom account.
+    * Users can't connect their Mattermost/Zoom accounts if the emails do not match.
   * **User-level app**
-    * Each user needs to connect their Zoom account with their Mattermost account before they can use the integration. When they try to create a meeting for the first time, they'll receive a message to connect their account, and will need to click **Approve** on the pop-up confirmation notice.
-    * Users **can** connect their Mattermost/Zoom accounts **even if their emails do not match**.
+    * Each user needs to connect their Zoom account with their Mattermost account before they can use the integration. When you try to create a meeting for the first time, you'll receive a link which redirects to a Zoom-owned website. If you're not logged in, you'll need to log in. Once logged in, select **Approve** on the pop-up confirmation notice.
+    * Users **can** connect their Mattermost/Zoom accounts **even if the emails do not match**.
 
 ## Upgrading from a previous version
 
