@@ -15,7 +15,7 @@ description: Get the Mattermost plugin installed as a first step
 
 If your server doesn't have internet access, you can download the [latest plugin binary release](https://github.com/mattermost/mattermost-plugin-zoom/releases) and upload it to your server via **System Console > Plugin Management**. The binary releases on the page above, are the same as used by the Marketplace.
 
-1. Go to **Main Menu > Marketplace** in Mattermost.
+1. Go to **System Console > Plugins > Plugin Management**.
 2. Select **Choose File** and select the downloaded file.
 3. Choose **Upload**.
 4. When the plugin has been uploaded, navigate to **Plugins > Zoom**, choose **Enable Plugin > true**, then select **Save**
