@@ -4,16 +4,16 @@ description: Configuration steps for the Mattermost server
 
 # Mattermost Setup
 
-## Zoom Plugin Setup Guide
+## Zoom plugin setup guide
 
 **Note:** You need a paid Zoom account to use the plugin.
 
 ### First steps
 
 * Enable settings for [overriding usernames](https://docs.mattermost.com/administration/config-settings.html#enable-integrations-to-override-usernames) and [overriding profile picture icons](https://docs.mattermost.com/administration/config-settings.html#enable-integrations-to-override-profile-picture-icons).
-* Go to **System Console &gt; Plugins &gt; Zoom** to configure the Zoom Plugin.
+* Go to **System Console > Plugins > Zoom** to configure the Zoom Plugin.
 
-![](../.gitbook/assets/system_console.png)
+![zoom plugin configuration](../.gitbook/assets/zoom-plugin-configuration.png)
 
 ### Plugin configuration
 
@@ -27,7 +27,7 @@ description: Configuration steps for the Mattermost server
   * **OAuth?**
     * Set **Enable OAuth** to `true`.
     * Use the Client ID and Client Secret generated during [Zoom Configuration](zoom-configuration/zoom-setup-oauth.md) to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**.
-    * Click the **Regenerate** button next to the field **At Rest Token Encryption Key**.
+    * Select **Regenerate** next to the field **At Rest Token Encryption Key**.
     * Make sure **Enable Password based authentication** is set to `false`.
     * Ignore **API Key** and **API Secret** fields.
   * **JWT/Password?**
@@ -36,5 +36,4 @@ description: Configuration steps for the Mattermost server
     * Set **Enable Password based authentication** to `true`.
     * Use the API Key and API Secret generated during [Zoom Configuration](https://github.com/mattermost/mattermost-plugin-zoom/tree/8cc104ee70b0b51ac7e4c8c73715f25c42c782e0/docs/installation/zoom-configuration/zoom-setup-jwt.md) to fill in the fields **API Key** and **API Secret**.
 * If you are using Webhooks or Deauthorization, make sure you hit the **Regenerate** button on **Webhook Secret** field.
-* Click **Save**.
-
+* Select **Save**.
