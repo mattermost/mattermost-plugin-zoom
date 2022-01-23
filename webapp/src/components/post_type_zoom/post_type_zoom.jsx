@@ -79,7 +79,7 @@ export default class PostTypeZoom extends React.PureComponent {
         let content;
         let subtitle;
         if (props.meeting_status === 'STARTED') {
-            preText = 'I have started a meeting';
+            preText = post.message;
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
             }
