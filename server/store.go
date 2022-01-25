@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/pkg/errors"
@@ -15,11 +16,12 @@ import (
 )
 
 const (
-	postMeetingKey        = "post_meeting_"
-	zoomStateKeyPrefix    = "zoomuserstate"
-	zoomUserByMMID        = "zoomtoken_"
-	zoomUserByZoomID      = "zoomtokenbyzoomid_"
-	zoomSuperUserTokenKey = "zoomSuperUserToken_"
+	postMeetingKey              = "post_meeting_"
+	zoomStateKeyPrefix          = "zoomuserstate"
+	zoomUserByMMID              = "zoomtoken_"
+	zoomUserByZoomID            = "zoomtokenbyzoomid_"
+	zoomSuperUserTokenKey       = "zoomSuperUserToken_"
+	zoomFollowStatusKeyByUserId = "zoomFollowStatus_"
 
 	meetingPostIDTTL  = 60 * 60 * 24 // One day
 	oAuthUserStateTTL = 60 * 5       // 5 minutes
@@ -193,4 +195,26 @@ func (p *Plugin) removeSuperUserToken() error {
 	}
 
 	return nil
+}
+
+func (p *Plugin) setFollowStatusForUser(userID string, enabled bool) *model.AppError {
+	key := fmt.Sprintf("%v_%v", zoomFollowStatusKeyByUserId, userID)
+	return p.API.KVSet(key, []byte(strconv.FormatBool(enabled)))
+}
+
+func (p *Plugin) getFollowStatusForUser(userID string) (bool, *model.AppError) {
+	key := fmt.Sprintf("%v_%v", zoomFollowStatusKeyByUserId, userID)
+	rawBool, appErr := p.API.KVGet(key)
+	if appErr != nil {
+		return false, appErr
+	}
+	if len(rawBool) == 0 {
+		return false, nil
+	}
+
+	enabled, convErr := strconv.ParseBool(string(rawBool))
+	if convErr == nil {
+		return enabled, nil
+	}
+	return false, nil
 }
