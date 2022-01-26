@@ -255,10 +255,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if webhook.Event == zoom.EventTypeParticipantJoined || webhook.Event == zoom.EventTypeParticipantLeft {
-<<<<<<< HEAD
-		p.API.LogDebug("Handling Zoom event " + string(webhook.Event))
-=======
->>>>>>> 23d29f3 (Moved the joined/left event handling into its own function, also fixed logging wrong errors)
 		var event zoom.ParticipantJoinedLeftEvent
 
 		err = json.Unmarshal(b, &event)

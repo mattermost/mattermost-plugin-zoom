@@ -3,9 +3,6 @@
 
 package zoom
 
-// MeetingType as defined at https://marketplace.zoom.us/docs/api-reference/zoom-api/meetings/meetingcreate
-type MeetingType int
-
 const (
 	// MeetingTypeInstant meeting
 	MeetingTypeInstant MeetingType = 1
