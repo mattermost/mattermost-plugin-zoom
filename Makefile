@@ -122,6 +122,10 @@ deploy: dist
 .PHONY: debug-deploy
 debug-deploy: debug-dist deploy
 
+localdeploy: dist
+	cp -v dist/zoom-*.tar.gz ../mattermost-server/data/plugins/zoom.tar.gz
+	echo restart the server and fuck off
+
 .PHONY: debug-dist
 debug-dist: apply server webapp-debug bundle
 
