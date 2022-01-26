@@ -10,6 +10,7 @@ import (
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/pkg/errors"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/config"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
@@ -18,80 +19,15 @@ const (
 	zoomDefaultAPIURL = "https://api.zoom.us/v2"
 )
 
-// configuration captures the plugin's external configuration as exposed in the Mattermost server
-// configuration, as well as values computed from the configuration. Any public fields will be
-// deserialized from the Mattermost server configuration in OnConfigurationChange.
-//
-// As plugins are inherently concurrent (hooks being called asynchronously), and the plugin
-// configuration can change at any time, access to the configuration must be synchronized. The
-// strategy used in this plugin is to guard a pointer to the configuration, and clone the entire
-// struct whenever it changes. You may replace this with whatever strategy you choose.
-//
-// If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
-// copy appropriate for your types.
-type configuration struct {
-	ZoomURL           string
-	ZoomAPIURL        string
-	APIKey            string
-	APISecret         string
-	EnableOAuth       bool
-	AccountLevelApp   bool
-	OAuthClientID     string
-	OAuthClientSecret string
-	OAuthRedirectURL  string
-	EncryptionKey     string
-	WebhookSecret     string
-}
-
-// Clone shallow copies the configuration. Your implementation may require a deep copy if
-// your configuration has reference types.
-func (c *configuration) Clone() *configuration {
-	var clone = *c
-	return &clone
-}
-
-// IsValid checks if all needed fields are set.
-func (c *configuration) IsValid() error {
-	switch {
-	case !c.EnableOAuth:
-		switch {
-		case len(c.APIKey) == 0:
-			return errors.New("please configure APIKey")
-
-		case len(c.APISecret) == 0:
-			return errors.New("please configure APISecret")
-		}
-	case c.EnableOAuth:
-		switch {
-		case len(c.OAuthClientSecret) == 0:
-			return errors.New("please configure OAuthClientSecret")
-
-		case len(c.OAuthClientID) == 0:
-			return errors.New("please configure OAuthClientID")
-
-		case len(c.EncryptionKey) == 0:
-			return errors.New("please generate EncryptionKey from Zoom plugin settings")
-		}
-	default:
-		return errors.New("please select either OAuth or Password based authentication")
-	}
-
-	if len(c.WebhookSecret) == 0 {
-		return errors.New("please configure WebhookSecret")
-	}
-
-	return nil
-}
-
 // getConfiguration retrieves the active configuration under lock, making it safe to use
 // concurrently. The active configuration may change underneath the client of this method, but
 // the struct returned by this API call is considered immutable.
-func (p *Plugin) getConfiguration() *configuration {
+func (p *Plugin) getConfiguration() *config.Configuration {
 	p.configurationLock.RLock()
 	defer p.configurationLock.RUnlock()
 
 	if p.configuration == nil {
-		return &configuration{}
+		return &config.Configuration{}
 	}
 
 	return p.configuration
@@ -106,7 +42,7 @@ func (p *Plugin) getConfiguration() *configuration {
 // This method panics if setConfiguration is called with the existing configuration. This almost
 // certainly means that the configuration was modified without being cloned and may result in
 // an unsafe access.
-func (p *Plugin) setConfiguration(configuration *configuration) {
+func (p *Plugin) setConfiguration(configuration *config.Configuration) {
 	p.configurationLock.Lock()
 	defer p.configurationLock.Unlock()
 
@@ -126,7 +62,7 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
-	var configuration = new(configuration)
+	var configuration = new(config.Configuration)
 	prevConfigEnableOAuth := false
 	if p.configuration != nil {
 		prevConfigEnableOAuth = p.configuration.EnableOAuth

@@ -81,6 +81,9 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	}
 
 	switch action {
+	case "get-started":
+		message := p.runGetStarted(c, args)
+		return message, nil
 	case actionConnect:
 		return p.runConnectCommand(user, args)
 	case actionStart:
@@ -109,6 +112,29 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		p.postCommandResponse(args, msg)
 	}
 	return &model.CommandResponse{}, nil
+}
+
+// runGetStarted starts the plugin setup wizard
+func (p *Plugin) runGetStarted(c *plugin.Context, args *model.CommandArgs) string {
+	userID := args.UserId
+
+	isSysAdmin, err := p.isAuthorizedSysAdmin(userID)
+	if err != nil {
+		p.API.LogWarn("Failed to check if user is System Admin", "err", err.Error())
+
+		return "Error checking user's permissions"
+	}
+
+	if !isSysAdmin {
+		return "Only System Admins are allowed to setup the plugin."
+	}
+
+	err = p.flowManager.StartConfigurationWizard(userID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to start configuration wizard").Error()
+	}
+
+	return ""
 }
 
 // runStartCommand runs command to start a Zoom meeting.
@@ -231,6 +257,15 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
+	if p.getConfiguration().IsValid() != nil {
+		zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: get-started")
+
+		getStarted := model.NewAutocompleteData("get-started", "", "Setup the Zoom plugin")
+		zoom.AddCommand(getStarted)
+
+		return zoom
+	}
+
 	available := "start, help"
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
 		available = "start, connect, disconnect, help"

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 	"github.com/pkg/errors"
@@ -36,26 +37,26 @@ type startMeetingRequest struct {
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
-		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
 
-	switch path := r.URL.Path; path {
-	case "/webhook":
-		p.handleWebhook(w, r)
-	case "/api/v1/meetings":
-		p.handleStartMeeting(w, r)
-	case "/oauth2/connect":
-		p.connectUserToZoom(w, r)
-	case "/oauth2/complete":
-		p.completeUserOAuthToZoom(w, r)
-	case "/deauthorization":
-		p.deauthorizeUser(w, r)
-	default:
-		http.NotFound(w, r)
-	}
+	p.router.ServeHTTP(w, r)
+}
+
+func (p *Plugin) createRouter() *mux.Router {
+	router := mux.NewRouter()
+
+	router.HandleFunc("/webhook", p.handleWebhook).Methods(http.MethodPost)
+	router.HandleFunc("/deauthorization", p.deauthorizeUser).Methods(http.MethodPost)
+
+	apiRouter := router.PathPrefix("/api/v1").Subrouter()
+	apiRouter.HandleFunc("/meetings", p.handleStartMeeting)
+
+	oauthRouter := router.PathPrefix("/oauth2").Subrouter()
+	oauthRouter.HandleFunc("/connect", p.connectUserToZoom).Methods(http.MethodGet)
+	oauthRouter.HandleFunc("/complete", p.completeUserOAuthToZoom).Methods(http.MethodGet)
+	oauthRouter.HandleFunc("*", http.NotFound)
+
+	return router
 }
 
 func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
