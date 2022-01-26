@@ -22,11 +22,11 @@ const followStatusHelpText = `* $/zoom status_sync [on|off] $ - Automatically up
 const alreadyConnectedString = "Already connected"
 
 const (
-	actionConnect      = "connect"
-	actionStart        = "start"
-	actionDisconnect   = "disconnect"
-	actionHelp         = "help"
-	actionFollowStatus = "follow_status"
+	actionConnect    = "connect"
+	actionStart      = "start"
+	actionDisconnect = "disconnect"
+	actionHelp       = "help"
+	actionStatusSync = "status_sync"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -90,7 +90,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runStartCommand(args, user, topic)
 	case actionDisconnect:
 		return p.runDisconnectCommand(user)
-	case actionFollowStatus:
+	case actionStatusSync:
 		return p.runEnableDisableFollowStatus(user, args)
 	case actionHelp, "":
 		return p.runHelpCommand(user)

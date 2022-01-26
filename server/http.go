@@ -255,59 +255,18 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if webhook.Event == zoom.EventTypeParticipantJoined || webhook.Event == zoom.EventTypeParticipantLeft {
+<<<<<<< HEAD
 		p.API.LogDebug("Handling Zoom event " + string(webhook.Event))
+=======
+>>>>>>> 23d29f3 (Moved the joined/left event handling into its own function, also fixed logging wrong errors)
 		var event zoom.ParticipantJoinedLeftEvent
 
-		err := json.Unmarshal(b, &event)
+		err = json.Unmarshal(b, &event)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 
-		participant := event.Payload.Object.Participant
-		userID, uerr := p.getMattermostUserIdFromZoomParticipant(participant)
-		if uerr != nil {
-			errMsg := "failed to get Mattermost user id for Zoom user"
-			p.API.LogWarn(errMsg, "err", err.Error())
-			http.Error(w, errMsg, http.StatusBadRequest)
-			return
-		}
-
-		followStatus, _ := p.getFollowStatusForUser(userID)
-		if followStatus == false {
-			return
-		}
-
-		currentStatus, csErr := p.API.GetUserStatus(userID)
-		if csErr != nil {
-			errMsg := "failed to get Mattermost user status"
-			p.API.LogWarn(errMsg, "err", csErr.Error())
-			http.Error(w, errMsg, http.StatusBadRequest)
-			return
-		}
-
-		p.API.LogDebug("Mattermost user status is " + currentStatus.Status)
-
-		var newStatus string
-		if event.EventType == zoom.EventTypeParticipantJoined &&
-			(currentStatus.Status == model.STATUS_ONLINE || currentStatus.Status == model.STATUS_AWAY) {
-			newStatus = model.STATUS_DND
-		} else if event.EventType == zoom.EventTypeParticipantLeft && currentStatus.Status == model.STATUS_DND {
-			newStatus = model.STATUS_ONLINE
-		} else {
-			return
-		}
-
-		_, updateErr := p.API.UpdateUserStatus(userID, newStatus)
-		if updateErr != nil {
-			errMsg := "failed to update status for user"
-			p.API.LogWarn(errMsg, "err", err.Error(), "user_id", userID)
-			http.Error(w, errMsg, http.StatusInternalServerError)
-			return
-		} else {
-			p.API.LogDebug("Updated user status to " + newStatus)
-			fmt.Fprint(w, "OK")
-		}
-		return
+		p.handleParticipantJoinedLeftEvent(w, &event)
 	} else if webhook.Event != zoom.EventTypeMeetingEnded {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
@@ -320,6 +279,54 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.handleMeetingEnded(w, r, &meetingWebhook)
+}
+
+func (p *Plugin) handleParticipantJoinedLeftEvent(w http.ResponseWriter, event *zoom.ParticipantJoinedLeftEvent) {
+	participant := event.Payload.Object.Participant
+	userID, uerr := p.getMattermostUserIdFromZoomParticipant(participant)
+	if uerr != nil {
+		errMsg := "failed to get Mattermost user id for Zoom user"
+		p.API.LogWarn(errMsg, "err", uerr.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	followStatus, _ := p.getFollowStatusForUser(userID)
+	if followStatus == false {
+		return
+	}
+
+	currentStatus, csErr := p.API.GetUserStatus(userID)
+	if csErr != nil {
+		errMsg := "failed to get Mattermost user status"
+		p.API.LogWarn(errMsg, "err", csErr.Error())
+		http.Error(w, errMsg, http.StatusBadRequest)
+		return
+	}
+
+	p.API.LogDebug("Mattermost user status is " + currentStatus.Status)
+
+	var newStatus string
+	if event.EventType == zoom.EventTypeParticipantJoined &&
+		(currentStatus.Status == model.STATUS_ONLINE || currentStatus.Status == model.STATUS_AWAY) {
+		newStatus = model.STATUS_DND
+	} else if event.EventType == zoom.EventTypeParticipantLeft && currentStatus.Status == model.STATUS_DND {
+		newStatus = model.STATUS_ONLINE
+	} else {
+		return
+	}
+
+	_, updateErr := p.API.UpdateUserStatus(userID, newStatus)
+	if updateErr != nil {
+		errMsg := "failed to update status for user"
+		p.API.LogWarn(errMsg, "err", updateErr.Error(), "user_id", userID)
+		http.Error(w, errMsg, http.StatusInternalServerError)
+		return
+	} else {
+		p.API.LogDebug("Updated user status to " + newStatus)
+		fmt.Fprint(w, "OK")
+	}
+	return
 }
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
