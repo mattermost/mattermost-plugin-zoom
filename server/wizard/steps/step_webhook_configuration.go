@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	stepNameWebhookConfiguration = "webhook_configuration"
+
 	stepTitleWebhookConfiguration = "Configure webhook in Zoom"
 
 	stepDescriptionWebhookConfiguration = `1. Click on the **Feature** category in the left sidebar.
@@ -30,7 +32,7 @@ func WebhookConfigurationStep(getConfiguration config.GetConfigurationFunc, plug
 	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
 	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL)
 
-	return steps.NewCustomStepBuilder(stepTitleWebhookConfiguration, description).
+	return steps.NewCustomStepBuilder(stepNameWebhookConfiguration, stepTitleWebhookConfiguration, description).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

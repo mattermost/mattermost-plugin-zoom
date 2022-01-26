@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	stepNameWebhookEvents = "webhook_events"
+
 	stepTitleWebhookEvents = "Select webhook events"
 
 	stepDescriptionWebhookEvents = `Click **Add events** and select the following events:
@@ -23,7 +25,7 @@ const (
 )
 
 func WebhookEventsStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleWebhookEvents, stepDescriptionWebhookEvents).
+	return steps.NewCustomStepBuilder(stepNameWebhookEvents, stepTitleWebhookEvents, stepDescriptionWebhookEvents).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

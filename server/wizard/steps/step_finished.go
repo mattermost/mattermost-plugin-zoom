@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	stepNameFinished = "finished"
+
 	stepTitleFinished = "You're finished setting up the plugin! :tada:"
 
 	stepDescriptionFinished = `You're all done!
@@ -20,5 +22,5 @@ func FinishedStep(pluginURL string) steps.Step {
 	connectURL := fmt.Sprintf("%s/oauth2/connect", pluginURL)
 	description := fmt.Sprintf(stepDescriptionFinished, connectURL)
 
-	return steps.NewEmptyStep(stepTitleFinished, description)
+	return steps.NewEmptyStep(stepNameFinished, stepTitleFinished, description)
 }

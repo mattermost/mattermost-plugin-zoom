@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	stepNameSelfHostedQuestion = "self_hosted_question"
+
 	stepTitleSelfHostedQuestion = ""
 
 	stepDescriptionSelfHostedQuestion = "Are you using a self-hosted private cloud or on-prem Zoom server?"
@@ -19,7 +21,7 @@ const (
 )
 
 func SelfHostedQuestionStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleSelfHostedQuestion, stepDescriptionSelfHostedQuestion).
+	return steps.NewCustomStepBuilder(stepNameSelfHostedQuestion, stepTitleSelfHostedQuestion, stepDescriptionSelfHostedQuestion).
 		WithButton(steps.Button{
 			Name:  "Yes",
 			Style: steps.Primary,

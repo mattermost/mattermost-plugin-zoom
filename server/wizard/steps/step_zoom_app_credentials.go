@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	stepNameZoomAppCredentials = "zoom_app_credentials"
+
 	stepTitleZoomAppCredentials = ""
 
 	stepDescriptionZoomAppCredentials = `In the **App Credentials** tab, note the values for Client ID and Client secret.
@@ -23,7 +25,7 @@ Click the button below to open a dialog to enter these two values.
 )
 
 func ZoomAppCredentialsStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleZoomAppCredentials, stepDescriptionZoomAppCredentials).
+	return steps.NewCustomStepBuilder(stepNameZoomAppCredentials, stepTitleZoomAppCredentials, stepDescriptionZoomAppCredentials).
 		WithButton(steps.Button{
 			Name:  "Enter Client ID and Client secret",
 			Style: steps.Primary,

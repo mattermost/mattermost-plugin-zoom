@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	stepNameGreeting = "greeting"
+
 	stepTitleGreeting = ""
 
 	stepDescriptionGreeting = `:wave: Welcome to Zoom for Mattermost! I'll walk you through the process here, so you can begin using the integration. Feel free to read the [documentation](https://mattermost.gitbook.io/plugin-zoom) if you'd like.
@@ -13,7 +15,7 @@ Are you able to set up the integration with a Zoom admin account?`
 )
 
 func GreetingStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleGreeting, stepDescriptionGreeting).
+	return steps.NewCustomStepBuilder(stepNameGreeting, stepTitleGreeting, stepDescriptionGreeting).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Primary,

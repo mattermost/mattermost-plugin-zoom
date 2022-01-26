@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	stepNameCreateApp = "create_app"
+
 	stepTitleCreateApp = ""
 
 	stepDescriptionCreateApp = `1. Enter a name for your app, such as "Mattermost Plugin".
@@ -16,7 +18,7 @@ const (
 )
 
 func CreateZoomAppStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleCreateApp, stepDescriptionCreateApp).
+	return steps.NewCustomStepBuilder(stepNameCreateApp, stepTitleCreateApp, stepDescriptionCreateApp).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

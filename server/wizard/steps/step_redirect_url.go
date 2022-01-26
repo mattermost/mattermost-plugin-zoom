@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	stepNameRedirectURL = "redirect_url"
+
 	stepTitleRedirectURL = "Set OAuth redirect URL in Zoom"
 
 	stepDescriptionRedirectURL = `1. In the **Redirect URL for OAuth** input, enter: %s
@@ -19,7 +21,7 @@ func RedirectURLStep(pluginURL string) steps.Step {
 	oauthURL := pluginURL + "/oauth2/complete"
 	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL)
 
-	return steps.NewCustomStepBuilder(stepTitleRedirectURL, description).
+	return steps.NewCustomStepBuilder(stepNameRedirectURL, stepTitleRedirectURL, description).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

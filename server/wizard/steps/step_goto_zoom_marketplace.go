@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	stepNameGotoZoomMarketplace = "goto_zoom_marketplace"
+
 	stepTitleGotoZoomMarketplace = "Let's create an app in Zoom!"
 
 	stepDescriptionGotoZoomMarketplace = `Next we're going to create a new app in your Zoom account.
@@ -20,7 +22,7 @@ const (
 )
 
 func ZoomMarketplaceStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleGotoZoomMarketplace, stepDescriptionGotoZoomMarketplace).
+	return steps.NewCustomStepBuilder(stepNameGotoZoomMarketplace, stepTitleGotoZoomMarketplace, stepDescriptionGotoZoomMarketplace).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

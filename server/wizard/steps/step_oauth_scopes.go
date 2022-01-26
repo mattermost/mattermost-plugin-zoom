@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	stepNameOAuthScopes = "oauth_scopes"
+
 	stepTitleOAuthScopes = "Select OAuth scopes"
 
 	stepDescriptionOAuthScopes = `In the **Scopes** tab, select these OAuth scopes:
@@ -18,7 +20,7 @@ Click **Continue**
 )
 
 func OAuthScopesStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepTitleOAuthScopes, stepDescriptionOAuthScopes).
+	return steps.NewCustomStepBuilder(stepNameOAuthScopes, stepTitleOAuthScopes, stepDescriptionOAuthScopes).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

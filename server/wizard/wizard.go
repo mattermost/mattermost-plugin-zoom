@@ -43,8 +43,7 @@ func NewFlowManager(getConfiguration config.GetConfigurationFunc, client *plugin
 		&client.Frontend,
 		fm.pluginURL,
 		fm.GetConfigurationFlow(),
-		flow.NewFlowStore(*client, "flow_store"),
-		&propertyStore{},
+		flow.NewFlowStore(&client.KV, "flow_store"),
 	)
 
 	return fm
@@ -64,7 +63,7 @@ func (fm *FlowManager) GetConfigurationFlow() flow.Flow {
 		steps_local.FinishedStep(fm.pluginURL),
 	}
 
-	f := flow.NewFlow(steps, "/wizard", nil)
+	f := flow.NewFlow("setup", steps, nil)
 	return f
 }
 
