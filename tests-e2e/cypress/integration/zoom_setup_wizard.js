@@ -14,7 +14,7 @@
  * make dist latest master and copy to ./e2e/cypress/fixtures/com.mattermost.demo-plugin-0.9.0.tar.gz
  */
 
-const defaultPluginConfig = {
+const defaultZoomConfig = {
     "accountlevelapp": false,
     "apikey": "",
     "apisecret": "",
@@ -28,140 +28,149 @@ const defaultPluginConfig = {
 }
 
 describe('Zoom setup wizard', () => {
-    let settingsWithGenerated;
-    let testTeam;
+    const pluginID = Cypress.config('pluginID');
+    const pluginFile = Cypress.config('pluginFile');
 
-    const adminUsername = Cypress.env('adminUsername');
-    const pluginId = 'zoom';
-    const botUsername = 'zoom';
+    let adminUserId;
+    let botUserId;
 
-    before(() => {
-        cy.apiAdminLogin();
-        cy.apiCreateOrGetTeam('test').then(({team}) => {
-            testTeam = team;
-        });
-    })
+    // before(() => {
+    //     cy.get('.post').each((el) => {
+    //         const postId = el[0].id.substring('post_'.length);
+    //         cy.apiDeletePost(postId);
+    //     });
+    // });
 
     beforeEach(() => {
-        cy.apiAdminLogin();
-        cy.apiRemoveAllPostsInDirectChannel(adminUsername, botUsername);
+        // # Login as sysadmin
+        cy.apiAdminLogin().then((response) => {
+            adminUserId = response.user.id;
+        });
+
+        // cy.apiGetUserByUsername('zoom').then((user) => {
+        //     botUserId = user.id;
+        // });
+
+
+        cy.apiRemoveAllPostsInDirectChannel('sysadmin', 'zoom');
+        // cy.removeAllPostsInDirectChannel(adminUserId, botUserId);
 
         cy.apiUpdateConfig({
             PluginSettings: {
                 Plugins: {
-                    [pluginId]: defaultPluginConfig,
+                    zoom: defaultZoomConfig,
                 },
             },
         });
 
-        cy.apiDisablePluginById(pluginId);
-        cy.apiEnablePluginById(pluginId);
+        cy.apiDisablePluginById('zoom');
+        cy.apiEnablePluginById('zoom');
 
-        cy.apiGetConfig().then(({config}) => {
-            const pluginSettings = config.PluginSettings.Plugins[pluginId];
-            settingsWithGenerated = {
-                ...defaultPluginConfig,
-                encryptionkey: pluginSettings.encryptionkey,
-                webhooksecret: pluginSettings.webhooksecret,
-            }
+        // http://your-mattermost-url.com/api/v4/users/username/{username}
 
-            // Check if default config values were set
-            expect(pluginSettings.encryptionkey).to.not.equal('');
-            expect(pluginSettings.webhooksecret).to.not.equal('');
+        // cy.apiGetPostIdsForChannel();
 
-            // Make sure we're starting with a clean config otherwise, for each test
-            expect(pluginSettings).to.deep.equal(settingsWithGenerated);
-        });
-
-        cy.visit(`/${testTeam.name}/messages/@${botUsername}`);
+        cy.visit('/test/messages/@zoom');
     });
 
-    it('Zoom setup flow, with Zoom cloud', () => {
+    afterEach(() => {
+        // cy.get('.post').each((el) => {
+        //     const postId = el[0].id.substring('post_'.length);
+        //     cy.apiDeletePost(postId);
+        // });
+    });
+
+    it.only('Zoom get-started flow', () => {
+        cy.apiGetConfig().then(({config}) => {
+            const zoomSettings = config.PluginSettings.Plugins.zoom;
+            const withGenerated = {
+                ...defaultZoomConfig,
+                encryptionkey: zoomSettings.encryptionkey,
+                webhooksecret: zoomSettings.webhooksecret,
+            }
+
+            expect(zoomSettings).to.deep.equal(withGenerated);
+        });
+
         cy.get('#post_textbox').clear().type('/zoom get-started');
         cy.get('#post_textbox').type(' ');
         cy.get('#post_textbox').type('{enter}');
 
-        let steps = [
+        let buttons = [
             ['Continue', '', 'Welcome to Zoom for Mattermost!'],
             ['No', '', 'Are you using a self-hosted private cloud or on-prem Zoom server?'],
             ['Continue', '', 'Go to https://marketplace.zoom.us'],
-            ['Continue', '', 'Choose Account-level app as the app type.'],
+            ['Continue','', 'Choose Account-level app as the app type.'],
             ['Enter Client ID and Client secret', '', 'In the App Credentials tab, note the values for Client ID and Client secret'],
         ]
-        steps.forEach(handleClickStep);
+
+        buttons.forEach(handleClickStep);
 
         // Enter credentials into interactive dialog
         cy.get('input#client_id').type('the_client_id');
         cy.get('input#client_secret').type('the_client_secret');
         cy.get('button#interactiveDialogSubmit').click();
 
-        steps = [
+        buttons = [
             ['Continue', 'Set OAuth redirect URL in Zoom'],
             ['Continue', 'Configure webhook in Zoom'],
             ['Continue', 'Select webhook events'],
             ['Continue', 'Select OAuth scopes'],
             ['', "You're finished setting up the plugin!"],
         ]
-        steps.forEach(handleClickStep);
+
+        buttons.forEach(handleClickStep);
 
         cy.apiGetConfig().then(({config}) => {
-            const pluginSettings = config.PluginSettings.Plugins[pluginId];
+            const zoomSettings = config.PluginSettings.Plugins.zoom;
 
-            expect(pluginSettings).to.deep.equal({
-                ...settingsWithGenerated,
-                oauthclientid: 'the_client_id',
-                oauthclientsecret: 'the_client_secret',
-            });
+            expect(zoomSettings.oauthclientid).to.equal('the_client_id');
+            expect(zoomSettings.oauthclientsecret).to.equal('the_client_secret');
         });
     });
 
-    it('Zoom setup flow, with Zoom self-hosted', () => {
+    it('Zoom get-started flow, again!', () => {
+        cy.apiGetConfig().then(({config}) => {
+            const zoomSettings = config.PluginSettings.Plugins.zoom;
+
+            expect(zoomSettings.oauthclientid).to.equal('');
+            expect(zoomSettings.oauthclientsecret).to.equal('');
+        });
+
         cy.get('#post_textbox').clear().type('/zoom get-started');
         cy.get('#post_textbox').type(' ');
         cy.get('#post_textbox').type('{enter}');
 
-        let steps = [
+        let buttons = [
             ['Continue', '', 'Welcome to Zoom for Mattermost!'],
-            ['Yes', '', 'Are you using a self-hosted private cloud or on-prem Zoom server?'],
-        ]
-        steps.forEach(handleClickStep);
-
-        // Enter self-hosted Zoom URL into interactive dialog
-        cy.get('input#ZoomURL').type('https://the_zoom_url.com');
-        cy.get('input#ZoomAPIURL').type('https://the_zoom_api_url.com');
-        cy.get('button#interactiveDialogSubmit').click();
-
-        steps = [
+            ['No', '', 'Are you using a self-hosted private cloud or on-prem Zoom server?'],
             ['Continue', '', 'Go to https://marketplace.zoom.us'],
-            ['Continue', '', 'Choose Account-level app as the app type.'],
+            ['Continue','', 'Choose Account-level app as the app type.'],
             ['Enter Client ID and Client secret', '', 'In the App Credentials tab, note the values for Client ID and Client secret'],
-        ];
-        steps.forEach(handleClickStep);
+        ]
+
+        buttons.forEach(handleClickStep);
 
         // Enter credentials into interactive dialog
         cy.get('input#client_id').type('the_client_id');
         cy.get('input#client_secret').type('the_client_secret');
         cy.get('button#interactiveDialogSubmit').click();
 
-        steps = [
+        buttons = [
             ['Continue', 'Set OAuth redirect URL in Zoom'],
             ['Continue', 'Configure webhook in Zoom'],
             ['Continue', 'Select webhook events'],
             ['Continue', 'Select OAuth scopes'],
             ['', "You're finished setting up the plugin!"],
-        ];
-        steps.forEach(handleClickStep);
+        ]
+
+        buttons.forEach(handleClickStep);
 
         cy.apiGetConfig().then(({config}) => {
-            const pluginSettings = config.PluginSettings.Plugins[pluginId];
+            const zoomSettings = config.PluginSettings.Plugins.zoom;
 
-            expect(pluginSettings).to.deep.equal({
-                ...settingsWithGenerated,
-                oauthclientid: 'the_client_id',
-                oauthclientsecret: 'the_client_secret',
-                zoomurl: 'https://the_zoom_url.com',
-                zoomapiurl: 'https://the_zoom_api_url.com',
-            });
+            expect(zoomSettings.oauthclientid).to.equal('the_client_id');
+            expect(zoomSettings.oauthclientsecret).to.equal('the_client_secret');
         });
     });
 });
@@ -186,4 +195,20 @@ function handleClickStep(testCase) {
             cy.get(`#${lastPostId}_message`).contains('button:enabled', buttonText).click();
         }
     });
+}
+
+const objectsEqual = (obj1, obj2) => {
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+    if (keys1.length !== keys2.length) {
+        return false;
+    }
+
+    for (const key of keys1) {
+        if (obj1[key] !== obj2[key]) {
+            return false;
+        }
+    }
+
+    return true;
 }
