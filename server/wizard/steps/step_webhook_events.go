@@ -28,9 +28,9 @@ const (
 %s`
 )
 
-func WebhookEventsStep() steps.Step {
-	recordingEventTypesImage := imagePathToMarkdown("Meeting Events", "event_type_recording.png")
-	meetingEventTypesImage := imagePathToMarkdown("Recording Events", "event_type_meeting.png")
+func WebhookEventsStep(pluginURL string) steps.Step {
+	recordingEventTypesImage := imagePathToMarkdown(pluginURL, "Meeting Events", "event_type_recording.png")
+	meetingEventTypesImage := imagePathToMarkdown(pluginURL, "Recording Events", "event_type_meeting.png")
 
 	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage, recordingEventTypesImage)
 

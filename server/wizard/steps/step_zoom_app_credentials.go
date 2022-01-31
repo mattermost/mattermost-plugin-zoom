@@ -27,8 +27,8 @@ Click the button below to open a dialog to enter these two values.
 	confClientSecret = "client_secret"
 )
 
-func ZoomAppCredentialsStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
-	appCredentialsImage := imagePathToMarkdown("App Credentials", "app_credentials.png")
+func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
+	appCredentialsImage := imagePathToMarkdown(pluginURL, "App Credentials", "app_credentials.png")
 
 	description := fmt.Sprintf(stepDescriptionZoomAppCredentials, appCredentialsImage)
 

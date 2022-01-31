@@ -18,7 +18,7 @@ const (
 )
 
 func RedirectURLStep(pluginURL string) steps.Step {
-	redirectImage := imagePathToMarkdown("Redirect URL", "app_credentials.png")
+	redirectImage := imagePathToMarkdown(pluginURL, "Redirect URL", "app_credentials.png")
 
 	oauthURL := pluginURL + "/oauth2/complete"
 	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL, redirectImage)

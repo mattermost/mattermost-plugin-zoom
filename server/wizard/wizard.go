@@ -44,13 +44,13 @@ func (fm *FlowManager) GetConfigurationFlow() flow.Flow {
 	steps := []steps.Step{
 		steps_local.GreetingStep(),
 		steps_local.SelfHostedQuestionStep(fm.getConfiguration, fm.client),
-		steps_local.ZoomMarketplaceStep(),
-		steps_local.CreateZoomAppStep(),
-		steps_local.ZoomAppCredentialsStep(fm.getConfiguration, fm.client),
+		steps_local.ZoomMarketplaceStep(fm.pluginURL),
+		steps_local.CreateZoomAppStep(fm.pluginURL),
+		steps_local.ZoomAppCredentialsStep(fm.pluginURL, fm.getConfiguration, fm.client),
 		steps_local.RedirectURLStep(fm.pluginURL),
-		steps_local.WebhookConfigurationStep(fm.getConfiguration, fm.pluginURL),
-		steps_local.WebhookEventsStep(),
-		steps_local.OAuthScopesStep(),
+		steps_local.WebhookConfigurationStep(fm.pluginURL, fm.getConfiguration),
+		steps_local.WebhookEventsStep(fm.pluginURL),
+		steps_local.OAuthScopesStep(fm.pluginURL),
 		steps_local.FinishedStep(fm.pluginURL),
 	}
 

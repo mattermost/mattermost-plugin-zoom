@@ -23,15 +23,15 @@ const (
 %s`
 )
 
-func imagePathToMarkdown(name, imgPath string) string {
-	return fmt.Sprintf("![%s](/plugins/zoom/public/setup_flow_images/%s)", name, imgPath)
+func imagePathToMarkdown(pluginURL, name, imgPath string) string {
+	return fmt.Sprintf("![%s](%s/public/setup_flow_images/%s)", name, pluginURL, imgPath)
 }
 
-func ZoomMarketplaceStep() steps.Step {
+func ZoomMarketplaceStep(pluginURL string) steps.Step {
 	// TODO: site URL
 
-	buildAppImage := imagePathToMarkdown("Build Zoom App", "build_app.png")
-	appTypeImage := imagePathToMarkdown("Choose App Type", "choose_app_type.png")
+	buildAppImage := imagePathToMarkdown(pluginURL, "Build Zoom App", "build_app.png")
+	appTypeImage := imagePathToMarkdown(pluginURL, "Choose App Type", "choose_app_type.png")
 
 	description := fmt.Sprintf(stepDescriptionGotoZoomMarketplace, buildAppImage, appTypeImage)
 

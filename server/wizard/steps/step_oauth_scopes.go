@@ -23,9 +23,9 @@ Click **Continue**
 %s`
 )
 
-func OAuthScopesStep() steps.Step {
-	meetingOauthScopeImage := imagePathToMarkdown("Meeting OAuth Scope", "oauth_scope_meeting.png")
-	recordingOauthScopeImage := imagePathToMarkdown("Recording OAuth Scope", "oauth_scope_recording.png")
+func OAuthScopesStep(pluginURL string) steps.Step {
+	meetingOauthScopeImage := imagePathToMarkdown(pluginURL, "Meeting OAuth Scope", "oauth_scope_meeting.png")
+	recordingOauthScopeImage := imagePathToMarkdown(pluginURL, "Recording OAuth Scope", "oauth_scope_recording.png")
 
 	description := fmt.Sprintf(stepDescriptionOAuthScopes, meetingOauthScopeImage, recordingOauthScopeImage)
 

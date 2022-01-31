@@ -26,11 +26,11 @@ We'll select the webhook events in the next step.
 `
 )
 
-func WebhookConfigurationStep(getConfiguration config.GetConfigurationFunc, pluginURL string) steps.Step {
+func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfigurationFunc) steps.Step {
 	secret := getConfiguration().WebhookSecret
 	secret = url.QueryEscape(secret)
 
-	eventConfigImage := imagePathToMarkdown("Event Configuration", "event_configuration.png")
+	eventConfigImage := imagePathToMarkdown(pluginURL, "Event Configuration", "event_configuration.png")
 
 	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
 	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)

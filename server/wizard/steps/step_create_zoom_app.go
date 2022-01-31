@@ -19,8 +19,8 @@ const (
 %s`
 )
 
-func CreateZoomAppStep() steps.Step {
-	createAppImage := imagePathToMarkdown("Create OAuth App", "create_oauth_app.png")
+func CreateZoomAppStep(pluginURL string) steps.Step {
+	createAppImage := imagePathToMarkdown(pluginURL, "Create OAuth App", "create_oauth_app.png")
 
 	description := fmt.Sprintf(stepDescriptionCreateApp, createAppImage)
 
