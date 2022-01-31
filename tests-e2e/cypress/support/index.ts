@@ -5,8 +5,6 @@
 // Read more at: https://on.cypress.io/configuration
 // ***********************************************************
 
-// import 'mattermost-webapp/e2e/cypress/support';
-
 import '@testing-library/cypress/add-commands';
 
 import 'cypress-wait-until';
@@ -41,7 +39,11 @@ Cypress.Commands.add('apiLogin', (user, requestOptions = {}) => {
 });
 
 Cypress.Commands.add('apiAdminLogin', (requestOptions = {}) => {
-    const admin = getAdminAccount();
+    const admin = {
+        username: Cypress.env('adminUsername'),
+        password: Cypress.env('adminPassword'),
+        email: Cypress.env('adminEmail'),
+    };
 
     // First, login with username
     cy.apiLogin(admin, requestOptions).then((resp) => {
@@ -122,7 +124,7 @@ Cypress.Commands.add('apiUpdateConfig', (newConfig = {}) => {
     });
 });
 
-Cypress.Commands.add('apiRemoveAllPostsInDirectChannel', (username, botUsername) => {
+Cypress.Commands.add('apiDeleteAllPostsInDirectChannel', (username, botUsername) => {
     return cy.request(`/api/v4/users/username/${username}`).then((userResponse) => {
         expect(userResponse.status).to.equal(200);
 
@@ -185,12 +187,4 @@ function waitUntilPermanentPost() {
     cy.wait(TIMEOUTS.HALF_SEC);
     cy.get('#postListContent', {timeout: TIMEOUTS.ONE_MIN}).should('be.visible');
     cy.waitUntil(() => cy.findAllByTestId('postView').last().then((el) => !(el[0].id.includes(':'))));
-}
-
-function getAdminAccount() {
-    return {
-        username: Cypress.env('adminUsername'),
-        password: Cypress.env('adminPassword'),
-        email: Cypress.env('adminEmail'),
-    };
 }

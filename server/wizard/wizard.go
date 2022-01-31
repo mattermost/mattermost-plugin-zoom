@@ -20,15 +20,6 @@ type FlowManager struct {
 	wizardController flow.Controller
 }
 
-type propertyStore struct {
-	props map[string]interface{}
-}
-
-func (ps *propertyStore) SetProperty(userID string, propertyName string, value interface{}) error {
-	ps.props[userID+propertyName] = value
-	return nil
-}
-
 func NewFlowManager(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client, router *mux.Router, logger logger.Logger, pluginURL, botUserID string) *FlowManager {
 	fm := &FlowManager{
 		client:           client,

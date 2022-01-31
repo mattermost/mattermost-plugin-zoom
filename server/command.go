@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/command"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/plugin"
-	"github.com/pkg/errors"
 )
 
 const helpText = `* |/zoom start| - Start a zoom meeting`
+const adminHelpText = `* |/zoom setup| - Set up the Zoom plugin (System admin only)`
 
 const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
@@ -81,8 +83,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	}
 
 	switch action {
-	case "get-started":
-		message := p.runGetStarted(c, args)
+	case "setup":
+		message := p.runSetup(c, args)
 		return message, nil
 	case actionConnect:
 		return p.runConnectCommand(user, args)
@@ -114,8 +116,8 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	return &model.CommandResponse{}, nil
 }
 
-// runGetStarted starts the plugin setup wizard
-func (p *Plugin) runGetStarted(c *plugin.Context, args *model.CommandArgs) string {
+// runSetup starts the plugin setup wizard
+func (p *Plugin) runSetup(c *plugin.Context, args *model.CommandArgs) string {
 	userID := args.UserId
 
 	isSysAdmin, err := p.isAuthorizedSysAdmin(userID)
@@ -252,16 +254,22 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
+
+	isAdmin, _ := p.isAuthorizedSysAdmin(user.Id)
+	if isAdmin {
+		text += "\n" + strings.ReplaceAll(adminHelpText, "|", "`")
+	}
+
 	return text, nil
 }
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	if p.getConfiguration().IsValid() != nil {
-		zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: get-started")
+		zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: setup")
 
-		getStarted := model.NewAutocompleteData("get-started", "", "Setup the Zoom plugin")
-		zoom.AddCommand(getStarted)
+		setup := model.NewAutocompleteData("setup", "", "Setup the Zoom plugin")
+		zoom.AddCommand(setup)
 
 		return zoom
 	}

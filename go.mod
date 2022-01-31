@@ -3,7 +3,6 @@ module github.com/mattermost/mattermost-plugin-zoom
 go 1.15
 
 require (
-	emperror.dev/errors v0.8.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/mattermost/mattermost-plugin-api v0.0.23-0.20220125110021-e678279a12d0

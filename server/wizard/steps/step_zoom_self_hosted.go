@@ -1,7 +1,8 @@
 package steps
 
 import (
-	"emperror.dev/errors"
+	"github.com/pkg/errors"
+
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
 	"github.com/mattermost/mattermost-server/v6/model"

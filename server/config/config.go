@@ -10,11 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	zoomDefaultURL    = "https://zoom.us"
-	zoomDefaultAPIURL = "https://api.zoom.us/v2"
-)
-
 // Configuration captures the plugin's external Configuration as exposed in the Mattermost server
 // Configuration, as well as values computed from the Configuration. Any public fields will be
 // deserialized from the Mattermost server Configuration in OnConfigurationChange.

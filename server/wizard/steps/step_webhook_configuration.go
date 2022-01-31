@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+
 	"github.com/mattermost/mattermost-plugin-zoom/server/config"
 )
 
