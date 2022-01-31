@@ -269,6 +269,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 		zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: setup")
 
 		setup := model.NewAutocompleteData("setup", "", "Setup the Zoom plugin")
+		setup.RoleID = model.SystemAdminRoleId
 		zoom.AddCommand(setup)
 
 		return zoom
@@ -282,6 +283,10 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 
 	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
+
+	setup := model.NewAutocompleteData("setup", "", "Setup the Zoom plugin")
+	setup.RoleID = model.SystemAdminRoleId
+	zoom.AddCommand(setup)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
