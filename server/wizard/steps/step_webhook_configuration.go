@@ -15,14 +15,14 @@ const (
 	stepTitleWebhookConfiguration = "Configure webhook in Zoom"
 
 	stepDescriptionWebhookConfiguration = `1. Click on the **Feature** category in the left sidebar.
-	2. Enable **Event Subscriptions**.
-	3. Click **Add New Event Subscription** and give it a name \(e.g. "Mattermost events"\).
-	4. Enter in **Event notification endpoint URL**: %s
-	5. For the **Event notification receiver** field, select "Only users installed this app" TODO: Is this right?
+2. Enable **Event Subscriptions**.
+3. Click **Add New Event Subscription** and give it a name \(e.g. "Mattermost events"\).
+4. Enter in **Event notification endpoint URL**: %s
+5. For the **Event notification receiver** field, select "Only users installed this app" TODO: Is this right?
 
-	<image>
+%s
 
-	We'll select the webhook events in the next step.
+We'll select the webhook events in the next step.
 `
 )
 
@@ -30,8 +30,10 @@ func WebhookConfigurationStep(getConfiguration config.GetConfigurationFunc, plug
 	secret := getConfiguration().WebhookSecret
 	secret = url.QueryEscape(secret)
 
+	eventConfigImage := imagePathToMarkdown("Event Configuration", "event_configuration.png")
+
 	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
-	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL)
+	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)
 
 	return steps.NewCustomStepBuilder(stepNameWebhookConfiguration, stepTitleWebhookConfiguration, description).
 		WithButton(steps.Button{

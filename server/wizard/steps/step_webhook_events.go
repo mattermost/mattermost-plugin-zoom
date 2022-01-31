@@ -1,6 +1,8 @@
 package steps
 
 import (
+	"fmt"
+
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
 )
 
@@ -21,11 +23,18 @@ const (
 * Click **Save**
 * Click **Continue**
 
-<image>`
+%s
+
+%s`
 )
 
 func WebhookEventsStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepNameWebhookEvents, stepTitleWebhookEvents, stepDescriptionWebhookEvents).
+	recordingEventTypesImage := imagePathToMarkdown("Meeting Events", "event_type_recording.png")
+	meetingEventTypesImage := imagePathToMarkdown("Recording Events", "event_type_meeting.png")
+
+	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage, recordingEventTypesImage)
+
+	return steps.NewCustomStepBuilder(stepNameWebhookEvents, stepTitleWebhookEvents, description).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

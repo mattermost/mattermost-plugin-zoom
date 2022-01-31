@@ -1,6 +1,8 @@
 package steps
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
@@ -19,14 +21,18 @@ const (
 
 Click the button below to open a dialog to enter these two values.
 
-<image>`
+%s`
 
 	confClientID     = "client_id"
 	confClientSecret = "client_secret"
 )
 
 func ZoomAppCredentialsStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
-	return steps.NewCustomStepBuilder(stepNameZoomAppCredentials, stepTitleZoomAppCredentials, stepDescriptionZoomAppCredentials).
+	appCredentialsImage := imagePathToMarkdown("App Credentials", "app_credentials.png")
+
+	description := fmt.Sprintf(stepDescriptionZoomAppCredentials, appCredentialsImage)
+
+	return steps.NewCustomStepBuilder(stepNameZoomAppCredentials, stepTitleZoomAppCredentials, description).
 		WithButton(steps.Button{
 			Name:  "Enter Client ID and Client secret",
 			Style: steps.Primary,

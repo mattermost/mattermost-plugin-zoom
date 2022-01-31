@@ -14,12 +14,14 @@ const (
 	stepDescriptionRedirectURL = `1. In the **Redirect URL for OAuth** input, enter: %s
 2. In the **OAuth allow list** at the bottom of the page, enter the same URL: %s
 
-<image>`
+%s`
 )
 
 func RedirectURLStep(pluginURL string) steps.Step {
+	redirectImage := imagePathToMarkdown("Redirect URL", "app_credentials.png")
+
 	oauthURL := pluginURL + "/oauth2/complete"
-	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL)
+	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL, redirectImage)
 
 	return steps.NewCustomStepBuilder(stepNameRedirectURL, stepTitleRedirectURL, description).
 		WithButton(steps.Button{

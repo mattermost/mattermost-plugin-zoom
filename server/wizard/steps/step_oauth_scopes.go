@@ -1,6 +1,8 @@
 package steps
 
 import (
+	"fmt"
+
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
 )
 
@@ -16,11 +18,18 @@ const (
 
 Click **Continue**
 
-<image>`
+%s
+
+%s`
 )
 
 func OAuthScopesStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepNameOAuthScopes, stepTitleOAuthScopes, stepDescriptionOAuthScopes).
+	meetingOauthScopeImage := imagePathToMarkdown("Meeting OAuth Scope", "oauth_scope_meeting.png")
+	recordingOauthScopeImage := imagePathToMarkdown("Recording OAuth Scope", "oauth_scope_recording.png")
+
+	description := fmt.Sprintf(stepDescriptionOAuthScopes, meetingOauthScopeImage, recordingOauthScopeImage)
+
+	return steps.NewCustomStepBuilder(stepNameOAuthScopes, stepTitleOAuthScopes, description).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,

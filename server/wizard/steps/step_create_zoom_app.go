@@ -1,6 +1,8 @@
 package steps
 
 import (
+	"fmt"
+
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
 )
 
@@ -14,11 +16,15 @@ const (
 3. Choose **No** for **Would like to publish this app on Zoom Marketplace**.
 4. Click **Create**.
 
-<image>`
+%s`
 )
 
 func CreateZoomAppStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepNameCreateApp, stepTitleCreateApp, stepDescriptionCreateApp).
+	createAppImage := imagePathToMarkdown("Create OAuth App", "create_oauth_app.png")
+
+	description := fmt.Sprintf(stepDescriptionCreateApp, createAppImage)
+
+	return steps.NewCustomStepBuilder(stepNameCreateApp, stepTitleCreateApp, description).
 		WithButton(steps.Button{
 			Name:  "Continue",
 			Style: steps.Default,
