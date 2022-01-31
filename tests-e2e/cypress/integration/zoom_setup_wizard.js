@@ -59,11 +59,11 @@ describe('Zoom setup wizard', () => {
         cy.get('#post_textbox').type('{enter}');
 
         let buttons = [
-            ['Continue', '', 'Welcome to Zoom for Mattermost!'],
-            ['No', '', 'Are you using a self-hosted private cloud or on-prem Zoom server?'],
-            ['Continue', '', 'Go to https://marketplace.zoom.us'],
-            ['Continue','', 'Choose Account-level app as the app type.'],
-            ['Enter Client ID and Client secret', '', 'In the App Credentials tab, note the values for Client ID and Client secret'],
+            ['Continue', 'Welcome to Zoom for Mattermost!'],
+            ['No', 'Are you using a self-hosted private cloud or on-prem Zoom server?'],
+            ['Continue', 'Go to https://marketplace.zoom.us'],
+            ['Continue', 'Choose Account-level app as the app type.'],
+            ['Enter Client ID and Client secret', 'In the App Credentials tab, note the values for Client ID and Client secret'],
         ]
 
         buttons.forEach(handleClickStep);
@@ -93,25 +93,20 @@ describe('Zoom setup wizard', () => {
 });
 
 function handleClickStep(testCase) {
-    const [buttonText, expectedTitle, expectedBody] = testCase;
+    const [buttonText, expectedText] = testCase;
 
     cy.getLastPostId().then((lastPostId) => {
-        if (expectedTitle) {
-            cy.getLastPostId().then((lastPostId) => {
-                cy.get(`#post_${lastPostId} .attachment__title`).contains(expectedTitle);
-            });
-        }
+        cy.getLastPostId().then((lastPostId) => {
+            if (expectedText) {
+                cy.get(`#post_${lastPostId}`).contains(expectedText);
+            }
 
-        if (expectedBody) {
-            cy.getLastPostId().then((lastPostId) => {
-                cy.get(`#post_${lastPostId} .attachment__body`).contains(expectedBody);
-            });
-        }
-
-        if (buttonText) {
-            cy.get(`#${lastPostId}_message`).contains('button:enabled', buttonText).click();
-        }
-    });
+            if (buttonText) {
+                cy.get(`#${lastPostId}_message`).contains('button:enabled', buttonText).click();
+            }
+        });
+    }
+});
 }
 
 const objectsEqual = (obj1, obj2) => {
