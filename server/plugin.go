@@ -240,3 +240,31 @@ func (p *Plugin) SetZoomSuperUserToken(token *oauth2.Token) error {
 	}
 	return nil
 }
+
+func (p *Plugin) GetZoomUserToken(userID string) (*oauth2.Token, error) {
+	token, err := p.fetchOAuthUserInfo(zoomUserByZoomID, userID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get token")
+	}
+	if token == nil {
+		return nil, errors.New("zoom app not connected")
+	}
+	return token.OAuthToken, nil
+}
+
+func (p *Plugin) UpdateZoomUserToken(userID string, token *oauth2.Token) error {
+	zoomUser, err := p.fetchOAuthUserInfo(zoomUserByZoomID, userID)
+	if err != nil {
+		p.API.LogError("could not update zoom user token", err)
+		return errors.Wrap(err, "could not update zoom user token")
+	}
+
+	zoomUser.OAuthToken = token
+	if err = p.storeOAuthUserInfo(zoomUser); err != nil {
+		msg := "unable to update user token"
+		p.API.LogWarn(msg, "error", err.Error())
+		return errors.Wrap(err, msg)
+	}
+
+	return nil
+}
