@@ -18,7 +18,7 @@ const (
 2. Enable **Event Subscriptions**.
 3. Click **Add New Event Subscription** and give it a name \(e.g. "Mattermost events"\).
 4. Enter in **Event notification endpoint URL**: %s
-5. For the **Event notification receiver** field, select "Only users installed this app" TODO: Is this right?
+5. For the **Event notification receiver** field, select "All users in the account"
 
 %s
 
@@ -32,7 +32,7 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 
 	eventConfigImage := imagePathToMarkdown(pluginURL, "Event Configuration", "event_configuration.png")
 
-	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
+	webhookURL := fmt.Sprintf("`%s/webhook?secret=%s`", pluginURL, secret)
 	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)
 
 	return steps.NewCustomStepBuilder(stepNameWebhookConfiguration, stepTitleWebhookConfiguration, description).

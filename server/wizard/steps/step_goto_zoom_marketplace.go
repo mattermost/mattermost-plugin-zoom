@@ -9,11 +9,11 @@ import (
 const (
 	stepNameGotoZoomMarketplace = "goto_zoom_marketplace"
 
-	stepTitleGotoZoomMarketplace = "Let's create an app in Zoom!"
+	stepTitleGotoZoomMarketplace = "Go to Zoom marketplace"
 
 	stepDescriptionGotoZoomMarketplace = `Next we're going to create a new app in your Zoom account.
 
-1. Go to [https://marketplace.zoom.us](https://marketplace.zoom.us) and log in using a Zoom admin account.
+1. Go to https://marketplace.zoom.us and log in using a Zoom admin account.
 2. In the top right corner of the screen, select **Develop** and then **Build App**.
 
 %s
@@ -23,13 +23,7 @@ const (
 %s`
 )
 
-func imagePathToMarkdown(pluginURL, name, imgPath string) string {
-	return fmt.Sprintf("![%s](%s/public/setup_flow_images/%s)", name, pluginURL, imgPath)
-}
-
 func ZoomMarketplaceStep(pluginURL string) steps.Step {
-	// TODO: site URL
-
 	buildAppImage := imagePathToMarkdown(pluginURL, "Build Zoom App", "build_app.png")
 	appTypeImage := imagePathToMarkdown(pluginURL, "Choose App Type", "choose_app_type.png")
 

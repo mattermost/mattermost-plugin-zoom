@@ -1,10 +1,16 @@
 package steps
 
 import (
+	"fmt"
 	"net/url"
 
 	"github.com/pkg/errors"
 )
+
+// imagePathToMarkdown converts an image path in the /public/setup_flow_images folder into a markdown-compatible image
+func imagePathToMarkdown(pluginURL, name, imgPath string) string {
+	return fmt.Sprintf("![%s](%s/public/setup_flow_images/%s)", name, pluginURL, imgPath)
+}
 
 // isValidURL checks if a given URL is a valid URL with a host and a http or http scheme.
 func isValidURL(rawURL string) error {
@@ -24,6 +30,7 @@ func isValidURL(rawURL string) error {
 	return nil
 }
 
+// isValidURLSubmission checks if a given URL from a dialog submission is a valid URL
 func isValidURLSubmission(submission map[string]interface{}, name string) (string, error) {
 	typedString, err := safeString(submission, name)
 	if err != nil {

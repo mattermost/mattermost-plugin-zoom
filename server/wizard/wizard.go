@@ -43,7 +43,7 @@ func NewFlowManager(getConfiguration config.GetConfigurationFunc, client *plugin
 func (fm *FlowManager) GetConfigurationFlow() flow.Flow {
 	steps := []steps.Step{
 		steps_local.GreetingStep(),
-		steps_local.SelfHostedQuestionStep(fm.getConfiguration, fm.client),
+		steps_local.VanityURLStep(fm.getConfiguration, fm.client),
 		steps_local.ZoomMarketplaceStep(fm.pluginURL),
 		steps_local.CreateZoomAppStep(fm.pluginURL),
 		steps_local.ZoomAppCredentialsStep(fm.pluginURL, fm.getConfiguration, fm.client),

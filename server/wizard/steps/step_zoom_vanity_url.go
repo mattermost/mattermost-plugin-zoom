@@ -11,18 +11,18 @@ import (
 )
 
 const (
-	stepNameSelfHostedQuestion = "self_hosted_question"
+	stepNameVanityURL = "vanity_url"
 
-	stepTitleSelfHostedQuestion = ""
+	stepTitleVanityURL = "Zoom Vanity URL"
 
-	stepDescriptionSelfHostedQuestion = "Are you using a self-hosted private cloud or on-prem Zoom server?"
+	stepDescriptionVanityURL = "Are you using your own [Vanity URL](https://support.zoom.us/hc/en-us/articles/215062646-Guidelines-for-Vanity-URL-requests) (sub-domain) for your Zoom account?"
 
 	confURL = "ZoomURL"
 	confAPI = "ZoomAPIURL"
 )
 
-func SelfHostedQuestionStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
-	return steps.NewCustomStepBuilder(stepNameSelfHostedQuestion, stepTitleSelfHostedQuestion, stepDescriptionSelfHostedQuestion).
+func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
+	return steps.NewCustomStepBuilder(stepNameVanityURL, stepTitleVanityURL, stepDescriptionVanityURL).
 		WithButton(steps.Button{
 			Name:  "Yes",
 			Style: steps.Primary,
@@ -52,16 +52,16 @@ var selfHostedDialog = model.Dialog{
 		{
 			DisplayName: "Zoom URL",
 			Name:        confURL,
-			Placeholder: "https://yourzoom.com",
-			HelpText:    "The URL for a self-hosted private cloud or on-prem Zoom server",
+			Placeholder: "https://yourcompany.zoom.us",
+			HelpText:    "The URL for your organization's Zoom instance",
 			Type:        "text",
 			SubType:     "url",
 		},
 		{
 			DisplayName: "Zoom API URL",
 			Name:        confAPI,
-			Placeholder: "https://api.yourzoom.com/v2",
-			HelpText:    "The API URL for a self-hosted private cloud or on-prem Zoom server",
+			Placeholder: "https://api.yourcompany.zoom.us/v2",
+			HelpText:    "The API URL for your organization's Zoom instance",
 			Type:        "text",
 			SubType:     "url",
 		},

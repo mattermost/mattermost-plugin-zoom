@@ -9,11 +9,11 @@ import (
 const (
 	stepNameFinished = "finished"
 
-	stepTitleFinished = "You're finished setting up the plugin! :tada:"
+	stepTitleFinished = "Setup finished"
 
 	stepDescriptionFinished = `You're all done!
 
-Nothing needs to be done on the **Install** page. You can close your browser tab.
+Nothing needs to be done on the **Activation** page. You can close your browser tab.
 
 Click [here](%s) connect your Zoom account.`
 )

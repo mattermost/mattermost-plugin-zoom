@@ -11,28 +11,16 @@ const (
 
 	stepTitleWebhookEvents = "Select webhook events"
 
-	stepDescriptionWebhookEvents = `Click **Add events** and select the following events:
-
-- Meeting
-	- End Meeting
-	- Participant/Host joined meeting
-	- Participant/Host left meeting
-- Recording
-	- All recordings have completed
-
-* Click **Save**
-* Click **Continue**
-
-%s
+	stepDescriptionWebhookEvents = `- Click **Add events** and select the "End Meeting" event
+- Then click **Done**, **Save**, and **Continue**
 
 %s`
 )
 
 func WebhookEventsStep(pluginURL string) steps.Step {
-	recordingEventTypesImage := imagePathToMarkdown(pluginURL, "Meeting Events", "event_type_recording.png")
 	meetingEventTypesImage := imagePathToMarkdown(pluginURL, "Recording Events", "event_type_meeting.png")
 
-	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage, recordingEventTypesImage)
+	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage)
 
 	return steps.NewCustomStepBuilder(stepNameWebhookEvents, stepTitleWebhookEvents, description).
 		WithButton(steps.Button{

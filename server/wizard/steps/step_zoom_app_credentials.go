@@ -15,7 +15,7 @@ import (
 const (
 	stepNameZoomAppCredentials = "zoom_app_credentials"
 
-	stepTitleZoomAppCredentials = ""
+	stepTitleZoomAppCredentials = "Enter Zoom app credentials"
 
 	stepDescriptionZoomAppCredentials = `In the **App Credentials** tab, note the values for Client ID and Client secret.
 

@@ -9,10 +9,10 @@ import (
 const (
 	stepNameCreateApp = "create_app"
 
-	stepTitleCreateApp = ""
+	stepTitleCreateApp = "Create Zoom app"
 
 	stepDescriptionCreateApp = `1. Enter a name for your app, such as "Mattermost Plugin".
-2. Choose **Account-level app** as the app type.
+2. Choose **User-managed app** as the app type.
 3. Choose **No** for **Would like to publish this app on Zoom Marketplace**.
 4. Click **Create**.
 
