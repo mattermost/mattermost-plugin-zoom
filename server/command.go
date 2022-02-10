@@ -243,7 +243,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
 		connect := model.NewAutocompleteData("connect", "", "Connect to Zoom")
-		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnect from Zoom")
+		disconnect := model.NewAutocompleteData("disconnect", "", "Disconnect from Zoom")
 		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
