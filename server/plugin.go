@@ -152,10 +152,15 @@ func (p *Plugin) setDefaultConfiguration() error {
 	return nil
 }
 
+func (p *Plugin) OnSendDailyTelemetry() {
+	p.sendDailyTelemetry()
+}
+
 func (p *Plugin) NewFlowManager() *wizard.FlowManager {
 	return wizard.NewFlowManager(
 		p.getConfiguration,
 		p.client,
+		p.tracker,
 		p.router,
 		p.siteURL+"/plugins/zoom",
 		p.botUserID,
