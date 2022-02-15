@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
-
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 	"github.com/mattermost/mattermost-plugin-zoom/server/config"
 )
 
@@ -26,7 +25,7 @@ We'll select the webhook events in the next step.
 `
 )
 
-func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfigurationFunc) steps.Step {
+func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfigurationFunc) flow.Step {
 	secret := getConfiguration().WebhookSecret
 	secret = url.QueryEscape(secret)
 
@@ -35,10 +34,12 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 	webhookURL := fmt.Sprintf("`%s/webhook?secret=%s`", pluginURL, secret)
 	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)
 
-	return steps.NewCustomStepBuilder(stepNameWebhookConfiguration, stepTitleWebhookConfiguration, description).
-		WithButton(steps.Button{
-			Name:  "Continue",
-			Style: steps.Default,
-		}).
-		Build()
+	return flow.NewStep(stepNameWebhookConfiguration).
+		WithPretext(stepTitleWebhookConfiguration).
+		WithText(description).
+		WithButton(flow.Button{
+			Name:    "Continue",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(""),
+		})
 }

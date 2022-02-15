@@ -3,7 +3,7 @@ package steps
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
 const (
@@ -17,16 +17,18 @@ const (
 %s`
 )
 
-func RedirectURLStep(pluginURL string) steps.Step {
+func RedirectURLStep(pluginURL string) flow.Step {
 	redirectImage := imagePathToMarkdown(pluginURL, "Redirect URL", "app_credentials.png")
 
 	oauthURL := fmt.Sprintf("`%s/oauth2/complete`", pluginURL)
 	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL, redirectImage)
 
-	return steps.NewCustomStepBuilder(stepNameRedirectURL, stepTitleRedirectURL, description).
-		WithButton(steps.Button{
-			Name:  "Continue",
-			Style: steps.Default,
-		}).
-		Build()
+	return flow.NewStep(stepNameRedirectURL).
+		WithPretext(stepTitleRedirectURL).
+		WithText(description).
+		WithButton(flow.Button{
+			Name:    "Continue",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(""),
+		})
 }

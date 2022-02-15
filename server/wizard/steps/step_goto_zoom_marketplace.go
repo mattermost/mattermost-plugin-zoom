@@ -3,7 +3,7 @@ package steps
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
 const (
@@ -23,16 +23,18 @@ const (
 %s`
 )
 
-func ZoomMarketplaceStep(pluginURL string) steps.Step {
+func ZoomMarketplaceStep(pluginURL string) flow.Step {
 	buildAppImage := imagePathToMarkdown(pluginURL, "Build Zoom App", "build_app.png")
 	appTypeImage := imagePathToMarkdown(pluginURL, "Choose App Type", "choose_app_type.png")
 
 	description := fmt.Sprintf(stepDescriptionGotoZoomMarketplace, buildAppImage, appTypeImage)
 
-	return steps.NewCustomStepBuilder(stepNameGotoZoomMarketplace, stepTitleGotoZoomMarketplace, description).
-		WithButton(steps.Button{
-			Name:  "Continue",
-			Style: steps.Default,
-		}).
-		Build()
+	return flow.NewStep(stepNameGotoZoomMarketplace).
+		WithPretext(stepTitleGotoZoomMarketplace).
+		WithText(description).
+		WithButton(flow.Button{
+			Name:    "Continue",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(""),
+		})
 }

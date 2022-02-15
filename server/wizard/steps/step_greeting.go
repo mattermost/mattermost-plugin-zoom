@@ -1,7 +1,7 @@
 package steps
 
 import (
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
 const (
@@ -14,21 +14,18 @@ const (
 Are you able to set up the integration with a Zoom admin account?`
 )
 
-func GreetingStep() steps.Step {
-	return steps.NewCustomStepBuilder(stepNameGreeting, stepTitleGreeting, stepDescriptionGreeting).
-		WithButton(steps.Button{
-			Name:  "Continue",
-			Style: steps.Primary,
-			OnClick: func(userID string) int {
-				return 0
-			},
+func GreetingStep() flow.Step {
+	return flow.NewStep(stepNameGreeting).
+		WithPretext(stepTitleGreeting).
+		WithText(stepDescriptionGreeting).
+		WithButton(flow.Button{
+			Name:    "Continue",
+			Color:   flow.ColorPrimary,
+			OnClick: flow.Goto(""),
 		}).
-		WithButton(steps.Button{
+		WithButton(flow.Button{
 			Name:  "Not now",
-			Style: steps.Default,
-			OnClick: func(userID string) int {
-				return 999
-			},
-		}).
-		Build()
+			Color: flow.ColorDefault,
+			// TODO: go to "you can setup later" step
+		})
 }

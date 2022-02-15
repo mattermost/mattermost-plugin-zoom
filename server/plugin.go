@@ -15,7 +15,6 @@ import (
 	"golang.org/x/oauth2"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
-	"github.com/mattermost/mattermost-plugin-api/experimental/bot/logger"
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/plugin"
@@ -158,7 +157,6 @@ func (p *Plugin) NewFlowManager() *wizard.FlowManager {
 		p.getConfiguration,
 		p.client,
 		p.router,
-		logger.New(p.API),
 		p.siteURL+"/plugins/zoom",
 		p.botUserID,
 	)

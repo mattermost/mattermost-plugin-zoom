@@ -4,7 +4,8 @@ import (
 	"github.com/pkg/errors"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
+
 	"github.com/mattermost/mattermost-server/v6/model"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/config"
@@ -21,30 +22,27 @@ const (
 	confAPI = "ZoomAPIURL"
 )
 
-func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
-	return steps.NewCustomStepBuilder(stepNameVanityURL, stepTitleVanityURL, stepDescriptionVanityURL).
-		WithButton(steps.Button{
-			Name:  "Yes",
-			Style: steps.Primary,
-			Dialog: &steps.Dialog{
-				Dialog: selfHostedDialog,
-				OnDialogSubmit: func(userID string, submission map[string]interface{}) (int, *steps.Attachment, string, map[string]string) {
-					res, errors := submitSelfHostedStep(submission, getConfiguration, client)
-					return 0, nil, res, errors
-				},
-			},
-			OnClick: func(notSure string) int {
-				return -1
+func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) flow.Step {
+	return flow.NewStep(stepNameVanityURL).
+		WithPretext(stepTitleVanityURL).
+		WithText(stepDescriptionVanityURL).
+		WithButton(flow.Button{
+			Name:   "Yes",
+			Color:  flow.ColorPrimary,
+			Dialog: &vanityURLDialog,
+			OnDialogSubmit: func(f *flow.Flow, submission map[string]interface{}) (flow.Name, flow.State, map[string]string, error) {
+				errors, err := submitVanityURLStep(submission, getConfiguration, client)
+				return "", nil, errors, err
 			},
 		}).
-		WithButton(steps.Button{
-			Name:  "No",
-			Style: steps.Default,
-		}).
-		Build()
+		WithButton(flow.Button{
+			Name:    "No",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(""),
+		})
 }
 
-var selfHostedDialog = model.Dialog{
+var vanityURLDialog = model.Dialog{
 	Title:            "",
 	IntroductionText: "",
 	SubmitLabel:      "Submit",
@@ -68,7 +66,7 @@ var selfHostedDialog = model.Dialog{
 	},
 }
 
-func submitSelfHostedStep(submission map[string]interface{}, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) (string, map[string]string) {
+func submitVanityURLStep(submission map[string]interface{}, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) (map[string]string, error) {
 	errorList := map[string]string{}
 
 	baseURL, err := isValidURLSubmission(submission, confURL)
@@ -82,7 +80,7 @@ func submitSelfHostedStep(submission map[string]interface{}, getConfiguration co
 	}
 
 	if len(errorList) != 0 {
-		return "", errorList
+		return errorList, nil
 	}
 
 	config := getConfiguration()
@@ -91,8 +89,8 @@ func submitSelfHostedStep(submission map[string]interface{}, getConfiguration co
 
 	err = client.Configuration.SavePluginConfig(config.ToMap())
 	if err != nil {
-		return errors.Wrap(err, "failed to save plugin config").Error(), nil
+		return nil, errors.Wrap(err, "failed to save plugin config")
 	}
 
-	return "", nil
+	return nil, nil
 }

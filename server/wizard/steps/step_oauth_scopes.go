@@ -3,7 +3,7 @@ package steps
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
 const (
@@ -22,15 +22,17 @@ Click **Continue**
 %s`
 )
 
-func OAuthScopesStep(pluginURL string) steps.Step {
+func OAuthScopesStep(pluginURL string) flow.Step {
 	meetingOauthScopeImage := imagePathToMarkdown(pluginURL, "Meeting OAuth Scope", "oauth_scope_meeting.png")
 
 	description := fmt.Sprintf(stepDescriptionOAuthScopes, meetingOauthScopeImage)
 
-	return steps.NewCustomStepBuilder(stepNameOAuthScopes, stepTitleOAuthScopes, description).
-		WithButton(steps.Button{
-			Name:  "Continue",
-			Style: steps.Default,
-		}).
-		Build()
+	return flow.NewStep(stepNameOAuthScopes).
+		WithPretext(stepTitleOAuthScopes).
+		WithText(description).
+		WithButton(flow.Button{
+			Name:    "Continue",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(""),
+		})
 }

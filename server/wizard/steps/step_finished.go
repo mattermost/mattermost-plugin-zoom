@@ -3,7 +3,7 @@ package steps
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
 const (
@@ -18,9 +18,12 @@ Nothing needs to be done on the **Activation** page. You can close your browser 
 Click [here](%s) connect your Zoom account.`
 )
 
-func FinishedStep(pluginURL string) steps.Step {
+func FinishedStep(pluginURL string) flow.Step {
 	connectURL := fmt.Sprintf("%s/oauth2/connect", pluginURL)
 	description := fmt.Sprintf(stepDescriptionFinished, connectURL)
 
-	return steps.NewEmptyStep(stepNameFinished, stepTitleFinished, description)
+	return flow.NewStep(stepNameFinished).
+		WithPretext(stepTitleFinished).
+		WithText(description).
+		Terminal()
 }

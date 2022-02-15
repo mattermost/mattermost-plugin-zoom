@@ -3,7 +3,7 @@ package steps
 import (
 	"fmt"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
 const (
@@ -17,15 +17,17 @@ const (
 %s`
 )
 
-func WebhookEventsStep(pluginURL string) steps.Step {
+func WebhookEventsStep(pluginURL string) flow.Step {
 	meetingEventTypesImage := imagePathToMarkdown(pluginURL, "Recording Events", "event_type_meeting.png")
 
 	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage)
 
-	return steps.NewCustomStepBuilder(stepNameWebhookEvents, stepTitleWebhookEvents, description).
-		WithButton(steps.Button{
-			Name:  "Continue",
-			Style: steps.Default,
-		}).
-		Build()
+	return flow.NewStep(stepNameWebhookEvents).
+		WithPretext(stepTitleWebhookEvents).
+		WithText(description).
+		WithButton(flow.Button{
+			Name:    "Continue",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(""),
+		})
 }

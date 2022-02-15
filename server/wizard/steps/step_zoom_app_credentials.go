@@ -6,7 +6,8 @@ import (
 	"github.com/pkg/errors"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
-	"github.com/mattermost/mattermost-plugin-api/experimental/flow/steps"
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
+
 	"github.com/mattermost/mattermost-server/v6/model"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/config"
@@ -27,27 +28,23 @@ Click the button below to open a dialog to enter these two values.
 	confClientSecret = "client_secret"
 )
 
-func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) steps.Step {
+func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) flow.Step {
 	appCredentialsImage := imagePathToMarkdown(pluginURL, "App Credentials", "app_credentials.png")
 
 	description := fmt.Sprintf(stepDescriptionZoomAppCredentials, appCredentialsImage)
 
-	return steps.NewCustomStepBuilder(stepNameZoomAppCredentials, stepTitleZoomAppCredentials, description).
-		WithButton(steps.Button{
-			Name:  "Enter Client ID and Client secret",
-			Style: steps.Primary,
-			Dialog: &steps.Dialog{
-				Dialog: zoomAppCredentialsDialog,
-				OnDialogSubmit: func(userID string, submission map[string]interface{}) (int, *steps.Attachment, string, map[string]string) {
-					res, errors := submitZoomAppCredentialsStep(submission, getConfiguration, client)
-					return 0, nil, res, errors
-				},
+	return flow.NewStep(stepNameZoomAppCredentials).
+		WithPretext(stepTitleZoomAppCredentials).
+		WithText(description).
+		WithButton(flow.Button{
+			Name:   "Enter Client ID and Client secret",
+			Color:  flow.ColorPrimary,
+			Dialog: &zoomAppCredentialsDialog,
+			OnDialogSubmit: func(f *flow.Flow, submission map[string]interface{}) (flow.Name, flow.State, map[string]string, error) {
+				errors, err := submitZoomAppCredentialsStep(submission, getConfiguration, client)
+				return "", nil, errors, err
 			},
-			OnClick: func(notSure string) int {
-				return -1
-			},
-		}).
-		Build()
+		})
 }
 
 var zoomAppCredentialsDialog = model.Dialog{
@@ -72,7 +69,7 @@ var zoomAppCredentialsDialog = model.Dialog{
 	},
 }
 
-func submitZoomAppCredentialsStep(submission map[string]interface{}, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) (string, map[string]string) {
+func submitZoomAppCredentialsStep(submission map[string]interface{}, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) (map[string]string, error) {
 	errorList := map[string]string{}
 
 	clientID, err := safeString(submission, confClientID)
@@ -86,7 +83,7 @@ func submitZoomAppCredentialsStep(submission map[string]interface{}, getConfigur
 	}
 
 	if len(errorList) != 0 {
-		return "", errorList
+		return errorList, nil
 	}
 
 	config := getConfiguration()
@@ -95,8 +92,8 @@ func submitZoomAppCredentialsStep(submission map[string]interface{}, getConfigur
 
 	err = client.Configuration.SavePluginConfig(config.ToMap())
 	if err != nil {
-		return errors.Wrap(err, "failed to save plugin config").Error(), nil
+		return nil, errors.Wrap(err, "failed to save plugin config")
 	}
 
-	return "", nil
+	return nil, nil
 }
