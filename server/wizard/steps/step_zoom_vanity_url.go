@@ -24,7 +24,7 @@ const (
 
 func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) flow.Step {
 	return flow.NewStep(stepNameVanityURL).
-		WithPretext(stepTitleVanityURL).
+		WithTitle(stepTitleVanityURL).
 		WithText(stepDescriptionVanityURL).
 		WithButton(flow.Button{
 			Name:   "Yes",

@@ -23,7 +23,7 @@ func FinishedStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionFinished, connectURL)
 
 	return flow.NewStep(stepNameFinished).
-		WithPretext(stepTitleFinished).
+		WithTitle(stepTitleFinished).
 		WithText(description).
 		Terminal()
 }

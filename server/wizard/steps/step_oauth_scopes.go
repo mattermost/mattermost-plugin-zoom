@@ -28,7 +28,7 @@ func OAuthScopesStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionOAuthScopes, meetingOauthScopeImage)
 
 	return flow.NewStep(stepNameOAuthScopes).
-		WithPretext(stepTitleOAuthScopes).
+		WithTitle(stepTitleOAuthScopes).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:    "Continue",

@@ -34,7 +34,7 @@ func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigu
 	description := fmt.Sprintf(stepDescriptionZoomAppCredentials, appCredentialsImage)
 
 	return flow.NewStep(stepNameZoomAppCredentials).
-		WithPretext(stepTitleZoomAppCredentials).
+		WithTitle(stepTitleZoomAppCredentials).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:   "Enter Client ID and Client secret",

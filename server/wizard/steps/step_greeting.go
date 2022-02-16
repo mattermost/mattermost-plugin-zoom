@@ -16,7 +16,7 @@ Are you able to set up the integration with a Zoom admin account?`
 
 func GreetingStep() flow.Step {
 	return flow.NewStep(stepNameGreeting).
-		WithPretext(stepTitleGreeting).
+		WithTitle(stepTitleGreeting).
 		WithText(stepDescriptionGreeting).
 		WithButton(flow.Button{
 			Name:    "Continue",

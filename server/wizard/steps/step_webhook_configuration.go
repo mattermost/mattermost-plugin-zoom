@@ -35,7 +35,7 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)
 
 	return flow.NewStep(stepNameWebhookConfiguration).
-		WithPretext(stepTitleWebhookConfiguration).
+		WithTitle(stepTitleWebhookConfiguration).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:    "Continue",

@@ -30,7 +30,7 @@ func ZoomMarketplaceStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionGotoZoomMarketplace, buildAppImage, appTypeImage)
 
 	return flow.NewStep(stepNameGotoZoomMarketplace).
-		WithPretext(stepTitleGotoZoomMarketplace).
+		WithTitle(stepTitleGotoZoomMarketplace).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:    "Continue",

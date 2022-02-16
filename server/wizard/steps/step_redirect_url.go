@@ -24,7 +24,7 @@ func RedirectURLStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL, redirectImage)
 
 	return flow.NewStep(stepNameRedirectURL).
-		WithPretext(stepTitleRedirectURL).
+		WithTitle(stepTitleRedirectURL).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:    "Continue",

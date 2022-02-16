@@ -23,7 +23,7 @@ func WebhookEventsStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage)
 
 	return flow.NewStep(stepNameWebhookEvents).
-		WithPretext(stepTitleWebhookEvents).
+		WithTitle(stepTitleWebhookEvents).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:    "Continue",

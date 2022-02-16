@@ -25,7 +25,7 @@ func CreateZoomAppStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionCreateApp, createAppImage)
 
 	return flow.NewStep(stepNameCreateApp).
-		WithPretext(stepTitleCreateApp).
+		WithTitle(stepTitleCreateApp).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:    "Continue",
