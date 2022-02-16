@@ -151,25 +151,25 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
 
 		c.token = updatedToken
 	} else {
+		// This block is only for refreshing the user's OAuth token. If we failed to fetch the current token,
+		// it is likely that this is the first the time the user has connected, so we just avoid refreshing if there's an error.
 		currentToken, err := c.api.GetZoomUserToken(user.Id)
-		if err != nil {
-			return nil, errors.Wrap(err, "error getting zoom user token")
-		}
-
-		tokenSource := c.config.TokenSource(context.Background(), currentToken)
-		updatedToken, err := tokenSource.Token()
-		if err != nil {
-			return nil, errors.Wrap(err, "error getting token from token source")
-		}
-
-		if updatedToken.AccessToken != currentToken.AccessToken {
-			kvErr := c.api.UpdateZoomUserToken(user.Id, updatedToken)
-			if kvErr != nil {
-				return nil, errors.Wrap(kvErr, "error setting new token")
+		if err == nil {
+			tokenSource := c.config.TokenSource(context.Background(), currentToken)
+			updatedToken, err := tokenSource.Token()
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting token from token source")
 			}
-		}
 
-		c.token = updatedToken
+			if updatedToken.AccessToken != currentToken.AccessToken {
+				kvErr := c.api.UpdateZoomUserToken(user.Id, updatedToken)
+				if kvErr != nil {
+					return nil, errors.Wrap(kvErr, "error setting new token")
+				}
+			}
+
+			c.token = updatedToken
+		}
 	}
 
 	client := c.config.Client(context.Background(), c.token)
