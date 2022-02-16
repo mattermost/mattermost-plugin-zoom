@@ -51,6 +51,8 @@ func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 }
 
 func (p *Plugin) fetchOAuthUserInfo(tokenKey, userID string) (*zoom.OAuthUserInfo, error) {
+	config := p.getConfiguration()
+
 	encoded, appErr := p.API.KVGet(tokenKey + userID)
 	if appErr != nil || encoded == nil {
 		return nil, errors.New("must connect user account to Zoom first")
@@ -60,6 +62,13 @@ func (p *Plugin) fetchOAuthUserInfo(tokenKey, userID string) (*zoom.OAuthUserInf
 	if err := json.Unmarshal(encoded, &info); err != nil {
 		return nil, errors.New("could not to parse OAauth access token")
 	}
+
+	plainToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
+	if err != nil {
+		return nil, errors.New("could not decrypt OAuth access token")
+	}
+
+	info.OAuthToken.AccessToken = plainToken
 
 	return &info, nil
 }

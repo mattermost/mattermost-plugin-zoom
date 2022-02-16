@@ -46,8 +46,8 @@ func NewOAuthClient(token *oauth2.Token, config *oauth2.Config, siteURL, apiURL 
 }
 
 // GetUser returns the Zoom user via OAuth.
-func (c *OAuthClient) GetUser(user *model.User) (*User, *AuthError) {
-	zoomUser, err := c.getUserViaOAuth(user)
+func (c *OAuthClient) GetUser(user *model.User, firstConnect bool) (*User, *AuthError) {
+	zoomUser, err := c.getUserViaOAuth(user, firstConnect)
 	if err != nil {
 		if c.isAccountLevel {
 			if err == errNotFound {
@@ -95,49 +95,57 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	return &meeting, nil
 }
 
-func (c *OAuthClient) getUserViaOAuth(user *model.User) (*User, error) {
+func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*User, error) {
 	url := fmt.Sprintf("%s/users/me", c.apiURL)
 	if c.isAccountLevel {
 		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
-		currentToken, err := c.api.GetZoomSuperUserToken()
-		if err != nil {
-			return nil, errors.Wrap(err, "error getting zoom super user token")
-		}
+	}
 
-		tokenSource := c.config.TokenSource(context.Background(), currentToken)
-		updatedToken, err := tokenSource.Token()
-		if err != nil {
-			return nil, errors.Wrap(err, "error getting token from token source")
-		}
-
-		if updatedToken.AccessToken != currentToken.AccessToken {
-			kvErr := c.api.SetZoomSuperUserToken(updatedToken)
-			if kvErr != nil {
-				return nil, errors.Wrap(kvErr, "error setting new token")
+	if !firstConnect {
+		if c.isAccountLevel {
+			currentToken, err := c.api.GetZoomSuperUserToken()
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting zoom super user token")
 			}
-		}
 
-		c.token = updatedToken
-	} else {
-		currentToken, err := c.api.GetZoomUserToken(user.Id)
-		if err != nil {
-			return nil, errors.Wrap(err, "error getting zoom user token")
-		}
-
-		tokenSource := c.config.TokenSource(context.Background(), currentToken)
-		updatedToken, err := tokenSource.Token()
-		if err != nil {
-			return nil, errors.Wrap(err, "error getting token from token source")
-		}
-
-		if updatedToken.AccessToken != currentToken.AccessToken {
-			kvErr := c.api.UpdateZoomUserToken(user.Id, updatedToken)
-			if kvErr != nil {
-				return nil, errors.Wrap(kvErr, "error setting new token")
+			tokenSource := c.config.TokenSource(context.Background(), currentToken)
+			updatedToken, err := tokenSource.Token()
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting token from token source")
 			}
-		}
 
-		c.token = updatedToken
+			if updatedToken.AccessToken != currentToken.AccessToken {
+				kvErr := c.api.SetZoomSuperUserToken(updatedToken)
+				if kvErr != nil {
+					return nil, errors.Wrap(kvErr, "error setting new token")
+				}
+			}
+
+			c.token = updatedToken
+		} else {
+			info, err := c.api.GetZoomOAuthUserInfo(user.Id)
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting zoom user token")
+			}
+
+			currentToken := info.OAuthToken
+
+			tokenSource := c.config.TokenSource(context.Background(), currentToken)
+			updatedToken, err := tokenSource.Token()
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting token from token source")
+			}
+
+			if updatedToken.AccessToken != currentToken.AccessToken {
+				info.OAuthToken = updatedToken
+				kvErr := c.api.UpdateZoomOAuthUserInfo(user.Id, info)
+				if kvErr != nil {
+					return nil, errors.Wrap(kvErr, "error setting new token")
+				}
+			}
+
+			c.token = updatedToken
+		}
 	}
 
 	client := c.config.Client(context.Background(), c.token)
