@@ -150,7 +150,6 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 		}
 
 		c.token = updatedToken
-
 	} else if !firstConnect {
 		currentToken, err := c.api.GetZoomUserToken(user.Id)
 		if err != nil {
