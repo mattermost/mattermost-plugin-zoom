@@ -158,7 +158,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
 		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
+		if _, appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
 			p.API.LogWarn("failed to store user state")
 		}
 		return authErr.Message, authErr.Err
@@ -201,7 +201,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 			return alreadyConnectedString, nil
 		}
 
-		appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+		_, appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
 		if appErr != nil {
 			return "", errors.Wrap(appErr, "cannot store state")
 		}
@@ -214,7 +214,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 		return alreadyConnectedString, nil
 	}
 
-	appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+	_, appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
 	if appErr != nil {
 		return "", errors.Wrap(appErr, "cannot store state")
 	}

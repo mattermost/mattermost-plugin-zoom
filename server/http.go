@@ -73,6 +73,21 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(state) == 0 {
+		ch, err := p.client.Channel.GetDirect(userID, p.botUserID)
+		if err != nil {
+			http.Error(w, "failed to get bot DM channel", http.StatusNotFound)
+			return
+		}
+
+		channelID := ch.Id
+		state, appErr = p.storeOAuthUserState(userID, channelID, true)
+		if appErr != nil {
+			http.Error(w, "failed to store oauth state", http.StatusNotFound)
+			return
+		}
+	}
+
 	cfg := p.getOAuthConfig()
 	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusFound)
@@ -403,7 +418,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
+		if _, appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
 			p.API.LogWarn("failed to store user state")
 		}
 
