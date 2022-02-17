@@ -152,6 +152,15 @@ func (p *Plugin) setDefaultConfiguration() error {
 	return nil
 }
 
+func (p *Plugin) OnInstall(c *plugin.Context, event model.OnInstallEvent) error {
+	// Don't start wizard if plugin is configured
+	if p.getConfiguration().IsValid() == nil {
+		return nil
+	}
+
+	return p.flowManager.StartConfigurationWizard(event.UserId)
+}
+
 func (p *Plugin) OnSendDailyTelemetry() {
 	p.sendDailyTelemetry()
 }
