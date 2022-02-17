@@ -201,7 +201,8 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zo
 		}
 	}
 
-	return zoomClient.GetUser(user, false)
+	firstConnect := false
+	return zoomClient.GetUser(user, firstConnect)
 }
 
 func (p *Plugin) sendDirectMessage(userID string, message string) error {
