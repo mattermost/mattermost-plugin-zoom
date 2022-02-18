@@ -64,7 +64,7 @@ var zoomAppCredentialsDialog = model.Dialog{
 			Name:        confClientSecret,
 			HelpText:    "",
 			Type:        "text",
-			SubType:     "password",
+			SubType:     "text",
 		},
 	},
 }
