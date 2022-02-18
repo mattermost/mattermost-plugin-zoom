@@ -151,10 +151,12 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 
 		c.token = updatedToken
 	} else if !firstConnect {
-		currentToken, err := c.api.GetZoomUserToken(user.Id)
+		info, err := c.api.GetZoomUserInfo(user.Id)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting zoom user token")
 		}
+
+		currentToken := info.OAuthToken
 
 		tokenSource := c.config.TokenSource(context.Background(), currentToken)
 		updatedToken, err := tokenSource.Token()
@@ -163,7 +165,8 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 		}
 
 		if updatedToken.AccessToken != currentToken.AccessToken {
-			kvErr := c.api.UpdateZoomUserToken(user.Id, updatedToken)
+			info.OAuthToken = updatedToken
+			kvErr := c.api.UpdateZoomUserInfo(user.Id, info)
 			if kvErr != nil {
 				return nil, errors.Wrap(kvErr, "error setting new token")
 			}
