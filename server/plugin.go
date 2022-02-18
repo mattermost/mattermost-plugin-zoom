@@ -236,7 +236,7 @@ func (p *Plugin) SetZoomSuperUserToken(token *oauth2.Token) error {
 	return nil
 }
 
-func (p *Plugin) GetZoomUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
+func (p *Plugin) GetZoomOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
 	info, err := p.fetchOAuthUserInfo(zoomUserByMMID, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get token")
@@ -248,7 +248,7 @@ func (p *Plugin) GetZoomUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
 	return info, nil
 }
 
-func (p *Plugin) UpdateZoomUserInfo(userID string, info *zoom.OAuthUserInfo) error {
+func (p *Plugin) UpdateZoomOAuthUserInfo(userID string, info *zoom.OAuthUserInfo) error {
 	if err := p.storeOAuthUserInfo(info); err != nil {
 		msg := "unable to update user token"
 		p.API.LogWarn(msg, "error", err.Error())

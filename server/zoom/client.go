@@ -34,6 +34,6 @@ type Client interface {
 type PluginAPI interface {
 	GetZoomSuperUserToken() (*oauth2.Token, error)
 	SetZoomSuperUserToken(*oauth2.Token) error
-	GetZoomUserInfo(userID string) (*OAuthUserInfo, error)
-	UpdateZoomUserInfo(userID string, info *OAuthUserInfo) error
+	GetZoomOAuthUserInfo(userID string) (*OAuthUserInfo, error)
+	UpdateZoomOAuthUserInfo(userID string, info *OAuthUserInfo) error
 }
