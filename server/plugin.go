@@ -53,7 +53,7 @@ type Plugin struct {
 // Client defines a common interface for the API and OAuth Zoom clients
 type Client interface {
 	GetMeeting(meetingID int) (*zoom.Meeting, error)
-	GetUser(user *model.User) (*zoom.User, *zoom.AuthError)
+	GetUser(user *model.User, firstConnect bool) (*zoom.User, *zoom.AuthError)
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
