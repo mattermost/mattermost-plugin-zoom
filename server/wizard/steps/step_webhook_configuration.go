@@ -5,8 +5,9 @@ import (
 	"net/url"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
-	"github.com/mattermost/mattermost-plugin-zoom/server/config"
 	"github.com/mattermost/mattermost-server/v6/model"
+
+	"github.com/mattermost/mattermost-plugin-zoom/server/config"
 )
 
 const (
