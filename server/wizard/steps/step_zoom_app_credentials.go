@@ -44,7 +44,8 @@ func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigu
 				errors, err := submitZoomAppCredentialsStep(submission, getConfiguration, client)
 				return "", nil, errors, err
 			},
-		})
+		}).
+		WithButton(cancelSetupButton)
 }
 
 var zoomAppCredentialsDialog = model.Dialog{

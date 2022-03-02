@@ -48,7 +48,6 @@ func (p *Plugin) trackMeetingForced(userID string) {
 }
 
 func (p *Plugin) sendDailyTelemetry() {
-
 	config := p.getConfiguration()
 
 	connectedUserCount, err := p.getConnectedUserCount()

@@ -54,7 +54,6 @@ func (p *Plugin) createRouter() *mux.Router {
 	oauthRouter := router.PathPrefix("/oauth2").Subrouter()
 	oauthRouter.HandleFunc("/connect", p.connectUserToZoom).Methods(http.MethodGet)
 	oauthRouter.HandleFunc("/complete", p.completeUserOAuthToZoom).Methods(http.MethodGet)
-	oauthRouter.HandleFunc("*", http.NotFound)
 
 	return router
 }
@@ -73,7 +72,7 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(state) == 0 {
+	if state == "" {
 		ch, err := p.client.Channel.GetDirect(userID, p.botUserID)
 		if err != nil {
 			http.Error(w, "failed to get bot DM channel", http.StatusNotFound)

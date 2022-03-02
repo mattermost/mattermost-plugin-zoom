@@ -30,9 +30,6 @@ func OAuthScopesStep(pluginURL string) flow.Step {
 	return flow.NewStep(stepNameOAuthScopes).
 		WithTitle(stepTitleOAuthScopes).
 		WithText(description).
-		WithButton(flow.Button{
-			Name:    "Continue",
-			Color:   flow.ColorDefault,
-			OnClick: flow.Goto(""),
-		})
+		WithButton(continueButton).
+		WithButton(cancelSetupButton)
 }

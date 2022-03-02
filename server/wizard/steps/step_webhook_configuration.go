@@ -6,6 +6,7 @@ import (
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 	"github.com/mattermost/mattermost-plugin-zoom/server/config"
+	"github.com/mattermost/mattermost-server/v6/model"
 )
 
 const (
@@ -31,15 +32,35 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 
 	eventConfigImage := imagePathToMarkdown(pluginURL, "Event Configuration", "event_configuration.png")
 
-	webhookURL := fmt.Sprintf("`%s/webhook?secret=%s`", pluginURL, secret)
+	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
 	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)
+
+	webhookURLDialog := model.Dialog{
+		Title:            "Webhook URL",
+		IntroductionText: "",
+		SubmitLabel:      "Continue",
+		Elements: []model.DialogElement{
+			{
+				DisplayName: "",
+				Name:        "webhook_url",
+				Type:        "text",
+				Default:     webhookURL,
+				HelpText:    "Copy this URL into Zoom",
+				Optional:    true,
+			},
+		},
+	}
 
 	return flow.NewStep(stepNameWebhookConfiguration).
 		WithTitle(stepTitleWebhookConfiguration).
 		WithText(description).
 		WithButton(flow.Button{
-			Name:    "Continue",
-			Color:   flow.ColorDefault,
-			OnClick: flow.Goto(""),
-		})
+			Name:   "Show Webhook URL",
+			Color:  flow.ColorPrimary,
+			Dialog: &webhookURLDialog,
+			OnDialogSubmit: func(f *flow.Flow, submission map[string]interface{}) (flow.Name, flow.State, map[string]string, error) {
+				return "", nil, nil, nil
+			},
+		}).
+		WithButton(cancelSetupButton)
 }

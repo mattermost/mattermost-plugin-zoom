@@ -24,6 +24,5 @@ func FinishedStep(pluginURL string) flow.Step {
 
 	return flow.NewStep(stepNameFinished).
 		WithTitle(stepTitleFinished).
-		WithText(description).
-		Terminal()
+		WithText(description)
 }

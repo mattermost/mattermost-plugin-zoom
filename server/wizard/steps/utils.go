@@ -5,7 +5,21 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
+
+var continueButton = flow.Button{
+	Name:    "Continue",
+	Color:   flow.ColorDefault,
+	OnClick: flow.Goto(""),
+}
+
+var cancelSetupButton = flow.Button{
+	Name:    "Cancel setup",
+	Color:   flow.ColorDefault,
+	OnClick: flow.Goto(stepNameCanceled),
+}
 
 // imagePathToMarkdown converts an image path in the /public/setup_flow_images folder into a markdown-compatible image
 func imagePathToMarkdown(pluginURL, name, imgPath string) string {

@@ -37,7 +37,13 @@ func NewFlowManager(getConfiguration config.GetConfigurationFunc, client *plugin
 	return fm
 }
 
-func (fm *FlowManager) GetConfigurationFlow(userID string) *flow.Flow {
+var configurationFlow *flow.Flow
+
+func (fm *FlowManager) GetConfigurationFlow() *flow.Flow {
+	if configurationFlow != nil {
+		return configurationFlow
+	}
+
 	steps := []flow.Step{
 		steps_local.GreetingStep(),
 		steps_local.VanityURLStep(fm.getConfiguration, fm.client),
@@ -50,7 +56,9 @@ func (fm *FlowManager) GetConfigurationFlow(userID string) *flow.Flow {
 		steps_local.OAuthScopesStep(fm.pluginURL),
 		steps_local.FinishedStep(fm.pluginURL).OnRender(func(f *flow.Flow) {
 			fm.trackCompleteSetupWizard(f.UserID)
-		}),
+		}).Terminal(),
+
+		steps_local.CanceledStep(),
 	}
 
 	return flow.NewFlow(
@@ -58,11 +66,13 @@ func (fm *FlowManager) GetConfigurationFlow(userID string) *flow.Flow {
 		fm.client,
 		fm.pluginURL,
 		fm.botUserID,
-	).WithSteps(steps...).ForUser(userID).InitHTTP(fm.router)
+	).
+		WithSteps(steps...).
+		InitHTTP(fm.router)
 }
 
 func (fm *FlowManager) StartConfigurationWizard(userID string) error {
-	err := fm.GetConfigurationFlow(userID).Start(flow.State{})
+	err := fm.GetConfigurationFlow().ForUser(userID).Start(flow.State{})
 	if err != nil {
 		return errors.Wrap(err, "failed to start configuration wizard")
 	}

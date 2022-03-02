@@ -39,7 +39,8 @@ func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *plugina
 			Name:    "No",
 			Color:   flow.ColorDefault,
 			OnClick: flow.Goto(""),
-		})
+		}).
+		WithButton(cancelSetupButton)
 }
 
 var vanityURLDialog = model.Dialog{

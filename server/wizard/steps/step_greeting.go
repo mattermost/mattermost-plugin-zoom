@@ -18,14 +18,10 @@ func GreetingStep() flow.Step {
 	return flow.NewStep(stepNameGreeting).
 		WithTitle(stepTitleGreeting).
 		WithText(stepDescriptionGreeting).
+		WithButton(continueButton).
 		WithButton(flow.Button{
-			Name:    "Continue",
-			Color:   flow.ColorPrimary,
-			OnClick: flow.Goto(""),
-		}).
-		WithButton(flow.Button{
-			Name:  "Not now",
-			Color: flow.ColorDefault,
-			// TODO: go to "you can setup later" step
+			Name:    "Not now",
+			Color:   flow.ColorDefault,
+			OnClick: flow.Goto(stepNameCanceled),
 		})
 }

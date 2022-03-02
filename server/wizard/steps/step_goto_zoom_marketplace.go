@@ -32,9 +32,6 @@ func ZoomMarketplaceStep(pluginURL string) flow.Step {
 	return flow.NewStep(stepNameGotoZoomMarketplace).
 		WithTitle(stepTitleGotoZoomMarketplace).
 		WithText(description).
-		WithButton(flow.Button{
-			Name:    "Continue",
-			Color:   flow.ColorDefault,
-			OnClick: flow.Goto(""),
-		})
+		WithButton(continueButton).
+		WithButton(cancelSetupButton)
 }
