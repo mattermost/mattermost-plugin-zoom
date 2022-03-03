@@ -11,9 +11,9 @@ const (
 
 	stepTitleFinished = "Setup finished"
 
-	stepDescriptionFinished = `Sent the announcement to ~{{ .ChannelName }}
+	stepDescriptionFinished = `You're all done!
 
-You're all done!
+We've sent the announcement to ~{{ .ChannelName }}
 
 Click [here](%s) connect your Zoom account.`
 )

@@ -1,8 +1,6 @@
 package steps
 
 import (
-	"fmt"
-
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
@@ -17,19 +15,16 @@ const (
 - meeting:write
 - user:read
 
-Click **Continue**
-
-%s`
+Click **Continue**`
 )
 
 func OAuthScopesStep(pluginURL string) flow.Step {
-	meetingOauthScopeImage := imagePathToMarkdown(pluginURL, "Meeting OAuth Scope", "oauth_scope_meeting.png")
-
-	description := fmt.Sprintf(stepDescriptionOAuthScopes, meetingOauthScopeImage)
+	meetingOauthScopeImage := wizardImagePath("oauth_scope_meeting.png")
 
 	return flow.NewStep(stepNameOAuthScopes).
 		WithTitle(stepTitleOAuthScopes).
-		WithText(description).
+		WithText(stepDescriptionOAuthScopes).
+		WithImage(pluginURL, meetingOauthScopeImage).
 		WithButton(continueButton).
 		WithButton(cancelSetupButton)
 }

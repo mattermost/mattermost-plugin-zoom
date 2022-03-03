@@ -17,13 +17,13 @@ var continueButton = flow.Button{
 
 var cancelSetupButton = flow.Button{
 	Name:    "Cancel setup",
-	Color:   flow.ColorDefault,
+	Color:   flow.ColorDanger,
 	OnClick: flow.Goto(stepNameCanceled),
 }
 
-// imagePathToMarkdown converts an image path in the /public/setup_flow_images folder into a markdown-compatible image
-func imagePathToMarkdown(pluginURL, name, imgPath string) string {
-	return fmt.Sprintf("![%s](%s/public/setup_flow_images/%s)", name, pluginURL, imgPath)
+// wizardImagePath converts an image file to a path prefixed with /public/setup_flow_images
+func wizardImagePath(imgFile string) string {
+	return fmt.Sprintf("/public/setup_flow_images/%s", imgFile)
 }
 
 // isValidURL checks if a given URL is a valid URL with a host and a http or http scheme.

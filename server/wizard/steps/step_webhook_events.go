@@ -1,8 +1,6 @@
 package steps
 
 import (
-	"fmt"
-
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
@@ -18,13 +16,12 @@ const (
 )
 
 func WebhookEventsStep(pluginURL string) flow.Step {
-	meetingEventTypesImage := imagePathToMarkdown(pluginURL, "Recording Events", "event_type_meeting.png")
-
-	description := fmt.Sprintf(stepDescriptionWebhookEvents, meetingEventTypesImage)
+	meetingEventTypesImage := wizardImagePath("event_type_meeting.png")
 
 	return flow.NewStep(stepNameWebhookEvents).
 		WithTitle(stepTitleWebhookEvents).
-		WithText(description).
+		WithText(stepDescriptionWebhookEvents).
+		WithImage(pluginURL, meetingEventTypesImage).
 		WithButton(continueButton).
 		WithButton(cancelSetupButton)
 }

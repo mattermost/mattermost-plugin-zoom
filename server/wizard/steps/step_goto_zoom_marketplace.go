@@ -1,8 +1,6 @@
 package steps
 
 import (
-	"fmt"
-
 	"github.com/mattermost/mattermost-plugin-api/experimental/flow"
 )
 
@@ -16,22 +14,16 @@ const (
 1. Go to https://marketplace.zoom.us and log in using a Zoom admin account.
 2. In the top right corner of the screen, select **Develop** and then **Build App**.
 
-%s
-
-3. Select **OAuth** in **Choose your app type** section.
-
-%s`
+3. Select **OAuth** in **Choose your app type** section.`
 )
 
 func ZoomMarketplaceStep(pluginURL string) flow.Step {
-	buildAppImage := imagePathToMarkdown(pluginURL, "Build Zoom App", "build_app.png")
-	appTypeImage := imagePathToMarkdown(pluginURL, "Choose App Type", "choose_app_type.png")
-
-	description := fmt.Sprintf(stepDescriptionGotoZoomMarketplace, buildAppImage, appTypeImage)
+	appTypeImage := wizardImagePath("choose_app_type.png")
 
 	return flow.NewStep(stepNameGotoZoomMarketplace).
 		WithTitle(stepTitleGotoZoomMarketplace).
-		WithText(description).
+		WithText(stepDescriptionGotoZoomMarketplace).
+		WithImage(pluginURL, appTypeImage).
 		WithButton(continueButton).
 		WithButton(cancelSetupButton)
 }

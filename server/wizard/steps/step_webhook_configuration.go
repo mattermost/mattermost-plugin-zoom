@@ -21,8 +21,6 @@ const (
 4. Enter in **Event notification endpoint URL**
 5. For the **Event notification receiver** field, select "All users in the account"
 
-%s
-
 We'll select the webhook events in the next step.
 `
 )
@@ -31,10 +29,9 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 	secret := getConfiguration().WebhookSecret
 	secret = url.QueryEscape(secret)
 
-	eventConfigImage := imagePathToMarkdown(pluginURL, "Event Configuration", "event_configuration.png")
+	eventConfigImage := wizardImagePath("event_configuration.png")
 
 	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
-	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, eventConfigImage)
 
 	webhookURLDialog := model.Dialog{
 		Title:            "Webhook URL",
@@ -54,7 +51,8 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 
 	return flow.NewStep(stepNameWebhookConfiguration).
 		WithTitle(stepTitleWebhookConfiguration).
-		WithText(description).
+		WithText(stepDescriptionWebhookConfiguration).
+		WithImage(pluginURL, eventConfigImage).
 		WithButton(flow.Button{
 			Name:   "Show Webhook URL",
 			Color:  flow.ColorPrimary,

@@ -1,8 +1,6 @@
 package steps
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 
 	pluginapi "github.com/mattermost/mattermost-plugin-api"
@@ -29,13 +27,12 @@ Click the button below to open a dialog to enter these two values.
 )
 
 func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) flow.Step {
-	appCredentialsImage := imagePathToMarkdown(pluginURL, "App Credentials", "app_credentials.png")
-
-	description := fmt.Sprintf(stepDescriptionZoomAppCredentials, appCredentialsImage)
+	appCredentialsImage := wizardImagePath("app_credentials.png")
 
 	return flow.NewStep(stepNameZoomAppCredentials).
 		WithTitle(stepTitleZoomAppCredentials).
-		WithText(description).
+		WithText(stepDescriptionZoomAppCredentials).
+		WithImage(pluginURL, appCredentialsImage).
 		WithButton(flow.Button{
 			Name:   "Enter Client ID and Client secret",
 			Color:  flow.ColorPrimary,
