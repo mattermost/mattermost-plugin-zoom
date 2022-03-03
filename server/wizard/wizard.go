@@ -54,11 +54,14 @@ func (fm *FlowManager) GetConfigurationFlow() *flow.Flow {
 		steps_local.WebhookConfigurationStep(fm.pluginURL, fm.getConfiguration),
 		steps_local.WebhookEventsStep(fm.pluginURL),
 		steps_local.OAuthScopesStep(fm.pluginURL),
+
+		steps_local.AnnouncementQuestionStep(fm.client),
+
 		steps_local.FinishedStep(fm.pluginURL).OnRender(func(f *flow.Flow) {
 			fm.trackCompleteSetupWizard(f.UserID)
-		}).Terminal(),
+		}),
 
-		steps_local.CanceledStep(),
+		steps_local.CanceledStep().Terminal(),
 	}
 
 	return flow.NewFlow(

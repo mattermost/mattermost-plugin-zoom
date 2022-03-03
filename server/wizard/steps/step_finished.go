@@ -11,9 +11,9 @@ const (
 
 	stepTitleFinished = "Setup finished"
 
-	stepDescriptionFinished = `You're all done!
+	stepDescriptionFinished = `Sent the announcement to ~{{ .ChannelName }}
 
-Nothing needs to be done on the **Activation** page. You can close your browser tab.
+You're all done!
 
 Click [here](%s) connect your Zoom account.`
 )
