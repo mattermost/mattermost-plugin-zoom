@@ -11,7 +11,7 @@ import (
 	"github.com/mattermost/mattermost-server/v6/model"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/config"
-	steps_local "github.com/mattermost/mattermost-plugin-zoom/server/wizard/steps"
+	"github.com/mattermost/mattermost-plugin-zoom/server/wizard/steps"
 )
 
 type FlowManager struct {
@@ -45,23 +45,22 @@ func (fm *FlowManager) GetConfigurationFlow() *flow.Flow {
 	}
 
 	steps := []flow.Step{
-		steps_local.GreetingStep(),
-		steps_local.VanityURLStep(fm.getConfiguration, fm.client),
-		steps_local.ZoomMarketplaceStep(fm.pluginURL),
-		steps_local.CreateZoomAppStep(fm.pluginURL),
-		steps_local.ZoomAppCredentialsStep(fm.pluginURL, fm.getConfiguration, fm.client),
-		steps_local.RedirectURLStep(fm.pluginURL),
-		steps_local.WebhookConfigurationStep(fm.pluginURL, fm.getConfiguration),
-		steps_local.WebhookEventsStep(fm.pluginURL),
-		steps_local.OAuthScopesStep(fm.pluginURL),
+		steps.GreetingStep(),
+		steps.VanityURLStep(fm.getConfiguration, fm.client),
+		steps.CreateZoomAppStep(fm.pluginURL),
+		steps.ZoomAppCredentialsStep(fm.pluginURL, fm.getConfiguration, fm.client),
+		steps.RedirectURLStep(fm.pluginURL),
+		steps.WebhookConfigurationStep(fm.pluginURL, fm.getConfiguration),
+		steps.WebhookEventsStep(fm.pluginURL),
+		steps.OAuthScopesStep(fm.pluginURL),
 
-		steps_local.AnnouncementQuestionStep(fm.client),
+		steps.AnnouncementQuestionStep(fm.client),
 
-		steps_local.FinishedStep(fm.pluginURL).OnRender(func(f *flow.Flow) {
+		steps.FinishedStep(fm.pluginURL).OnRender(func(f *flow.Flow) {
 			fm.trackCompleteSetupWizard(f.UserID)
 		}),
 
-		steps_local.CanceledStep().Terminal(),
+		steps.CanceledStep().Terminal(),
 	}
 
 	return flow.NewFlow(

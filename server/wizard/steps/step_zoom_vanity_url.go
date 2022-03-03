@@ -23,6 +23,34 @@ const (
 )
 
 func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) flow.Step {
+	conf := getConfiguration()
+
+	vanityURLDialog := model.Dialog{
+		Title:            "",
+		IntroductionText: "",
+		SubmitLabel:      "Submit",
+		Elements: []model.DialogElement{
+			{
+				DisplayName: "Zoom URL",
+				Name:        confURL,
+				Default:     conf.ZoomURL,
+				Placeholder: "https://yourcompany.zoom.us",
+				HelpText:    "The URL for your organization's Zoom instance",
+				Type:        "text",
+				SubType:     "url",
+			},
+			{
+				DisplayName: "Zoom API URL",
+				Name:        confAPI,
+				Default:     conf.ZoomAPIURL,
+				Placeholder: "https://api.yourcompany.zoom.us/v2",
+				HelpText:    "The API URL for your organization's Zoom instance",
+				Type:        "text",
+				SubType:     "url",
+			},
+		},
+	}
+
 	return flow.NewStep(stepNameVanityURL).
 		WithTitle(stepTitleVanityURL).
 		WithText(stepDescriptionVanityURL).
@@ -41,30 +69,6 @@ func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *plugina
 			OnClick: flow.Goto(""),
 		}).
 		WithButton(cancelSetupButton)
-}
-
-var vanityURLDialog = model.Dialog{
-	Title:            "",
-	IntroductionText: "",
-	SubmitLabel:      "Submit",
-	Elements: []model.DialogElement{
-		{
-			DisplayName: "Zoom URL",
-			Name:        confURL,
-			Placeholder: "https://yourcompany.zoom.us",
-			HelpText:    "The URL for your organization's Zoom instance",
-			Type:        "text",
-			SubType:     "url",
-		},
-		{
-			DisplayName: "Zoom API URL",
-			Name:        confAPI,
-			Placeholder: "https://api.yourcompany.zoom.us/v2",
-			HelpText:    "The API URL for your organization's Zoom instance",
-			Type:        "text",
-			SubType:     "url",
-		},
-	},
 }
 
 func submitVanityURLStep(submission map[string]interface{}, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) (map[string]string, error) {

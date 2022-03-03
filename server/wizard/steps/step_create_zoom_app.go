@@ -7,19 +7,25 @@ import (
 const (
 	stepNameCreateApp = "create_app"
 
-	stepTitleCreateApp = "Create Zoom app"
+	stepTitleCreateApp = "### :white_check_mark: Step 1: Register an OAuth application in Zoom"
 
-	stepDescriptionCreateApp = `1. Enter a name for your app, such as "Mattermost Plugin".
-2. Choose **User-managed app** as the app type.
-3. Choose **No** for **Would like to publish this app on Zoom Marketplace**.
-4. Click **Create**.`
+	stepDescriptionCreateApp = `1. In a browser, go to https://marketplace.zoom.us, then log in with admin credentials.
+	2. Select **Develop** in the top right corner, then select **Build App**.
+
+	3. Select **OAuth** in the **Choose your app type** section.
+	4. Enter a **name** for your app, such as "Mattermost Plugin".
+	5. Choose **User-managed app** as the app type.
+	6. When prompted to publish the app on the Zoom Marketplace, select **No**.
+	7. Click **Create**.`
 )
 
 func CreateZoomAppStep(pluginURL string) flow.Step {
+	appTypeImage := wizardImagePath("choose_app_type.png")
+
 	return flow.NewStep(stepNameCreateApp).
-		WithTitle(stepTitleCreateApp).
-		WithImage(pluginURL, "public/setup_flow_images/create_oauth_app.png").
+		WithPretext(stepTitleCreateApp).
 		WithText(stepDescriptionCreateApp).
+		WithImage(pluginURL, appTypeImage).
 		WithButton(continueButton).
 		WithButton(cancelSetupButton)
 }

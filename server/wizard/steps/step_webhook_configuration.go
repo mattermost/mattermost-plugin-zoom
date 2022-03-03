@@ -13,15 +13,17 @@ import (
 const (
 	stepNameWebhookConfiguration = "webhook_configuration"
 
-	stepTitleWebhookConfiguration = "Configure webhook in Zoom"
-
-	stepDescriptionWebhookConfiguration = `1. Click on the **Feature** category in the left sidebar.
-2. Enable **Event Subscriptions**.
-3. Click **Add New Event Subscription** and give it a name \(e.g. "Mattermost events"\).
-4. Enter in **Event notification endpoint URL**
-5. For the **Event notification receiver** field, select "All users in the account"
+	stepTitleWebhookConfiguration = `## :white_check_mark: Step 4: Configure a webhook in Zoom
 
 We'll select the webhook events in the next step.
+`
+
+	stepDescriptionWebhookConfiguration = `1. In **Zoom**, select the  on the **Feature** category in the left sidebar.
+2. Enable **Event Subscriptions**.
+3. Click **Add New Event Subscription** and give it a name \(e.g. "Mattermost events"\).
+4. Click the button below to copy the webhook URL for your Mattermost server.
+5. Paste the webhook URL in the **Event notification endpoint URL** input.
+6. For the **Event notification receiver** field, select "All users in the account"
 `
 )
 
@@ -50,7 +52,7 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 	}
 
 	return flow.NewStep(stepNameWebhookConfiguration).
-		WithTitle(stepTitleWebhookConfiguration).
+		WithPretext(stepTitleWebhookConfiguration).
 		WithText(stepDescriptionWebhookConfiguration).
 		WithImage(pluginURL, eventConfigImage).
 		WithButton(flow.Button{

@@ -14,12 +14,11 @@ import (
 const (
 	stepNameZoomAppCredentials = "zoom_app_credentials"
 
-	stepTitleZoomAppCredentials = "Enter Zoom app credentials"
+	stepTitleZoomAppCredentials = "### :white_check_mark: Step 2: Configure your OAuth app to work with Mattermost"
 
-	stepDescriptionZoomAppCredentials = `In the **App Credentials** tab, note the values for Client ID and Client secret.
+	stepDescriptionZoomAppCredentials = `In **Zoom**, select **App Credentials** on the left. note the values for Client ID and Client secret.
 
 Click the button below to open a dialog to enter these two values.
-
 %s`
 
 	confClientID     = "client_id"
@@ -27,10 +26,34 @@ Click the button below to open a dialog to enter these two values.
 )
 
 func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) flow.Step {
+	conf := getConfiguration()
+
+	zoomAppCredentialsDialog := model.Dialog{
+		Title:            "Enter Zoom credentials",
+		IntroductionText: "",
+		SubmitLabel:      "Submit",
+		Elements: []model.DialogElement{
+			{
+				DisplayName: "Client ID",
+				Name:        confClientID,
+				Default:     conf.OAuthClientID,
+				Type:        "text",
+				SubType:     "text",
+			},
+			{
+				DisplayName: "Client Secret",
+				Name:        confClientSecret,
+				Default:     conf.OAuthClientSecret,
+				Type:        "text",
+				SubType:     "text",
+			},
+		},
+	}
+
 	appCredentialsImage := wizardImagePath("app_credentials.png")
 
 	return flow.NewStep(stepNameZoomAppCredentials).
-		WithTitle(stepTitleZoomAppCredentials).
+		WithPretext(stepTitleZoomAppCredentials).
 		WithText(stepDescriptionZoomAppCredentials).
 		WithImage(pluginURL, appCredentialsImage).
 		WithButton(flow.Button{
@@ -43,28 +66,6 @@ func ZoomAppCredentialsStep(pluginURL string, getConfiguration config.GetConfigu
 			},
 		}).
 		WithButton(cancelSetupButton)
-}
-
-var zoomAppCredentialsDialog = model.Dialog{
-	Title:            "Enter Zoom credentials",
-	IntroductionText: "",
-	SubmitLabel:      "Submit",
-	Elements: []model.DialogElement{
-		{
-			DisplayName: "Client ID",
-			Name:        confClientID,
-			HelpText:    "",
-			Type:        "text",
-			SubType:     "text",
-		},
-		{
-			DisplayName: "Client Secret",
-			Name:        confClientSecret,
-			HelpText:    "",
-			Type:        "text",
-			SubType:     "text",
-		},
-	},
 }
 
 func submitZoomAppCredentialsStep(submission map[string]interface{}, getConfiguration config.GetConfigurationFunc, client *pluginapi.Client) (map[string]string, error) {

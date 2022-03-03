@@ -9,7 +9,7 @@ import (
 const (
 	stepNameRedirectURL = "redirect_url"
 
-	stepTitleRedirectURL = "Set OAuth redirect URL in Zoom"
+	stepTitleRedirectURL = "### :white_check_mark: Step 3: Set OAuth redirect URL in Zoom"
 
 	stepDescriptionRedirectURL = `1. In the **Redirect URL for OAuth** input, enter: %s
 2. In the **OAuth allow list** at the bottom of the page, enter the same URL: %s`
@@ -22,7 +22,7 @@ func RedirectURLStep(pluginURL string) flow.Step {
 	description := fmt.Sprintf(stepDescriptionRedirectURL, oauthURL, oauthURL)
 
 	return flow.NewStep(stepNameRedirectURL).
-		WithTitle(stepTitleRedirectURL).
+		WithPretext(stepTitleRedirectURL).
 		WithText(description).
 		WithImage(pluginURL, redirectImage).
 		WithButton(continueButton).

@@ -13,14 +13,9 @@ const (
 	dialogElementAnnouncementChannelID = "channel_id"
 	dialogElementAnnouncementMessage   = "message"
 
-	pluginAbilitiesString = "You can now start Zoom meetings by:\n" +
-		"- Clicking the the Zoom call button in the channel header, or\n" +
-		"- Running the `/zoom start` command\n\n" +
-		"See the [documentation](https://mattermost.gitbook.io/plugin-zoom/usage/start-meetings) for details on using the Zoom plugin."
-
 	stepNameAnnouncementQuestion = "AnnouncementQuestion"
 
-	stepTitleAnnouncementQuestion = "##### :tada: Success! You've successfully set up your Mattermost Zoom integration!"
+	stepTitleAnnouncementQuestion = "### :tada: You've successfully set up your Mattermost Zoom integration!"
 
 	stepDescriptionAnnouncementQuestion = "%s\n\n" +
 
@@ -29,13 +24,18 @@ const (
 	announcementMessage = "We've added an integration that connects Zoom and Mattermost. %s\n\n" +
 
 		"It's easy to get started, run the `/zoom connect` slash command from any channel within Mattermost to connect your user account."
+
+	pluginAbilitiesString = "You can now start Zoom meetings by:\n" +
+		"- clicking the the Zoom call button in the channel header, or\n" +
+		"- running the `/zoom start` command\n\n" +
+		"See the [documentation](https://mattermost.gitbook.io/plugin-zoom/usage/start-meetings) for details on using the Zoom plugin."
 )
 
 func AnnouncementQuestionStep(client *pluginapi.Client) flow.Step {
 	description := fmt.Sprintf(stepDescriptionAnnouncementQuestion, pluginAbilitiesString)
 
 	return flow.NewStep(stepNameAnnouncementQuestion).
-		WithTitle(stepTitleAnnouncementQuestion).
+		WithPretext(stepTitleAnnouncementQuestion).
 		WithText(description).
 		WithButton(flow.Button{
 			Name:   "Send message",
