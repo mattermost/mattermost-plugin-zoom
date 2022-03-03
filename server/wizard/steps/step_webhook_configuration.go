@@ -18,7 +18,7 @@ const (
 	stepDescriptionWebhookConfiguration = `1. Click on the **Feature** category in the left sidebar.
 2. Enable **Event Subscriptions**.
 3. Click **Add New Event Subscription** and give it a name \(e.g. "Mattermost events"\).
-4. Enter in **Event notification endpoint URL**: %s
+4. Enter in **Event notification endpoint URL**
 5. For the **Event notification receiver** field, select "All users in the account"
 
 %s
@@ -34,7 +34,7 @@ func WebhookConfigurationStep(pluginURL string, getConfiguration config.GetConfi
 	eventConfigImage := imagePathToMarkdown(pluginURL, "Event Configuration", "event_configuration.png")
 
 	webhookURL := fmt.Sprintf("%s/webhook?secret=%s", pluginURL, secret)
-	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, webhookURL, eventConfigImage)
+	description := fmt.Sprintf(stepDescriptionWebhookConfiguration, eventConfigImage)
 
 	webhookURLDialog := model.Dialog{
 		Title:            "Webhook URL",
