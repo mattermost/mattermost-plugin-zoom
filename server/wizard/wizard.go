@@ -45,22 +45,38 @@ func (fm *FlowManager) GetConfigurationFlow() *flow.Flow {
 	}
 
 	steps := []flow.Step{
-		steps.GreetingStep(),
-		steps.VanityURLStep(fm.getConfiguration, fm.client),
-		steps.CreateZoomAppStep(fm.pluginURL),
-		steps.ZoomAppCredentialsStep(fm.pluginURL, fm.getConfiguration, fm.client),
-		steps.RedirectURLStep(fm.pluginURL),
-		steps.WebhookConfigurationStep(fm.pluginURL, fm.getConfiguration),
-		steps.WebhookEventsStep(fm.pluginURL),
-		steps.OAuthScopesStep(fm.pluginURL),
+		steps.GreetingStep().
+			OnRender(fm.trackEvent("setup_wizard_step_greeting")),
 
-		steps.AnnouncementQuestionStep(fm.client),
+		steps.VanityURLStep(fm.getConfiguration, fm.client).
+			OnRender(fm.trackEvent("setup_wizard_step_vanity_url")),
 
-		steps.FinishedStep(fm.pluginURL).OnRender(func(f *flow.Flow) {
-			fm.trackCompleteSetupWizard(f.UserID)
-		}),
+		steps.CreateZoomAppStep(fm.pluginURL).
+			OnRender(fm.trackEvent("setup_wizard_step_zoom_app_creation")),
 
-		steps.CanceledStep().Terminal(),
+		steps.ZoomAppCredentialsStep(fm.pluginURL, fm.getConfiguration, fm.client).
+			OnRender(fm.trackEvent("setup_wizard_step_zoom_app_credentials")),
+
+		steps.RedirectURLStep(fm.pluginURL).
+			OnRender(fm.trackEvent("setup_wizard_step_redirect_url")),
+
+		steps.WebhookConfigurationStep(fm.pluginURL, fm.getConfiguration).
+			OnRender(fm.trackEvent("setup_wizard_step_webhook_configuration")),
+
+		steps.WebhookEventsStep(fm.pluginURL).
+			OnRender(fm.trackEvent("setup_wizard_step_webhook_events")),
+
+		steps.OAuthScopesStep(fm.pluginURL).
+			OnRender(fm.trackEvent("setup_wizard_step_oauth_scopes")),
+
+		steps.AnnouncementQuestionStep(fm.client).
+			OnRender(fm.trackEvent("setup_wizard_step_announcement_question")),
+
+		steps.FinishedStep(fm.pluginURL).Terminal().
+			OnRender(fm.trackEvent("setup_wizard_finished")),
+
+		steps.CanceledStep().Terminal().
+			OnRender(fm.trackEvent("setup_wizard_step_canceled")),
 	}
 
 	return flow.NewFlow(
@@ -84,17 +100,17 @@ func (fm *FlowManager) StartConfigurationWizard(userID string) error {
 	return nil
 }
 
-func (fm *FlowManager) trackStartSetupWizard(userID string) {
-	_ = fm.tracker.TrackUserEvent("setup_wizard_start", userID, map[string]interface{}{
-		// TODO: Add more info here
-		// "from_invite": fromInvite,
-		"time": model.GetMillis(),
-	})
+func (fm *FlowManager) trackEvent(eventName string) func(f *flow.Flow) {
+	return func(f *flow.Flow) {
+		state := map[string]interface{}(f.GetState())
+		state["time"] = model.GetMillis()
+
+		_ = fm.tracker.TrackUserEvent(eventName, f.UserID, state)
+	}
 }
 
-func (fm *FlowManager) trackCompleteSetupWizard(userID string) {
-	_ = fm.tracker.TrackUserEvent("setup_wizard_complete", userID, map[string]interface{}{
-		// TODO: Add more info here
+func (fm *FlowManager) trackStartSetupWizard(userID string) {
+	_ = fm.tracker.TrackUserEvent("setup_wizard_start", userID, map[string]interface{}{
 		"time": model.GetMillis(),
 	})
 }

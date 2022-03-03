@@ -60,7 +60,7 @@ func VanityURLStep(getConfiguration config.GetConfigurationFunc, client *plugina
 			Dialog: &vanityURLDialog,
 			OnDialogSubmit: func(f *flow.Flow, submission map[string]interface{}) (flow.Name, flow.State, map[string]string, error) {
 				errors, err := submitVanityURLStep(submission, getConfiguration, client)
-				return "", nil, errors, err
+				return "", flow.State{"use_vanity_url": true}, errors, err
 			},
 		}).
 		WithButton(flow.Button{

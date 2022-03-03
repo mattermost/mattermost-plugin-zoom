@@ -14,7 +14,7 @@ const (
 
 	3. Select **OAuth** in the **Choose your app type** section.
 	4. Enter a **name** for your app, such as "Mattermost Plugin".
-	5. Choose **User-managed app** as the app type.
+	5. Choose **User-managed app** as the app type. This means that Mattermost users will need to explicitly connect their account. If you would like to set up an Account-level app, please read this [documentation](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration/zoom-setup-oauth).
 	6. When prompted to publish the app on the Zoom Marketplace, select **No**.
 	7. Click **Create**.`
 )
