@@ -102,7 +102,7 @@ func (fm *FlowManager) StartConfigurationWizard(userID string) error {
 
 func (fm *FlowManager) trackEvent(eventName string) func(f *flow.Flow) {
 	return func(f *flow.Flow) {
-		state := map[string]interface{}(f.GetState())
+		state := map[string]interface{}{}
 		state["time"] = model.GetMillis()
 
 		_ = fm.tracker.TrackUserEvent(eventName, f.UserID, state)
