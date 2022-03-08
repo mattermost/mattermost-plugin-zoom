@@ -13,13 +13,14 @@ import (
 	"testing"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest"
-	"github.com/mattermost/mattermost-server/v5/plugin/plugintest/mock"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
+	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
+	"github.com/mattermost/mattermost-server/v6/plugin/plugintest/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/config"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
@@ -119,19 +120,25 @@ func TestPlugin(t *testing.T) {
 				},
 			})
 
+			api.On("GetServerVersion").Return("5.37.0")
+
 			p := Plugin{}
-			p.setConfiguration(&configuration{
+			p.setConfiguration(&config.Configuration{
 				ZoomAPIURL:    ts.URL,
 				APIKey:        "theapikey",
 				APISecret:     "theapisecret",
 				WebhookSecret: "thewebhooksecret",
 			})
+
+			api.On("SavePluginConfig", mock.AnythingOfType("map[string]interface {}")).Return(nil)
+
 			p.SetAPI(api)
 			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
 
-			helpers := &plugintest.Helpers{}
-			helpers.On("EnsureBot", mock.AnythingOfType("*model.Bot")).Return(botUserID, nil)
-			p.SetHelpers(helpers)
+			api.On("KVGet", "mmi_botid").Return(nil, nil)
+			api.On("GetUserByUsername", "zoom").Return(nil, &model.AppError{})
+			api.On("CreateBot", mock.AnythingOfType("*model.Bot")).Return(&model.Bot{UserId: botUserID}, nil)
+			api.On("KVSet", "mmi_botid", []byte(botUserID)).Return(nil)
 
 			err = p.OnActivate()
 			require.Nil(t, err)

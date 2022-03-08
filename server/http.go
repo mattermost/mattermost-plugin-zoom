@@ -15,8 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/gorilla/mux"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -36,26 +37,25 @@ type startMeetingRequest struct {
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
-		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
 
-	switch path := r.URL.Path; path {
-	case "/webhook":
-		p.handleWebhook(w, r)
-	case "/api/v1/meetings":
-		p.handleStartMeeting(w, r)
-	case "/oauth2/connect":
-		p.connectUserToZoom(w, r)
-	case "/oauth2/complete":
-		p.completeUserOAuthToZoom(w, r)
-	case "/deauthorization":
-		p.deauthorizeUser(w, r)
-	default:
-		http.NotFound(w, r)
-	}
+	p.router.ServeHTTP(w, r)
+}
+
+func (p *Plugin) createRouter() *mux.Router {
+	router := mux.NewRouter()
+
+	router.HandleFunc("/webhook", p.handleWebhook).Methods(http.MethodPost)
+	router.HandleFunc("/deauthorization", p.deauthorizeUser).Methods(http.MethodPost)
+
+	apiRouter := router.PathPrefix("/api/v1").Subrouter()
+	apiRouter.HandleFunc("/meetings", p.handleStartMeeting)
+
+	oauthRouter := router.PathPrefix("/oauth2").Subrouter()
+	oauthRouter.HandleFunc("/connect", p.connectUserToZoom).Methods(http.MethodGet)
+	oauthRouter.HandleFunc("/complete", p.completeUserOAuthToZoom).Methods(http.MethodGet)
+
+	return router
 }
 
 func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +70,21 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	if appErr != nil {
 		http.Error(w, "missing stored state", http.StatusNotFound)
 		return
+	}
+
+	if state == "" {
+		ch, err := p.client.Channel.GetDirect(userID, p.botUserID)
+		if err != nil {
+			http.Error(w, "failed to get bot DM channel", http.StatusNotFound)
+			return
+		}
+
+		channelID := ch.Id
+		state, appErr = p.storeOAuthUserState(userID, channelID, true)
+		if appErr != nil {
+			http.Error(w, "failed to store oauth state", http.StatusNotFound)
+			return
+		}
 	}
 
 	cfg := p.getOAuthConfig()
@@ -291,7 +306,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	_, err := w.Write([]byte(post.ToJson()))
+	err := json.NewEncoder(w).Encode(post)
 	if err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
@@ -389,7 +404,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
+		if _, appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
 			p.API.LogWarn("failed to store user state")
 		}
 

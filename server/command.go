@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/command"
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
-	"github.com/pkg/errors"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
 const helpText = `* |/zoom start| - Start a zoom meeting`
+const adminHelpText = `* |/zoom setup| - Set up the Zoom plugin (System admin only)`
 
 const oAuthHelpText = `* |/zoom connect| - Connect to zoom
 * |/zoom disconnect| - Disconnect from zoom`
@@ -66,6 +68,9 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	}
 
 	switch action {
+	case "setup":
+		message := p.runSetup(c, args)
+		return message, nil
 	case "connect":
 		return p.runConnectCommand(user, args)
 	case "start":
@@ -96,6 +101,29 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	return &model.CommandResponse{}, nil
 }
 
+// runSetup starts the plugin setup wizard
+func (p *Plugin) runSetup(c *plugin.Context, args *model.CommandArgs) string {
+	userID := args.UserId
+
+	isSysAdmin, err := p.isAuthorizedSysAdmin(userID)
+	if err != nil {
+		p.API.LogWarn("Failed to check if user is System Admin", "err", err.Error())
+
+		return "Error checking user's permissions"
+	}
+
+	if !isSysAdmin {
+		return "Only System Admins are allowed to setup the plugin."
+	}
+
+	err = p.flowManager.StartConfigurationWizard(userID)
+	if err != nil {
+		return errors.Wrap(err, "Failed to start configuration wizard").Error()
+	}
+
+	return ""
+}
+
 // runStartCommand runs command to start a Zoom meeting.
 func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (string, error) {
 	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
@@ -115,7 +143,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User) (str
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
 		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
+		if _, appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
 			p.API.LogWarn("failed to store user state")
 		}
 		return authErr.Message, authErr.Err
@@ -146,7 +174,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 			return alreadyConnectedString, nil
 		}
 
-		appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+		_, appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
 		if appErr != nil {
 			return "", errors.Wrap(appErr, "cannot store state")
 		}
@@ -159,7 +187,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 		return alreadyConnectedString, nil
 	}
 
-	appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
+	_, appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
 	if appErr != nil {
 		return "", errors.Wrap(appErr, "cannot store state")
 	}
@@ -199,11 +227,27 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
+
+	isAdmin, _ := p.isAuthorizedSysAdmin(user.Id)
+	if isAdmin {
+		text += "\n" + strings.ReplaceAll(adminHelpText, "|", "`")
+	}
+
 	return text, nil
 }
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
+	if p.getConfiguration().IsValid() != nil {
+		zoom := model.NewAutocompleteData("zoom", "[command]", "Available commands: setup")
+
+		setup := model.NewAutocompleteData("setup", "", "Setup the Zoom plugin")
+		setup.RoleID = model.SystemAdminRoleId
+		zoom.AddCommand(setup)
+
+		return zoom
+	}
+
 	available := "start, help"
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
 		available = "start, connect, disconnect, help"
@@ -212,6 +256,10 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 
 	start := model.NewAutocompleteData("start", "", "Starts a Zoom meeting")
 	zoom.AddCommand(start)
+
+	setup := model.NewAutocompleteData("setup", "", "Setup the Zoom plugin")
+	setup.RoleID = model.SystemAdminRoleId
+	zoom.AddCommand(setup)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {

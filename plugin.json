@@ -7,7 +7,7 @@
     "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.5.1",
     "icon_path": "assets/profile.svg",
     "version": "1.5.1",
-    "min_server_version": "5.12.0",
+    "min_server_version": "6.5.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",
@@ -45,7 +45,7 @@
                 "type": "bool",
                 "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n When false, JWT will be used as the authentication means with Zoom. \n If you're currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
                 "placeholder": "",
-                "default": false
+                "default": true
             },
             {
                 "key": "AccountLevelApp",

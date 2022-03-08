@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -104,14 +104,20 @@ func (p *Plugin) disconnectOAuthUser(userID string) error {
 
 // storeOAuthUserState generates an OAuth user state that contains the user ID & channel ID,
 // then stores it in the KV store with and expiry of 5 minutes.
-func (p *Plugin) storeOAuthUserState(userID string, channelID string, justConnect bool) *model.AppError {
+func (p *Plugin) storeOAuthUserState(userID string, channelID string, justConnect bool) (string, *model.AppError) {
 	key := getOAuthUserStateKey(userID)
 	connectString := falseString
 	if justConnect {
 		connectString = trueString
 	}
 	state := fmt.Sprintf("%s_%s_%s_%s", model.NewId()[0:15], userID, channelID, connectString)
-	return p.API.KVSetWithExpiry(key, []byte(state), oAuthUserStateTTL)
+
+	appErr := p.API.KVSetWithExpiry(key, []byte(state), oAuthUserStateTTL)
+	if appErr != nil {
+		return "", appErr
+	}
+
+	return state, nil
 }
 
 // fetchOAuthUserState retrieves the OAuth user state from the KV store by the user ID.
