@@ -22,7 +22,7 @@
         "bundle_path": "webapp/dist/main.js"
     },
     "settings_schema": {
-        "header": "To set up this plugin you first need to create a Zoom App using a Zoom Administrator account. Visit the [documentation for configuration steps](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
+        "header": "To set up this plugin you first need to create a Zoom App using a Zoom Administrator account. Visit the [documentation for configuration steps](!https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
         "footer": "",
         "settings": [
             {
@@ -45,7 +45,7 @@
                 "key": "EnableOAuth",
                 "display_name": "Enable OAuth:",
                 "type": "bool",
-                "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n When false, JWT will be used as the authentication means with Zoom. \n If you're currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
+                "help_text": "When true, OAuth will be used as the authentication means with Zoom. \n When false, JWT will be used as the authentication means with Zoom. \n If you're currently using a JWT Zoom application and switch to OAuth, all users will need to connect their Zoom account using OAuth the next time they try to start a meeting. [More information](!https://mattermost.gitbook.io/plugin-zoom/installation/zoom-configuration).",
                 "placeholder": "",
                 "default": false
             },
