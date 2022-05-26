@@ -92,7 +92,7 @@ func TestPlugin(t *testing.T) {
 		},
 		"ValidStartedWebhookRequest": {
 			Request:                validStartedWebhookRequest,
-			ExpectedStatusCode:     http.StatusNotImplemented,
+			ExpectedStatusCode:     http.StatusOK,
 			HasPermissionToChannel: true,
 		},
 		"NoSecretWebhookRequest": {
