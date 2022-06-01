@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -17,6 +19,8 @@ import (
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 
+	"github.com/mattermost/mattermost-plugin-zoom/server/config"
+	"github.com/mattermost/mattermost-plugin-zoom/server/wizard"
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
@@ -46,26 +50,31 @@ type Plugin struct {
 
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
-	configuration *configuration
+	configuration *config.Configuration
 
 	siteURL string
 
 	telemetryClient telemetry.Client
 	tracker         telemetry.Tracker
+
+	flowManager *wizard.FlowManager
+	router      *mux.Router
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
 func (p *Plugin) OnActivate() error {
 	p.client = pluginapi.NewClient(p.API, p.Driver)
 
-	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
-		return err
-	}
-
 	if err := p.registerSiteURL(); err != nil {
 		return errors.Wrap(err, "could not register site URL")
 	}
+
+	err := p.setDefaultConfiguration()
+	if err != nil {
+		return errors.Wrap(err, "failed to set default configuration")
+	}
+
+	p.router = p.createRouter()
 
 	command, err := p.getCommand()
 	if err != nil {
@@ -101,12 +110,15 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
-
 	p.telemetryClient, err = telemetry.NewRudderClient()
 	if err != nil {
 		p.API.LogWarn("telemetry client not started", "error", err.Error())
 	}
+
+	config := p.getConfiguration()
+	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
+
+	p.flowManager = p.NewFlowManager()
 
 	return nil
 }
@@ -120,6 +132,48 @@ func (p *Plugin) OnDeactivate() error {
 	}
 
 	return nil
+}
+
+func (p *Plugin) setDefaultConfiguration() error {
+	config := p.getConfiguration()
+
+	changed, err := config.SetDefaults()
+	if err != nil {
+		return err
+	}
+
+	if changed {
+		appErr := p.API.SavePluginConfig(config.ToMap())
+		if appErr != nil {
+			return appErr
+		}
+	}
+
+	return nil
+}
+
+func (p *Plugin) OnInstall(c *plugin.Context, event model.OnInstallEvent) error {
+	// Don't start wizard if plugin is configured
+	if p.getConfiguration().IsValid() == nil {
+		return nil
+	}
+
+	return p.flowManager.StartConfigurationWizard(event.UserId)
+}
+
+func (p *Plugin) OnSendDailyTelemetry() {
+	p.sendDailyTelemetry()
+}
+
+func (p *Plugin) NewFlowManager() *wizard.FlowManager {
+	return wizard.NewFlowManager(
+		p.getConfiguration,
+		p.client,
+		p.tracker,
+		p.router,
+		p.siteURL+"/plugins/zoom",
+		p.botUserID,
+	)
 }
 
 // registerSiteURL fetches the site URL and sets it in the plugin object.
@@ -239,6 +293,17 @@ func (p *Plugin) SetZoomSuperUserToken(token *oauth2.Token) error {
 		return errors.Wrap(err, "could not set token")
 	}
 	return nil
+}
+
+func (p *Plugin) isAuthorizedSysAdmin(userID string) (bool, error) {
+	user, appErr := p.API.GetUser(userID)
+	if appErr != nil {
+		return false, appErr
+	}
+	if !strings.Contains(user.Roles, "system_admin") {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (p *Plugin) GetZoomUserToken(userID string) (*oauth2.Token, error) {
