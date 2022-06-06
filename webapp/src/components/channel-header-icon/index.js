@@ -6,7 +6,7 @@ import {connect} from 'react-redux';
 import {getServerVersion} from 'mattermost-redux/selectors/entities/general';
 import {isMinimumServerVersion} from 'mattermost-redux/utils/helpers';
 
-import Icon from './icon.jsx';
+import ChannelHeaderIcon from './channel-header-icon';
 
 function mapStateToProps(state, ownProps) {
     return {
@@ -15,4 +15,4 @@ function mapStateToProps(state, ownProps) {
     };
 }
 
-export default connect(mapStateToProps)(Icon);
+export default connect(mapStateToProps)(ChannelHeaderIcon);
