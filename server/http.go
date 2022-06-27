@@ -230,9 +230,21 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(webhook.Event)
+
+	// can hack here to get user join user left events?
+
 	if webhook.Event != zoom.EventTypeMeetingEnded {
 		w.WriteHeader(http.StatusOK)
 		return
+	} else if webhook.Event != zoom.EventTypeParticipantJoined {
+		email = webhook.Payload.Participant.Email;
+		userID := p.API.GetUserByEmail(email).ID
+		// set custom status
+	} else if webhook.Event != zoom.EventTypeParticipantLeft{
+		email = webhook.Payload.Participant.Email;
+		userID := p.API.GetUserByEmail(email).ID
+		// reset custom status
 	}
 
 	var meetingWebhook zoom.MeetingWebhook
