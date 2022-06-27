@@ -15,20 +15,32 @@ const (
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 	RecentlyCreated              = "RECENTLY_CREATED"
 
-	EventTypeMeetingStarted EventType = "meeting.started"
-	EventTypeMeetingEnded   EventType = "meeting.ended"
+	EventTypeMeetingStarted           EventType = "meeting.started"
+	EventTypeMeetingEnded             EventType = "meeting.ended"
+	EventTypeParticipantJoinedMeeting EventType = "meeting.participant_joined"
+	EventTypeParticipantLeftMeeting   EventType = "meeting.participant_left"
 )
 
+type ParticipantObject struct {
+	Email             string    `json:"email"`
+	ID                string    `json:"id"`
+	JoinTime          time.Time `json:"join_time"`
+	ParticipantUserID string    `json:"participant_user_id"`
+	UserID            string    `json:"user_id"`
+	UserName          string    `json:"user_name"`
+}
+
 type MeetingWebhookObject struct {
-	Duration  int       `json:"duration"`
-	StartTime time.Time `json:"start_time"`
-	Timezone  string    `json:"timezone"`
-	EndTime   time.Time `json:"end_time"`
-	Topic     string    `json:"topic"`
-	ID        string    `json:"id"`
-	Type      int       `json:"type"`
-	UUID      string    `json:"uuid"`
-	HostID    string    `json:"host_id"`
+	Duration    int               `json:"duration"`
+	StartTime   time.Time         `json:"start_time"`
+	Timezone    string            `json:"timezone"`
+	EndTime     time.Time         `json:"end_time"`
+	Topic       string            `json:"topic"`
+	ID          string            `json:"id"`
+	Type        int               `json:"type"`
+	UUID        string            `json:"uuid"`
+	HostID      string            `json:"host_id"`
+	Participant ParticipantObject `json:"participant"`
 }
 
 type MeetingWebhookPayload struct {

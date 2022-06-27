@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v5/model"
-	"github.com/mattermost/mattermost-server/v5/plugin"
+	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -221,10 +221,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webhook.Event != zoom.EventTypeMeetingEnded {
-		w.WriteHeader(http.StatusNotImplemented)
-		return
-	}
+	p.API.LogInfo("Received webhook", "webhook", webhook)
 
 	var meetingWebhook zoom.MeetingWebhook
 	if err = json.Unmarshal(b, &meetingWebhook); err != nil {
@@ -232,7 +229,68 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	p.handleMeetingEnded(w, r, &meetingWebhook)
+
+	if webhook.Event == zoom.EventTypeParticipantJoinedMeeting {
+		p.handleParticipantJoinedMeeting(&meetingWebhook)
+	} else if webhook.Event == zoom.EventTypeParticipantLeftMeeting {
+		p.handleParticipantLeftMeeting(&meetingWebhook)
+	} else if webhook.Event == zoom.EventTypeMeetingEnded {
+		p.handleMeetingEnded(w, r, &meetingWebhook)
+	} else {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+
+}
+
+func (p *Plugin) getUserIdFromEmail(meetingWebhook *zoom.MeetingWebhook) (string, error) {
+	var email = meetingWebhook.Payload.Object.Participant.Email
+
+	user, err := p.API.GetUserByEmail(email)
+	if err != nil {
+		p.API.LogWarn("Could not find user by email", "error", err.Error())
+		return "", err
+	}
+
+	return user.Id, nil
+}
+
+func (p *Plugin) handleParticipantJoinedMeeting(meetingWebhook *zoom.MeetingWebhook) {
+	userID, err := p.getUserIdFromEmail(meetingWebhook)
+	if err != nil {
+		return
+	}
+
+	_, uerr := p.API.UpdateUserStatus(userID, model.StatusDnd)
+	if uerr != nil {
+		p.API.LogError("Cannot set user status to DND", err.Error())
+	}
+
+	cserr := p.API.UpdateUserCustomStatus(userID, &model.CustomStatus{
+		Text:         "In zoom meeting",
+		Emoji:        "zoom",
+		SetByProduct: true,
+	})
+	if cserr != nil {
+		p.API.LogError("Cannot set user custom status to in zoom meeting", err.Error())
+	}
+}
+
+func (p *Plugin) handleParticipantLeftMeeting(meetingWebhook *zoom.MeetingWebhook) {
+	userID, err := p.getUserIdFromEmail(meetingWebhook)
+	if err != nil {
+		return
+	}
+
+	_, uerr := p.API.UpdateUserStatus(userID, model.StatusOnline)
+	if uerr != nil {
+		p.API.LogError("Cannot change user status from to Online from DND", err.Error())
+	}
+
+	cserr := p.API.RestoreToPreviousCustomStatus(userID)
+	if cserr != nil {
+		p.API.LogError("Cannot restore users custom status to previous", err.Error())
+	}
 }
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
@@ -290,10 +348,10 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		return
 	}
 
-	_, err := w.Write([]byte(post.ToJson()))
-	if err != nil {
-		p.API.LogWarn("failed to write response", "error", err.Error())
-	}
+	// _, err := w.Write([]byte(post.ToJson()))
+	// if err != nil {
+	// 	p.API.LogWarn("failed to write response", "error", err.Error())
+	// }
 }
 
 func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, topic string) error {
