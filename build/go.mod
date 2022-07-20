@@ -1,6 +1,6 @@
 module github.com/mattermost/mattermost-plugin-starter-template/build
 
-go 1.12
+go 1.18
 
 require (
 	github.com/mattermost/mattermost-server/v6 v6.0.0-20220719145230-4bac08c869fa // indirect
