@@ -51,9 +51,9 @@ func (c *configuration) Clone() *configuration {
 }
 
 // IsValid checks if all needed fields are set.
-func (c *configuration) IsValid() error {
+func (c *configuration) IsValid(isCloud bool) error {
 	switch {
-	case !c.EnableOAuth:
+	case !isCloud && !c.EnableOAuth: // JWT for on-prem
 		switch {
 		case len(c.APIKey) == 0:
 			return errors.New("please configure APIKey")
@@ -61,7 +61,7 @@ func (c *configuration) IsValid() error {
 		case len(c.APISecret) == 0:
 			return errors.New("please configure APISecret")
 		}
-	case c.EnableOAuth:
+	case isCloud || c.EnableOAuth: // OAuth for either platform
 		switch {
 		case len(c.OAuthClientSecret) == 0:
 			return errors.New("please configure OAuthClientSecret")
@@ -72,8 +72,6 @@ func (c *configuration) IsValid() error {
 		case len(c.EncryptionKey) == 0:
 			return errors.New("please generate EncryptionKey from Zoom plugin settings")
 		}
-	default:
-		return errors.New("please select either OAuth or Password based authentication")
 	}
 
 	if len(c.WebhookSecret) == 0 {
