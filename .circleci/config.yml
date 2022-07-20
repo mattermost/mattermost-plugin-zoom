@@ -182,42 +182,42 @@ workflows:
               only:
                 - master
     jobs:
-      - plugin-ci/lint
-      - plugin-ci/test
-      - plugin-ci/build
+      - lint
+      - test
+      - build
   ci:
     jobs:
-      - plugin-ci/lint:
+      - lint:
           filters:
             tags:
               only: /^v.*/
-      - plugin-ci/test:
+      - test:
           filters:
             tags:
               only: /^v.*/
-      - plugin-ci/coverage:
-          filters:
-            tags:
-              only: /^v.*/
-          requires:
-            - plugin-ci/test
-      - plugin-ci/build:
+      - coverage:
           filters:
             tags:
               only: /^v.*/
           requires:
-            - plugin-ci/test
-      - plugin-ci/deploy-ci:
+            - test
+      - build:
+          filters:
+            tags:
+              only: /^v.*/
+          requires:
+            - test
+      - deploy-ci:
           filters:
             branches:
               only: master
           context: plugin-ci
           requires:
-            - plugin-ci/lint
-            - plugin-ci/coverage
-            - plugin-ci/build
-            - plugin-ci/test
-      - plugin-ci/deploy-release-github:
+            - lint
+            - coverage
+            - build
+            - test
+      - deploy-release-github:
           filters:
             tags:
               only: /^v.*/
@@ -225,7 +225,7 @@ workflows:
               ignore: /.*/
           context: matterbuild-github-token
           requires:
-            - plugin-ci/lint
-            - plugin-ci/coverage
-            - plugin-ci/build
-            - plugin-ci/test
+            - lint
+            - coverage
+            - build
+            - test
