@@ -9,7 +9,7 @@ orbs:
 executors:
   default:
     docker:
-      - image: circleci/golang:1.16.0-node
+      - image: circleci/golang:1.18.0-node
 
 commands:
   deploy:
