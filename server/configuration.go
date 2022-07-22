@@ -53,7 +53,7 @@ func (c *configuration) Clone() *configuration {
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid(isCloud bool) error {
 	switch {
-	case !isCloud && !c.EnableOAuth: // JWT for on-prem
+	case !c.EnableOAuth && !isCloud: // JWT for on-prem
 		switch {
 		case len(c.APIKey) == 0:
 			return errors.New("please configure APIKey")
@@ -61,7 +61,7 @@ func (c *configuration) IsValid(isCloud bool) error {
 		case len(c.APISecret) == 0:
 			return errors.New("please configure APISecret")
 		}
-	case isCloud || c.EnableOAuth: // OAuth for either platform
+	case c.EnableOAuth || isCloud: // OAuth for either platform
 		switch {
 		case len(c.OAuthClientSecret) == 0:
 			return errors.New("please configure OAuthClientSecret")
