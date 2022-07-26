@@ -82,7 +82,7 @@ func findManifest() (*model.Manifest, error) {
 	// we don't want to accidentally clobber anything we won't preserve.
 	var manifest model.Manifest
 	decoder := json.NewDecoder(manifestFile)
-	decoder.DisallowUnknownFields()
+	// decoder.DisallowUnknownFields() // Commented out until circleci image is updated: https://github.com/mattermost/mattermost-plugin-zoom/pull/269#discussion_r927075701
 	if err = decoder.Decode(&manifest); err != nil {
 		return nil, errors.Wrap(err, "failed to parse manifest")
 	}
