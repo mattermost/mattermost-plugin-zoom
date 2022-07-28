@@ -54,6 +54,12 @@ type Plugin struct {
 	tracker         telemetry.Tracker
 }
 
+// Client defines a common interface for the API and OAuth Zoom clients
+type Client interface {
+	GetMeeting(meetingID int) (*zoom.Meeting, error)
+	GetUser(user *model.User) (*zoom.User, *zoom.AuthError)
+}
+
 // OnActivate checks if the configurations is valid and ensures the bot account exists
 func (p *Plugin) OnActivate() error {
 	p.client = pluginapi.NewClient(p.API, p.Driver)
@@ -133,8 +139,8 @@ func (p *Plugin) registerSiteURL() error {
 	return nil
 }
 
-// getActiveClient returns an OAuth Zoom client if available, otherwise an error and a user facing error message.
-func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, string, error) {
+// getActiveClient returns an OAuth Zoom client if available, otherwise it returns the API client.
+func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 	config := p.getConfiguration()
 
 	// JWT

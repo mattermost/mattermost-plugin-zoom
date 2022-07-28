@@ -167,19 +167,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	if justConnect {
 		p.postEphemeral(userID, channelID, "Successfully connected to Zoom")
-	} else {
-		meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
-		if err != nil {
-			p.API.LogWarn("Error creating the meeting", "err", err)
-			return
-		}
-
-		meetingID := meeting.ID
-		if err = p.postMeeting(user, meetingID, channelID, "", ""); err != nil {
-			p.API.LogWarn("Failed to post meeting", "error", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	} else if err = p.postMeeting(user, zoomUser.Pmi, channelID, "", ""); err != nil {
+		p.API.LogWarn("Failed to post meeting", "error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	html := `
@@ -276,7 +267,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 		Fallback: fmt.Sprintf("Meeting %s has ended: started at %s, length: %d minute(s).", post.Props["meeting_id"], startText, length),
 		Title:    topic,
 		Text: fmt.Sprintf(
-			"Meeting ID: %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
+			"Personal Meeting ID (PMI) : %d\n\n##### Meeting Summary\n\nDate: %s\n\nMeeting Length: %d minute(s)",
 			int(meetingID),
 			startText,
 			length,
@@ -319,7 +310,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	slackAttachment := model.SlackAttachment{
 		Fallback: fmt.Sprintf("Video Meeting started at [%d](%s).\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 		Title:    topic,
-		Text:     fmt.Sprintf("Meeting ID: [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
+		Text:     fmt.Sprintf("Personal Meeting ID (PMI) : [%d](%s)\n\n[Join Meeting](%s)", meetingID, meetingURL, meetingURL),
 	}
 
 	post := &model.Post{
@@ -333,7 +324,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 			"meeting_id":               meetingID,
 			"meeting_link":             meetingURL,
 			"meeting_status":           zoom.WebhookStatusStarted,
-			"meeting_personal":         false,
+			"meeting_personal":         true,
 			"meeting_topic":            topic,
 			"meeting_creator_username": creator.Username,
 			"meeting_provider":         zoomProviderName,
@@ -410,19 +401,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, _, err := p.getActiveClient(user)
-	if err != nil {
-		p.API.LogWarn("Error getting the client", "err", err)
-		return
-	}
-
-	meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
-	if err != nil {
-		p.API.LogWarn("Error creating the meeting", "err", err)
-		return
-	}
-
-	meetingID := meeting.ID
+	meetingID := zoomUser.Pmi
 	if err = p.postMeeting(user, meetingID, req.ChannelID, "", req.Topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -473,7 +452,7 @@ func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string,
 			"type":                     "custom_zoom",
 			"meeting_link":             meetingLink,
 			"meeting_status":           zoom.RecentlyCreated,
-			"meeting_personal":         false,
+			"meeting_personal":         true,
 			"meeting_topic":            topic,
 			"meeting_creator_username": creatorName,
 			"meeting_provider":         provider,

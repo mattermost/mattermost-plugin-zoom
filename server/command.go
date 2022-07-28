@@ -136,19 +136,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		return authErr.Message, authErr.Err
 	}
 
-	client, _, err := p.getActiveClient(user)
-	if err != nil {
-		p.API.LogWarn("Error creating the client", "err", err)
-		return "Error creating the client.", nil
-	}
-
-	meeting, err := client.CreateMeeting(zoomUser, topic)
-	if err != nil {
-		p.API.LogWarn("Error creating the meeting", "err", err)
-		return "Error creating the meeting.", nil
-	}
-
-	if err := p.postMeeting(user, meeting.ID, args.ChannelId, args.RootId, topic); err != nil {
+	if err := p.postMeeting(user, zoomUser.Pmi, args.ChannelId, args.RootId, topic); err != nil {
 		return "Failed to post message. Please try again.", nil
 	}
 
