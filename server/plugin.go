@@ -59,7 +59,7 @@ func (p *Plugin) OnActivate() error {
 	p.client = pluginapi.NewClient(p.API, p.Driver)
 
 	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
+	if err := config.IsValid(p.isCloudLicense()); err != nil {
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, string, error) 
 	config := p.getConfiguration()
 
 	// JWT
-	if !config.EnableOAuth {
+	if !p.OAuthEnabled() {
 		return p.jwtClient, "", nil
 	}
 
@@ -256,4 +256,18 @@ func (p *Plugin) UpdateZoomOAuthUserInfo(userID string, info *zoom.OAuthUserInfo
 	}
 
 	return nil
+}
+
+func (p *Plugin) isCloudLicense() bool {
+	license := p.API.GetLicense()
+	return license != nil && *license.Features.Cloud
+}
+
+func (p *Plugin) OAuthEnabled() bool {
+	config := p.getConfiguration()
+	if config.EnableOAuth {
+		return true
+	}
+
+	return p.isCloudLicense()
 }

@@ -37,7 +37,7 @@ type startMeetingRequest struct {
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
+	if err := config.IsValid(p.isCloudLicense()); err != nil {
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
 		return
 	}
