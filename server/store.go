@@ -32,6 +32,8 @@ func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 	if err != nil {
 		return errors.Wrap(err, "could not encrypt OAuth token")
 	}
+
+	original := info.OAuthToken.AccessToken
 	info.OAuthToken.AccessToken = encryptedToken
 
 	encoded, err := json.Marshal(info)
@@ -47,6 +49,7 @@ func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 		return err
 	}
 
+	info.OAuthToken.AccessToken = original
 	return nil
 }
 
