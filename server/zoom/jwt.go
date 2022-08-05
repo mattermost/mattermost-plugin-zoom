@@ -45,7 +45,7 @@ func (c *JWTClient) GetMeeting(meetingID int) (*Meeting, error) {
 }
 
 // GetUser returns the Zoom user via JWT authentication.
-func (c *JWTClient) GetUser(user *model.User) (*User, *AuthError) {
+func (c *JWTClient) GetUser(user *model.User, firstConnect bool) (*User, *AuthError) {
 	var zoomUser User
 	if err := c.request(http.MethodGet, fmt.Sprintf("/users/%v", user.Email), "", &zoomUser); err != nil {
 		return nil, &AuthError{fmt.Sprintf(zoomEmailMismatch, user.Email), err}
