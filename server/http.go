@@ -135,7 +135,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	zoomUser, authErr := client.GetUser(user)
+	firstConnect := true
+	zoomUser, authErr := client.GetUser(user, firstConnect)
 	if authErr != nil {
 		if p.configuration.AccountLevelApp && !justConnect {
 			http.Error(w, "Connection completed but there was an error creating the meeting. "+authErr.Message, http.StatusInternalServerError)
