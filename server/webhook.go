@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,13 +14,14 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyWebhookSecret(r) {
-		p.API.LogWarn("Could not verify webhook secreet")
+		p.API.LogWarn("Could not verify webhook secret")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -43,21 +47,33 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webhook.Event != zoom.EventTypeMeetingEnded {
-		w.WriteHeader(http.StatusOK)
-		return
+	if webhook.Event != zoom.EventTypeValidateWebhook {
+		err = p.verifyWebhookSignature(r, b)
+		if err != nil {
+			p.API.LogWarn("Could not verify webhook signature: " + err.Error())
+			http.Error(w, "Not authorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
-	var meetingWebhook zoom.MeetingWebhook
-	if err = json.Unmarshal(b, &meetingWebhook); err != nil {
+	switch webhook.Event {
+	case zoom.EventTypeMeetingEnded:
+		p.handleMeetingEnded(w, r, b)
+	case zoom.EventTypeValidateWebhook:
+		p.handleValidateZoomWebhook(w, r, b)
+	default:
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body []byte) {
+	var webhook zoom.MeetingWebhook
+	if err := json.Unmarshal(body, &webhook); err != nil {
 		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	p.handleMeetingEnded(w, r, &meetingWebhook)
-}
 
-func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webhook *zoom.MeetingWebhook) {
 	meetingPostID := webhook.Payload.Object.ID
 	postID, appErr := p.fetchMeetingPostID(meetingPostID)
 	if appErr != nil {
@@ -121,4 +137,77 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, webh
 func (p *Plugin) verifyWebhookSecret(r *http.Request) bool {
 	config := p.getConfiguration()
 	return subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) == 1
+}
+
+func (p *Plugin) verifyWebhookSignature(r *http.Request, body []byte) error {
+	config := p.getConfiguration()
+	if config.ZoomWebhookSecret == "" {
+		return nil
+	}
+
+	var webhook zoom.Webhook
+	err := json.Unmarshal(body, &webhook)
+	if err != nil {
+		return errors.Wrap(err, "error unmarshaling webhook payload")
+	}
+
+	ts := r.Header.Get("x-zm-request-timestamp")
+
+	msg := fmt.Sprintf("v0:%s:%s", ts, string(body))
+	hash, err := createWebhookSignatureHash(config.ZoomWebhookSecret, msg)
+	if err != nil {
+		return err
+	}
+
+	computedSignature := fmt.Sprintf("v0=%s", hash)
+	providedSignature := r.Header.Get("x-zm-signature")
+	if computedSignature != providedSignature {
+		return errors.New("provided signature does not match")
+	}
+
+	return nil
+}
+
+func (p *Plugin) handleValidateZoomWebhook(w http.ResponseWriter, r *http.Request, body []byte) {
+	config := p.getConfiguration()
+	if config.ZoomWebhookSecret == "" {
+		p.API.LogWarn("Failed to validate Zoom webhook: Zoom webhook secret not set")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var webhook zoom.ValidationWebhook
+	err := json.Unmarshal(body, &webhook)
+	if err != nil {
+		p.API.LogWarn("Failed to validate Zoom webhook: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	hash, err := createWebhookSignatureHash(config.ZoomWebhookSecret, webhook.Payload.PlainToken)
+	if err != nil {
+		p.API.LogWarn("Failed to validate Zoom webhook: " + err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	out := zoom.ValidationWebhookResponse{
+		PlainToken:     webhook.Payload.PlainToken,
+		EncryptedToken: hash,
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(out); err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
+}
+
+func createWebhookSignatureHash(secret, data string) (string, error) {
+	h := hmac.New(sha256.New, []byte(secret))
+	_, err := h.Write([]byte(data))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create webhook signature hash")
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

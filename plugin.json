@@ -109,6 +109,15 @@
                 "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin.",
                 "placeholder": "",
                 "default": null
+            },
+            {
+                "key": "ZoomWebhookSecret",
+                "display_name": "Zoom Webhook Secret:",
+                "type": "text",
+                "help_text": "`Secret Token` taken from Zoom's webhook configuration page",
+                "regenerate_help_text": "",
+                "placeholder": "",
+                "default": null
             }
         ]
     }

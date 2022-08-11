@@ -15,8 +15,9 @@ const (
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 	RecentlyCreated              = "RECENTLY_CREATED"
 
-	EventTypeMeetingStarted EventType = "meeting.started"
-	EventTypeMeetingEnded   EventType = "meeting.ended"
+	EventTypeMeetingStarted  EventType = "meeting.started"
+	EventTypeMeetingEnded    EventType = "meeting.ended"
+	EventTypeValidateWebhook EventType = "endpoint.url_validation"
 )
 
 type MeetingWebhookObject struct {
@@ -41,9 +42,24 @@ type MeetingWebhook struct {
 	Payload MeetingWebhookPayload `json:"payload"`
 }
 
+type ValidationWebhookPayload struct {
+	PlainToken string `json:"plainToken"`
+}
+
+type ValidationWebhook struct {
+	Event   EventType                `json:"event"`
+	Payload ValidationWebhookPayload `json:"payload"`
+}
+
+type ValidationWebhookResponse struct {
+	PlainToken     string `json:"plainToken"`
+	EncryptedToken string `json:"encryptedToken"`
+}
+
 type Webhook struct {
-	Event   EventType   `json:"event"`
-	Payload interface{} `json:"payload"`
+	Event     EventType   `json:"event"`
+	EventTime int         `json:"event_ts"`
+	Payload   interface{} `json:"payload"`
 }
 
 type RecordingWebhook struct {

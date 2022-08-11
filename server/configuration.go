@@ -38,9 +38,9 @@ type configuration struct {
 	AccountLevelApp   bool
 	OAuthClientID     string
 	OAuthClientSecret string
-	OAuthRedirectURL  string
 	EncryptionKey     string
 	WebhookSecret     string
+	ZoomWebhookSecret string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
