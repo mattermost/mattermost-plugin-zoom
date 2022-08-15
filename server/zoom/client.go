@@ -4,7 +4,7 @@
 package zoom
 
 import (
-	"encoding/json"
+	"fmt"
 
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/pkg/errors"
@@ -18,8 +18,15 @@ type AuthError struct {
 }
 
 func (err *AuthError) Error() string {
-	msg, _ := json.Marshal(err)
-	return string(msg)
+	out := ""
+	if err.Message != "" {
+		out += fmt.Sprintf("message: %s. ", err.Message)
+	}
+	if err.Err != nil {
+		out += fmt.Sprintf("error: %s. ", err.Err.Error())
+	}
+
+	return out
 }
 
 var errNotFound = errors.New("not found")
