@@ -53,29 +53,43 @@ func TestPlugin(t *testing.T) {
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
+	unauthorizedUserRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
+	unauthorizedUserRequest.Header.Add("Mattermost-User-Id", "theuserid")
+
 	for name, tc := range map[string]struct {
-		Request            *http.Request
-		ExpectedStatusCode int
+		Request                *http.Request
+		ExpectedStatusCode     int
+		HasPermissionToChannel bool
 	}{
 		"UnauthorizedMeetingRequest": {
-			Request:            noAuthMeetingRequest,
-			ExpectedStatusCode: http.StatusUnauthorized,
+			Request:                noAuthMeetingRequest,
+			ExpectedStatusCode:     http.StatusUnauthorized,
+			HasPermissionToChannel: true,
 		},
 		"ValidPersonalMeetingRequest": {
-			Request:            personalMeetingRequest,
-			ExpectedStatusCode: http.StatusOK,
+			Request:                personalMeetingRequest,
+			ExpectedStatusCode:     http.StatusOK,
+			HasPermissionToChannel: true,
 		},
 		"ValidStoppedWebhookRequest": {
-			Request:            validStoppedWebhookRequest,
-			ExpectedStatusCode: http.StatusOK,
+			Request:                validStoppedWebhookRequest,
+			ExpectedStatusCode:     http.StatusOK,
+			HasPermissionToChannel: true,
 		},
 		"ValidStartedWebhookRequest": {
-			Request:            validStartedWebhookRequest,
-			ExpectedStatusCode: http.StatusNotImplemented,
+			Request:                validStartedWebhookRequest,
+			ExpectedStatusCode:     http.StatusNotImplemented,
+			HasPermissionToChannel: true,
 		},
 		"NoSecretWebhookRequest": {
-			Request:            noSecretWebhookRequest,
-			ExpectedStatusCode: http.StatusUnauthorized,
+			Request:                noSecretWebhookRequest,
+			ExpectedStatusCode:     http.StatusUnauthorized,
+			HasPermissionToChannel: true,
+		},
+		"UnauthorizedChannelPermissions": {
+			Request:                unauthorizedUserRequest,
+			ExpectedStatusCode:     http.StatusInternalServerError,
+			HasPermissionToChannel: false,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -88,12 +102,15 @@ func TestPlugin(t *testing.T) {
 				Email: "theuseremail",
 			}, nil)
 
+			api.On("HasPermissionToChannel", "theuserid", "thechannelid", model.PERMISSION_CREATE_POST).Return(tc.HasPermissionToChannel)
+
 			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
 
 			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
 			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 			api.On("GetPostsSince", "thechannelid", mock.AnythingOfType("int64")).Return(&model.PostList{}, nil)
+			api.On("GetLicense").Return(&model.License{Features: &model.Features{Cloud: model.NewBool(false)}})
 
 			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)

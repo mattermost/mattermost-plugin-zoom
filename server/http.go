@@ -37,7 +37,7 @@ type startMeetingRequest struct {
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
+	if err := config.IsValid(p.isCloudLicense()); err != nil {
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
 		return
 	}
@@ -135,7 +135,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	zoomUser, authErr := client.GetUser(user)
+	firstConnect := true
+	zoomUser, authErr := client.GetUser(user, firstConnect)
 	if authErr != nil {
 		if p.configuration.AccountLevelApp && !justConnect {
 			http.Error(w, "Connection completed but there was an error creating the meeting. "+authErr.Message, http.StatusInternalServerError)
@@ -301,6 +302,10 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 	if topic == "" {
 		topic = defaultMeetingTopic
+	}
+
+	if !p.API.HasPermissionToChannel(creator.Id, channelID, model.PERMISSION_CREATE_POST) {
+		return errors.New("this channel is not accessible, you might not have permissions to write in this channel. Contact the administrator of this channel to find out if you have access permissions")
 	}
 
 	slackAttachment := model.SlackAttachment{

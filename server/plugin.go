@@ -53,13 +53,13 @@ type Plugin struct {
 // Client defines a common interface for the API and OAuth Zoom clients
 type Client interface {
 	GetMeeting(meetingID int) (*zoom.Meeting, error)
-	GetUser(user *model.User) (*zoom.User, *zoom.AuthError)
+	GetUser(user *model.User, firstConnect bool) (*zoom.User, *zoom.AuthError)
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
 func (p *Plugin) OnActivate() error {
 	config := p.getConfiguration()
-	if err := config.IsValid(); err != nil {
+	if err := config.IsValid(p.isCloudLicense()); err != nil {
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 	config := p.getConfiguration()
 
 	// JWT
-	if !config.EnableOAuth {
+	if !p.OAuthEnabled() {
 		return p.jwtClient, "", nil
 	}
 
@@ -165,12 +165,6 @@ func (p *Plugin) getActiveClient(user *model.User) (Client, string, error) {
 		return nil, message, errors.Wrap(err, "could not fetch Zoom OAuth info")
 	}
 
-	plainToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)
-	if err != nil {
-		return nil, message, errors.New("could not decrypt OAuth access token")
-	}
-
-	info.OAuthToken.AccessToken = plainToken
 	conf := p.getOAuthConfig()
 	return zoom.NewOAuthClient(info.OAuthToken, conf, p.siteURL, p.getZoomAPIURL(), false, p), "", nil
 }
@@ -201,7 +195,8 @@ func (p *Plugin) authenticateAndFetchZoomUser(user *model.User) (*zoom.User, *zo
 		}
 	}
 
-	return zoomClient.GetUser(user)
+	firstConnect := false
+	return zoomClient.GetUser(user, firstConnect)
 }
 
 func (p *Plugin) sendDirectMessage(userID string, message string) error {
@@ -239,4 +234,40 @@ func (p *Plugin) SetZoomSuperUserToken(token *oauth2.Token) error {
 		return errors.Wrap(err, "could not set token")
 	}
 	return nil
+}
+
+func (p *Plugin) GetZoomOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error) {
+	info, err := p.fetchOAuthUserInfo(zoomUserByMMID, userID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get token")
+	}
+	if info == nil {
+		return nil, errors.New("zoom app not connected")
+	}
+
+	return info, nil
+}
+
+func (p *Plugin) UpdateZoomOAuthUserInfo(userID string, info *zoom.OAuthUserInfo) error {
+	if err := p.storeOAuthUserInfo(info); err != nil {
+		msg := "unable to update user token"
+		p.API.LogWarn(msg, "error", err.Error())
+		return errors.Wrap(err, msg)
+	}
+
+	return nil
+}
+
+func (p *Plugin) isCloudLicense() bool {
+	license := p.API.GetLicense()
+	return license != nil && license.Features != nil && license.Features.Cloud != nil && *license.Features.Cloud
+}
+
+func (p *Plugin) OAuthEnabled() bool {
+	config := p.getConfiguration()
+	if config.EnableOAuth {
+		return true
+	}
+
+	return p.isCloudLicense()
 }
