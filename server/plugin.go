@@ -260,7 +260,7 @@ func (p *Plugin) UpdateZoomOAuthUserInfo(userID string, info *zoom.OAuthUserInfo
 
 func (p *Plugin) isCloudLicense() bool {
 	license := p.API.GetLicense()
-	return license != nil && *license.Features.Cloud
+	return license != nil && license.Features != nil && license.Features.Cloud != nil && *license.Features.Cloud
 }
 
 func (p *Plugin) OAuthEnabled() bool {
