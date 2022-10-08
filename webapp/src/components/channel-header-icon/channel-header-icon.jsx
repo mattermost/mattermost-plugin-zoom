@@ -8,7 +8,7 @@ import {makeStyleFromTheme} from 'mattermost-redux/utils/theme_utils';
 
 import {Svgs} from '../../constants';
 
-export default class Icon extends React.PureComponent {
+export default class ChannelHeaderIcon extends React.PureComponent {
     static propTypes = {
         useSVG: PropTypes.bool.isRequired,
     }

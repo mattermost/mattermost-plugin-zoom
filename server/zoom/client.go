@@ -27,13 +27,13 @@ var errNotFound = errors.New("not found")
 // Client interface for Zoom
 type Client interface {
 	GetMeeting(meetingID int) (*Meeting, error)
-	GetUser(user *model.User) (*User, *AuthError)
+	GetUser(user *model.User, firstConnect bool) (*User, *AuthError)
 	CreateMeeting(user *User, topic string) (*Meeting, error)
 }
 
 type PluginAPI interface {
 	GetZoomSuperUserToken() (*oauth2.Token, error)
 	SetZoomSuperUserToken(*oauth2.Token) error
-	GetZoomUserToken(userID string) (*oauth2.Token, error)
-	UpdateZoomUserToken(userID string, token *oauth2.Token) error
+	GetZoomOAuthUserInfo(userID string) (*OAuthUserInfo, error)
+	UpdateZoomOAuthUserInfo(userID string, info *OAuthUserInfo) error
 }

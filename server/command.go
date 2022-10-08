@@ -102,7 +102,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 }
 
 func (p *Plugin) canConnect(user *model.User) bool {
-	return p.configuration.EnableOAuth && // we are not on JWT
+	return p.OAuthEnabled() && // we are not on JWT
 		(!p.configuration.AccountLevelApp || // we are on user managed app
 			user.IsSystemAdmin()) // admins can connect Account level apps
 }
@@ -238,7 +238,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	canConnect := p.configuration.EnableOAuth && !p.configuration.AccountLevelApp
+	canConnect := p.OAuthEnabled() && !p.configuration.AccountLevelApp
 
 	available := "start, help"
 	if canConnect {
