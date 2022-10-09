@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const helpText = `* |/zoom start| - Start a zoom meeting`
+const helpText = `* |/zoom start [meeting topic]| - Start a Zoom meeting with topic (optional)`
 
-const oAuthHelpText = `* |/zoom connect| - Connect to zoom
-* |/zoom disconnect| - Disconnect from zoom`
+const oAuthHelpText = `* |/zoom connect| - Connect to Zoom
+* |/zoom disconnect| - Disconnect from Zoom`
 
 const alreadyConnectedString = "Already connected"
 
@@ -32,10 +32,17 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 		return nil, errors.Wrap(err, "failed to get icon data")
 	}
 
+	canConnect := p.configuration.EnableOAuth && !p.configuration.AccountLevelApp
+
+	autoCompleteDesc := "Available commands: start, help"
+	if canConnect {
+		autoCompleteDesc = "Available commands: start, connect, disconnect, help"
+	}
+
 	return &model.Command{
 		Trigger:              "zoom",
 		AutoComplete:         true,
-		AutoCompleteDesc:     "Available commands: start, disconnect, help",
+		AutoCompleteDesc:     autoCompleteDesc,
 		AutoCompleteHint:     "[command]",
 		AutocompleteData:     p.getAutocompleteData(),
 		AutocompleteIconData: iconData,
@@ -231,19 +238,21 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
+	canConnect := p.OAuthEnabled() && !p.configuration.AccountLevelApp
+
 	available := "start, help"
-	if p.OAuthEnabled() && !p.configuration.AccountLevelApp {
+	if canConnect {
 		available = "start, connect, disconnect, help"
 	}
-	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 
-	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting")
+	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
+	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting with a topic (optional)")
 	zoom.AddCommand(start)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
-	if p.OAuthEnabled() && !p.configuration.AccountLevelApp {
+	if canConnect {
 		connect := model.NewAutocompleteData("connect", "", "Connect to Zoom")
-		disconnect := model.NewAutocompleteData("disconnect", "", "Disonnects from Zoom")
+		disconnect := model.NewAutocompleteData("disconnect", "", "Disconnect from Zoom")
 		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
