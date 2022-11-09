@@ -38,8 +38,8 @@ jobs:
     
     # Autobuild attempts to build any compiled languages
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v2    
+      uses: github/codeql-action/autobuild@v2
 
     # Perform Analysis
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2    
+      uses: github/codeql-action/analyze@v2
