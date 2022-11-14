@@ -17,7 +17,7 @@ const (
 	helpText      = `* |/zoom start| - Start a zoom meeting`
 	oAuthHelpText = `* |/zoom connect| - Connect to Zoom
 * |/zoom disconnect| - Disconnect from Zoom`
-	settingHelpText        = `* |/zoom settings| - Configure settings options`
+	settingHelpText        = `* |/zoom settings| - Update your preferences`
 	alreadyConnectedText   = "Already connected"
 	zoomPreferenceCategory = "plugin:zoom"
 	zoomPMISettingName     = "use-pmi"
@@ -244,7 +244,7 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand() (string, error) {
-	text := starterText + strings.ReplaceAll(helpText+settingHelpText, "|", "`")
+	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
 	if p.configuration.EnableOAuth {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
