@@ -6,7 +6,7 @@
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
     "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.5.1",
     "icon_path": "assets/profile.svg",
-    "version": "1.5.1",
+    "version": "1.5.2-beta",
     "min_server_version": "5.37.0",
     "server": {
         "executables": {
