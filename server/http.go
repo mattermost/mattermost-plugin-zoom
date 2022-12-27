@@ -718,20 +718,19 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if meetingID != -1 {
-		if err = p.postMeeting(user, meetingID, req.ChannelID, "", topic); err == nil {
-			p.trackMeetingStart(userID, telemetryStartSourceWebapp)
-			if r.URL.Query().Get("force") != "" {
-				p.trackMeetingForced(userID)
-			}
-
-			meetingURL := p.getMeetingURL(user, meetingID)
-			if _, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
-				p.API.LogWarn("failed to write the response", "Error", err.Error())
-			}
-			return
+	if err = p.postMeeting(user, meetingID, req.ChannelID, "", topic); err == nil {
+		p.trackMeetingStart(userID, telemetryStartSourceWebapp)
+		if r.URL.Query().Get("force") != "" {
+			p.trackMeetingForced(userID)
 		}
+
+		meetingURL := p.getMeetingURL(user, meetingID)
+		if _, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
+			p.API.LogWarn("failed to write the response", "Error", err.Error())
+		}
+		return
 	}
+
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
