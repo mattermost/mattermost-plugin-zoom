@@ -7,5 +7,5 @@ var manifest = struct {
 	Version string
 }{
 	ID:      "zoom",
-	Version: "1.5.2-beta",
+	Version: "1.5.1",
 }

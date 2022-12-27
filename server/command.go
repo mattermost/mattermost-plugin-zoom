@@ -118,7 +118,7 @@ func (p *Plugin) canConnect(user *model.User) bool {
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	msg, err := p.executeCommand(c, args)
 	if err != nil {
-		p.API.LogWarn("failed to execute command", "Error", err.Error())
+		p.API.LogWarn("failed to execute command", "error", err.Error())
 	}
 	if msg != "" {
 		p.postCommandResponse(args, msg)
@@ -153,26 +153,26 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	var meetingID int
 	var createMeetingErr error
 
-	userPMISettingPref, getUserPMISettingErr := p.getPMISettingData(user.Id)
-	if getUserPMISettingErr != nil {
-		p.askUserForMeetingPreference(user.Id, args.ChannelId)
+	userPMISettingPref, err := p.getPMISettingData(user.Id)
+	if err != nil {
+		p.askPreferenceForMeeting(user.Id, args.ChannelId)
 		return "", nil
 	}
 
 	switch userPMISettingPref {
 	case zoomPMISettingValueAsk:
-		p.askUserForMeetingPreference(user.Id, args.ChannelId)
+		p.askPreferenceForMeeting(user.Id, args.ChannelId)
 		return "", nil
 	case "", trueString:
 		meetingID = zoomUser.Pmi
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, DefaultMeetingTopic)
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
 		if createMeetingErr != nil {
-			return "", errors.New("error while creating a new meeting")
+			return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, args.ChannelId, args.RootId, DefaultMeetingTopic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
 
@@ -253,17 +253,11 @@ func (p *Plugin) runHelpCommand() (string, error) {
 }
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
-	settingAction := ""
-	if len(params) > 0 {
-		settingAction = params[0]
-	}
-	switch settingAction {
-	case "":
-		p.updatePMI(user.Id, args.ChannelId)
+	if len(params) == 0 {
+		p.sendUserSettingForm(user.Id, args.ChannelId)
 		return "", nil
-	default:
-		return fmt.Sprintf("Unknown Action %v", settingAction), nil
 	}
+	return fmt.Sprintf("Unknown Action %v", ""), nil
 }
 
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
@@ -282,7 +276,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	canConnect := p.OAuthEnabled() && !p.configuration.AccountLevelApp
 
 	available := "start, help, settings"
-	if p.configuration.EnableOAuth && !p.configuration.AccountLevelApp {
+	if canConnect {
 		available = "start, connect, disconnect, help, settings"
 	}
 

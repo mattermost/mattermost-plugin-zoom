@@ -105,7 +105,7 @@ func (p *Plugin) OnActivate() error {
 
 	p.telemetryClient, err = telemetry.NewRudderClient()
 	if err != nil {
-		p.API.LogWarn("telemetry client not started", "Error", err.Error())
+		p.API.LogWarn("telemetry client not started", "error", err.Error())
 	}
 
 	return nil
@@ -115,7 +115,7 @@ func (p *Plugin) OnDeactivate() error {
 	if p.telemetryClient != nil {
 		err := p.telemetryClient.Close()
 		if err != nil {
-			p.API.LogWarn("OnDeactivate: failed to close telemetryClient", "Error", err.Error())
+			p.API.LogWarn("OnDeactivate: failed to close telemetryClient", "error", err.Error())
 		}
 	}
 
@@ -182,12 +182,6 @@ func (p *Plugin) getOAuthConfig() *oauth2.Config {
 			TokenURL: fmt.Sprintf("%v/oauth/token", zoomURL),
 		},
 		RedirectURL: fmt.Sprintf("%s/plugins/zoom/oauth2/complete", p.siteURL),
-		Scopes: []string{
-			"user:read",
-			"meeting:write",
-			"webinar:write",
-			"recording:write",
-		},
 	}
 }
 
@@ -257,7 +251,7 @@ func (p *Plugin) GetZoomOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error
 func (p *Plugin) UpdateZoomOAuthUserInfo(userID string, info *zoom.OAuthUserInfo) error {
 	if err := p.storeOAuthUserInfo(info); err != nil {
 		msg := "unable to update user token"
-		p.API.LogWarn(msg, "Error", err.Error())
+		p.API.LogWarn(msg, "error", err.Error())
 		return errors.Wrap(err, msg)
 	}
 

@@ -12,20 +12,19 @@ export default class Client {
     }
 
     startMeeting = async (
-        channelId, personal = true, topic = '', meetingId = 0, force = false, usePMI = '',
+        channelId, personal = true, topic = '', meetingId = 0, force = false,
     ) => {
         const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {
             channel_id: channelId,
             personal,
             topic,
             meeting_id: meetingId,
-            use_pmi: usePMI,
         });
         return res.meeting_url;
     }
 
-    forceStartMeeting = async (channelId, personal = true, topic = '', meetingId = 0, usePMI = '') => {
-        const meetingUrl = await this.startMeeting(channelId, personal, topic, meetingId, true, usePMI);
+    forceStartMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
+        const meetingUrl = await this.startMeeting(channelId, personal, topic, meetingId, true);
         return meetingUrl;
     }
 }
@@ -38,18 +37,13 @@ export const doPost = async (url, body, headers = {}) => {
     };
 
     let response;
-    const json = await fetch(url, Client4.getOptions(options)).then((resp) => {
-        response = resp;
-        if (resp.ok) {
-            return resp.json();
+    try {
+        response = await fetch(url, Client4.getOptions(options));
+        if (response.ok) {
+            return response;
         }
-        return {};
-    }).catch((err) => {
+    } catch (err) {
         return {err};
-    });
-
-    if (response?.ok) {
-        return json;
     }
 
     const text = await response.text();
