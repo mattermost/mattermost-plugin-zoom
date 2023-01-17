@@ -144,7 +144,7 @@ func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) 
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
 	postID, appErr := p.API.KVGet(key)
 	if appErr != nil {
-		p.API.LogDebug("Could not get meeting post from KVStore", "err", appErr.Error())
+		p.API.LogDebug("Could not get meeting post from KVStore", "error", appErr.Error())
 		return "", appErr
 	}
 
