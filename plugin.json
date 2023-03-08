@@ -54,7 +54,7 @@
                 "key": "AccountLevelApp",
                 "display_name": "OAuth by Account Level App (Beta):",
                 "type": "bool",
-                "help_text": "When true, only an account administrator has to log in. The rest of the users will use their email to log in.",
+                "help_text": "When true, only an account administrator has to log in. The rest of the users will automatically use their Mattermost email to authenticate when starting meetings.",
                 "placeholder": "",
                 "default": false
             },
