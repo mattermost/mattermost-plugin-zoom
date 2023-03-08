@@ -21,7 +21,7 @@ import (
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyWebhookSecret(r) {
-		p.API.LogWarn("Could not verify webhook secret")
+		p.API.LogWarn("Could not verify Mattermost webhook secret")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}

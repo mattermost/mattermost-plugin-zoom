@@ -39,7 +39,11 @@ type configuration struct {
 	OAuthClientID     string
 	OAuthClientSecret string
 	EncryptionKey     string
-	WebhookSecret     string
+
+	// WebhookSecret is generated in the Mattermost system console
+	WebhookSecret string
+
+	// ZoomWebhookSecret is the `Secret Token` taken from Zoom's webhook configuration page
 	ZoomWebhookSecret string
 }
 
