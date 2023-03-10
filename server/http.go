@@ -438,7 +438,7 @@ func getString(key string, props model.StringInterface) string {
 }
 
 func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
-	if !p.verifyWebhookSecret(r) {
+	if !p.verifyMattermostWebhookSecret(r) {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}

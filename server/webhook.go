@@ -20,7 +20,7 @@ import (
 )
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	if !p.verifyWebhookSecret(r) {
+	if !p.verifyMattermostWebhookSecret(r) {
 		p.API.LogWarn("Could not verify Mattermost webhook secret")
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
@@ -48,7 +48,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if webhook.Event != zoom.EventTypeValidateWebhook {
-		err = p.verifyWebhookSignature(r, b)
+		err = p.verifyZoomWebhookSignature(r, b)
 		if err != nil {
 			p.API.LogWarn("Could not verify webhook signature: " + err.Error())
 			http.Error(w, "Not authorized", http.StatusUnauthorized)
@@ -134,12 +134,12 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	}
 }
 
-func (p *Plugin) verifyWebhookSecret(r *http.Request) bool {
+func (p *Plugin) verifyMattermostWebhookSecret(r *http.Request) bool {
 	config := p.getConfiguration()
 	return subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) == 1
 }
 
-func (p *Plugin) verifyWebhookSignature(r *http.Request, body []byte) error {
+func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error {
 	config := p.getConfiguration()
 	if config.ZoomWebhookSecret == "" {
 		return nil
