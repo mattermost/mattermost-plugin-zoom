@@ -438,6 +438,7 @@ func getString(key string, props model.StringInterface) string {
 }
 
 func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
+	// TODO: Check if we need to perform Zoom's webhook verification here https://github.com/mattermost/mattermost-plugin-zoom/issues/291
 	if !p.verifyMattermostWebhookSecret(r) {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
