@@ -1,12 +1,12 @@
 {
     "id": "zoom",
     "name": "Zoom",
-    "description": "Zoom audio and video conferencing plugin for Mattermost 5.2+.",
+    "description": "Zoom audio and video conferencing plugin",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
-    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.6.1",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.6.2",
     "icon_path": "assets/profile.svg",
-    "version": "1.6.1",
+    "version": "1.6.2",
     "min_server_version": "5.12.0",
     "server": {
         "executables": {
