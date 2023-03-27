@@ -97,6 +97,12 @@ func TestPlugin(t *testing.T) {
 
 			api := &plugintest.API{}
 
+			api.On("GetLicense").Return(nil)
+			api.On("GetServerVersion").Return("6.2.0")
+
+			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
+			api.On("PatchBot", botUserID, mock.AnythingOfType("*model.BotPatch")).Return(nil, nil)
+
 			api.On("GetUser", "theuserid").Return(&model.User{
 				Id:    "theuserid",
 				Email: "theuseremail",
