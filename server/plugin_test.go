@@ -25,7 +25,6 @@ import (
 )
 
 func TestPlugin(t *testing.T) {
-	t.Skip("need to fix this test and use the new plugin-api lib")
 	// Mock zoom server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/users/theuseremail" {
@@ -111,6 +110,12 @@ func TestPlugin(t *testing.T) {
 
 			api := &plugintest.API{}
 
+			api.On("GetLicense").Return(nil)
+			api.On("GetServerVersion").Return("6.2.0")
+
+			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
+			api.On("PatchBot", botUserID, mock.AnythingOfType("*model.BotPatch")).Return(nil, nil)
+
 			api.On("GetUser", "theuserid").Return(&model.User{
 				Id:    "theuserid",
 				Email: "theuseremail",
@@ -158,11 +163,6 @@ func TestPlugin(t *testing.T) {
 			})
 			p.SetAPI(api)
 			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
-
-			// TODO: fixme
-			// helpers := &plugintest.Helpers{}
-			// helpers.On("EnsureBot", mock.AnythingOfType("*model.Bot")).Return(botUserID, nil)
-			// p.SetHelpers(helpers)
 
 			err = p.OnActivate()
 			require.Nil(t, err)

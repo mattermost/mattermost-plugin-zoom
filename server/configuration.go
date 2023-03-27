@@ -38,9 +38,13 @@ type configuration struct {
 	AccountLevelApp   bool
 	OAuthClientID     string
 	OAuthClientSecret string
-	OAuthRedirectURL  string
 	EncryptionKey     string
-	WebhookSecret     string
+
+	// WebhookSecret is generated in the Mattermost system console
+	WebhookSecret string
+
+	// ZoomWebhookSecret is the `Secret Token` taken from Zoom's webhook configuration page
+	ZoomWebhookSecret string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
