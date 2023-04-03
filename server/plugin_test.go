@@ -78,7 +78,7 @@ func TestPlugin(t *testing.T) {
 		},
 		"ValidStartedWebhookRequest": {
 			Request:                validStartedWebhookRequest,
-			ExpectedStatusCode:     http.StatusNotImplemented,
+			ExpectedStatusCode:     http.StatusOK,
 			HasPermissionToChannel: true,
 		},
 		"NoSecretWebhookRequest": {
@@ -96,6 +96,12 @@ func TestPlugin(t *testing.T) {
 			botUserID := "yei0BahL3cohya8vuaboShaeSi"
 
 			api := &plugintest.API{}
+
+			api.On("GetLicense").Return(nil)
+			api.On("GetServerVersion").Return("6.2.0")
+
+			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
+			api.On("PatchBot", botUserID, mock.AnythingOfType("*model.BotPatch")).Return(nil, nil)
 
 			api.On("GetUser", "theuserid").Return(&model.User{
 				Id:    "theuserid",

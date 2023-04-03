@@ -1,12 +1,12 @@
 {
     "id": "zoom",
     "name": "Zoom",
-    "description": "Zoom audio and video conferencing plugin for Mattermost 5.2+.",
+    "description": "Zoom audio and video conferencing plugin",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
-    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.6.1",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-zoom/releases/tag/v1.6.2",
     "icon_path": "assets/profile.svg",
-    "version": "1.6.1",
+    "version": "1.6.2",
     "min_server_version": "5.12.0",
     "server": {
         "executables": {
@@ -52,7 +52,7 @@
                 "key": "AccountLevelApp",
                 "display_name": "OAuth by Account Level App (Beta):",
                 "type": "bool",
-                "help_text": "When true, only an account administrator has to log in. The rest of the users will use their email to log in.",
+                "help_text": "When true, only an account administrator has to log in. The rest of the users will automatically use their Mattermost email to authenticate when starting meetings.",
                 "placeholder": "",
                 "default": false
             },
@@ -105,6 +105,15 @@
                 "type": "generated",
                 "help_text": "The secret used to authenticate the webhook to Mattermost.",
                 "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin.",
+                "placeholder": "",
+                "default": null
+            },
+            {
+                "key": "ZoomWebhookSecret",
+                "display_name": "Zoom Webhook Secret:",
+                "type": "text",
+                "help_text": "`Secret Token` taken from Zoom's webhook configuration page",
+                "regenerate_help_text": "",
                 "placeholder": "",
                 "default": null
             }
