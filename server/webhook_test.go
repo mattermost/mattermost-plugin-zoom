@@ -17,7 +17,6 @@ import (
 )
 
 var testConfig = &configuration{
-	EnableOAuth:       true,
 	OAuthClientID:     "clientid",
 	OAuthClientSecret: "clientsecret",
 	EncryptionKey:     "encryptionkey",

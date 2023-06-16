@@ -20,7 +20,8 @@ import (
 const (
 	httpTimeout = time.Second * 10
 	// OAuthPrompt stores the template to show the users to connect to Zoom
-	OAuthPrompt = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
+	OAuthPrompt       = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
+	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
@@ -179,7 +180,6 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 			c.token = updatedToken
 		}
 	}
-
 	client := c.config.Client(context.Background(), c.token)
 
 	res, err := client.Get(url)

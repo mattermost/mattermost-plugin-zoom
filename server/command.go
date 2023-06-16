@@ -32,7 +32,7 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 		return nil, errors.Wrap(err, "failed to get icon data")
 	}
 
-	canConnect := p.configuration.EnableOAuth && !p.configuration.AccountLevelApp
+	canConnect := !p.configuration.AccountLevelApp
 
 	autoCompleteDesc := "Available commands: start, help"
 	if canConnect {
@@ -102,9 +102,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 }
 
 func (p *Plugin) canConnect(user *model.User) bool {
-	return p.OAuthEnabled() && // we are not on JWT
-		(!p.configuration.AccountLevelApp || // we are on user managed app
-			user.IsSystemAdmin()) // admins can connect Account level apps
+	return !p.configuration.AccountLevelApp || user.IsSystemAdmin() // admins can connect Account level apps
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
@@ -238,7 +236,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	canConnect := p.OAuthEnabled() && !p.configuration.AccountLevelApp
+	canConnect := !p.configuration.AccountLevelApp
 
 	available := "start, help"
 	if canConnect {

@@ -30,10 +30,5 @@ description: Configuration steps for the Mattermost server
     * Select **Regenerate** next to the field **At Rest Token Encryption Key**.
     * Make sure **Enable Password based authentication** is set to `false`.
     * Ignore **API Key** and **API Secret** fields.
-  * **JWT/Password?**
-    * Make sure **Enable OAuth** is set to `false`.
-    * Ignore the fields **Zoom OAuth Client ID**, **Zoom OAuth Client Secret**, and **At Rest Token Encryption Key**.
-    * Set **Enable Password based authentication** to `true`.
-    * Use the API Key and API Secret generated during [Zoom Configuration](https://github.com/mattermost/mattermost-plugin-zoom/tree/8cc104ee70b0b51ac7e4c8c73715f25c42c782e0/docs/installation/zoom-configuration/zoom-setup-jwt.md) to fill in the fields **API Key** and **API Secret**.
 * If you are using Webhooks or Deauthorization, make sure you hit the **Regenerate** button on **Webhook Secret** field.
 * Select **Save**.
