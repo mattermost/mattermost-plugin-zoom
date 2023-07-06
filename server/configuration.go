@@ -51,17 +51,15 @@ func (c *configuration) Clone() *configuration {
 
 // IsValid checks if all needed fields are set.
 func (c *configuration) IsValid(isCloud bool) error {
-	if isCloud { // OAuth for either platform
-		switch {
-		case len(c.OAuthClientSecret) == 0:
-			return errors.New("please configure OAuthClientSecret")
+	switch {
+	case len(c.OAuthClientSecret) == 0:
+		return errors.New("please configure OAuthClientSecret")
 
-		case len(c.OAuthClientID) == 0:
-			return errors.New("please configure OAuthClientID")
+	case len(c.OAuthClientID) == 0:
+		return errors.New("please configure OAuthClientID")
 
-		case len(c.EncryptionKey) == 0:
-			return errors.New("please generate EncryptionKey from Zoom plugin settings")
-		}
+	case len(c.EncryptionKey) == 0:
+		return errors.New("please generate EncryptionKey from Zoom plugin settings")
 	}
 
 	if len(c.WebhookSecret) == 0 {

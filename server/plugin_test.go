@@ -165,9 +165,11 @@ func TestPlugin(t *testing.T) {
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
-				ZoomAPIURL:    ts.URL,
-				WebhookSecret: "thewebhooksecret",
-				EncryptionKey: "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
+				ZoomAPIURL:        ts.URL,
+				WebhookSecret:     "thewebhooksecret",
+				EncryptionKey:     "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
+				OAuthClientID:     "clientid",
+				OAuthClientSecret: "clientsecret",
 			})
 			p.SetAPI(api)
 			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
