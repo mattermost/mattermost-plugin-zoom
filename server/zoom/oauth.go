@@ -180,6 +180,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 			c.token = updatedToken
 		}
 	}
+
 	client := c.config.Client(context.Background(), c.token)
 
 	res, err := client.Get(url)
