@@ -27,6 +27,7 @@ const (
 
 type startMeetingRequest struct {
 	ChannelID string `json:"channel_id"`
+	RootID    string `json:"root_id"`
 	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
 	MeetingID int    `json:"meeting_id"`
@@ -284,7 +285,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				p.API.LogWarn("failed to write response", "error", err.Error())
 			}
-			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, "", creatorName, provider)
+			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, req.RootID, creatorName, provider)
 			return
 		}
 	}
@@ -318,7 +319,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	meetingID := meeting.ID
-	if err = p.postMeeting(user, meetingID, req.ChannelID, "", req.Topic); err != nil {
+	if err = p.postMeeting(user, meetingID, req.ChannelID, req.RootID, req.Topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
