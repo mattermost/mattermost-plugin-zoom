@@ -81,9 +81,9 @@ If you **would like to publish on Zoom Marketplace**, you'll find two sets of va
 
 #### Add user scopes to the app
 
-Select **Scopes** and add the following scopes: **meeting:read**, **user:read**.
+Select **Scopes** and add the following scopes: **meeting:read**, **meeting:write**,**user:read**.
 
-![scopes](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/468ffc75-167f-4dfc-b12c-9db9db25688f)
+![scopes-user-level-app](https://github.com/mattermost/mattermost-plugin-zoom/assets/90389917/c14264fa-fee1-4a50-8287-445c2e03ea55)
 
 #### Do not perform the install step
 
@@ -136,9 +136,9 @@ If you **would like to publish on Zoom Marketplace**, you'll find two sets of va
 
 #### Add user scopes to the app
 
-Select **Scopes** and add the following scopes: **meeting:read**, **user:read**.
+Select **Scopes** and add the following scopes: **meeting:read:admin**, **meeting:write:admin**,**user:read:admin**.
 
-![scopes](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/468ffc75-167f-4dfc-b12c-9db9db25688f)
+![scopes-account-level-app](https://github.com/mattermost/mattermost-plugin-zoom/assets/90389917/5d5b50d8-c1c7-4724-ac87-2c02e270ee30)
 
 #### Do not perform the install step
 
