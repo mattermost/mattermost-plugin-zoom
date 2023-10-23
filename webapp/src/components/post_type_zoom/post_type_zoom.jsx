@@ -85,7 +85,7 @@ export default class PostTypeZoom extends React.PureComponent {
             }
             content = (
                 <a
-                    className='btn btn-lg btn-primary'
+                    className='btn btn-primary'
                     style={style.button}
                     rel='noopener noreferrer'
                     target='_blank'
@@ -229,18 +229,10 @@ const getStyle = makeStyleFromTheme((theme) => {
             fontWeight: '600',
         },
         button: {
-            fontFamily: 'Open Sans',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            letterSpacing: '1px',
-            lineHeight: '19px',
             marginTop: '12px',
             marginRight: '12px',
-            borderRadius: '4px',
-            color: theme.buttonColor,
         },
         buttonIcon: {
-            paddingRight: '8px',
             fill: theme.buttonColor,
         },
         summary: {
