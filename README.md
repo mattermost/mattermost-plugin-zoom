@@ -205,11 +205,7 @@ Select **Done** and then save your app.
     * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
     * Make sure **Enable Password based authentication** is set to `false`.
     * Ignore **API Key** and **API Secret** fields.
-  * **JWT/Password?**
-    * Make sure **Enable OAuth** is set to `false`.
-    * Ignore the fields **Zoom OAuth Client ID**, **Zoom OAuth Client Secret**, and **At Rest Token Encryption Key**.
-    * Set **Enable Password based authentication** to `true`.
-    * Use the API Key and API Secret generated when configuring the plugin to fill in the fields **API Key** and **API Secret**.
+
 * If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field.
 * Select **Save**.
 
