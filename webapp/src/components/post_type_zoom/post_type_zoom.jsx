@@ -233,6 +233,7 @@ const getStyle = makeStyleFromTheme((theme) => {
             marginRight: '12px',
         },
         buttonIcon: {
+            paddingRight: '8px',
             fill: theme.buttonColor,
         },
         summary: {
