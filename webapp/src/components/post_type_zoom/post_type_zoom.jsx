@@ -70,6 +70,18 @@ export default class PostTypeZoom extends React.PureComponent {
         };
     }
 
+    renderPostWithMarkdown(post) {
+        const {formatText, messageHtmlToComponent} = window.PostUtils;
+        const markdownOptions = {
+            atMentions: true,
+        };
+
+        return messageHtmlToComponent(
+            formatText(post, markdownOptions),
+            false,
+        );
+    }
+
     render() {
         const style = getStyle(this.props.theme);
         const post = this.props.post;
@@ -79,7 +91,7 @@ export default class PostTypeZoom extends React.PureComponent {
         let content;
         let subtitle;
         if (props.meeting_status === 'STARTED') {
-            preText = post.message;
+            preText = this.renderPostWithMarkdown(post.message);
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
             }
@@ -127,7 +139,7 @@ export default class PostTypeZoom extends React.PureComponent {
                 );
             }
         } else if (props.meeting_status === 'ENDED') {
-            preText = post.message;
+            preText = this.renderPostWithMarkdown(post.message);
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has ended the meeting`;
             }
