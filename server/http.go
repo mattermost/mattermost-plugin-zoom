@@ -179,6 +179,7 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	slackAttachment := p.slackAttachmentToUpdatePMI(action, channel.Id)
+	slackAttachment.Actions = nil // Remove action buttons once responded
 
 	val := ""
 	switch action {
