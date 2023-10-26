@@ -31,10 +31,11 @@ class Plugin {
                     if (channel) {
                         startMeeting(channel.id, '')(store.dispatch, store.getState);
                     } else {
-                        const teamId = store.getState().entities.teams.currentTeamId;
-                        const threadId = store.getState().views.threads.selectedThreadIdInTeam[teamId];
-                        const baseURL = store.getState().entities.general.config.SiteURL;
-                        const channelId = await Client.getChannelId(baseURL, threadId);
+                        const state = store.getState();
+                        const teamId = state?.entities.teams.currentTeamId;
+                        const threadId = state?.views.threads.selectedThreadIdInTeam[teamId];
+                        const baseURL = state?.entities.general.config.SiteURL;
+                        const channelId = await Client.getChannelIdForThread(baseURL, threadId);
                         startMeeting(channelId, threadId)(store.dispatch, store.getState);
                     }
                 },

@@ -21,7 +21,7 @@ export default class Client {
         return meetingUrl;
     }
 
-    getChannelId = async (baseURL, threadId) => {
+    getChannelIdForThread = async (baseURL, threadId) => {
         const threadDetails = await doGet(`${baseURL}/api/v4/posts/${threadId}/thread`);
         return threadDetails.posts[threadId].channel_id;
     }
