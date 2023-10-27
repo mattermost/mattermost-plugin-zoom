@@ -101,7 +101,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case actionDisconnect:
 		return p.runDisconnectCommand(user)
 	case actionHelp, "":
-		return p.runHelpCommand()
+		return p.runHelpCommand(user)
 	case settings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
 	default:
@@ -242,9 +242,9 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 }
 
 // runHelpCommand runs command to display help text.
-func (p *Plugin) runHelpCommand() (string, error) {
+func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
-	if p.configuration.EnableOAuth {
+	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
 
