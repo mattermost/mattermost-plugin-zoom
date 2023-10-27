@@ -34,8 +34,6 @@ const (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	jwtClient zoom.Client
-
 	client *pluginapi.Client
 
 	// botUserID of the created bot account.
@@ -101,8 +99,6 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.jwtClient = zoom.NewJWTClient(p.getZoomAPIURL(), config.APIKey, config.APISecret)
-
 	p.telemetryClient, err = telemetry.NewRudderClient()
 	if err != nil {
 		p.API.LogWarn("telemetry client not started", "error", err.Error())
@@ -136,11 +132,6 @@ func (p *Plugin) registerSiteURL() error {
 // getActiveClient returns an OAuth Zoom client if available, otherwise an error and a user facing error message.
 func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, string, error) {
 	config := p.getConfiguration()
-
-	// JWT
-	if !p.OAuthEnabled() {
-		return p.jwtClient, "", nil
-	}
 
 	// OAuth Account Level
 	if config.AccountLevelApp {
@@ -261,13 +252,4 @@ func (p *Plugin) UpdateZoomOAuthUserInfo(userID string, info *zoom.OAuthUserInfo
 func (p *Plugin) isCloudLicense() bool {
 	license := p.API.GetLicense()
 	return license != nil && license.Features != nil && license.Features.Cloud != nil && *license.Features.Cloud
-}
-
-func (p *Plugin) OAuthEnabled() bool {
-	config := p.getConfiguration()
-	if config.EnableOAuth {
-		return true
-	}
-
-	return p.isCloudLicense()
 }
