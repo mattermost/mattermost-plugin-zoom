@@ -61,7 +61,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 
 	api.On("GetLicense").Return(nil)
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
-	api.On("LogDebug", "Could not get meeting post from KVStore", "err", ": , ")
+	api.On("LogDebug", "Could not get meeting post from KVStore", "error", ": , ")
 	p.SetAPI(api)
 
 	requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
