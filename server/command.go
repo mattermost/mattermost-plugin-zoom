@@ -38,7 +38,7 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 		return nil, errors.Wrap(err, "failed to get icon data")
 	}
 
-	canConnect := p.configuration.EnableOAuth && !p.configuration.AccountLevelApp
+	canConnect := !p.configuration.AccountLevelApp
 
 	autoCompleteDesc := "Available commands: start, help, settings"
 	if canConnect {
@@ -101,7 +101,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case actionDisconnect:
 		return p.runDisconnectCommand(user)
 	case actionHelp, "":
-		return p.runHelpCommand()
+		return p.runHelpCommand(user)
 	case settings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
 	default:
@@ -110,9 +110,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 }
 
 func (p *Plugin) canConnect(user *model.User) bool {
-	return p.OAuthEnabled() && // we are not on JWT
-		(!p.configuration.AccountLevelApp || // we are on user managed app
-			user.IsSystemAdmin()) // admins can connect Account level apps
+	return !p.configuration.AccountLevelApp || user.IsSystemAdmin() // admins can connect Account level apps
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
@@ -244,9 +242,9 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 }
 
 // runHelpCommand runs command to display help text.
-func (p *Plugin) runHelpCommand() (string, error) {
+func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
-	if p.configuration.EnableOAuth {
+	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
 
@@ -276,7 +274,7 @@ func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.A
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	canConnect := p.OAuthEnabled() && !p.configuration.AccountLevelApp
+	canConnect := !p.configuration.AccountLevelApp
 
 	available := "start, help, settings"
 	if canConnect {

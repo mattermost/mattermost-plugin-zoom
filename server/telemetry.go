@@ -1,7 +1,6 @@
 package main
 
 const (
-	telemetryOauthModeJWT               = "JWT"
 	telemetryOauthModeOauth             = "Oauth"
 	telemetryOauthModeOauthAccountLevel = "Oauth Account Level"
 
