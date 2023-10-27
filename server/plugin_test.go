@@ -14,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 
 	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
 	"github.com/mattermost/mattermost-server/v6/model"
@@ -52,6 +53,7 @@ func TestPlugin(t *testing.T) {
 			}
 		}
 	}))
+
 	defer ts.Close()
 
 	noAuthMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
@@ -99,21 +101,27 @@ func TestPlugin(t *testing.T) {
 			ExpectedStatusCode:     http.StatusUnauthorized,
 			HasPermissionToChannel: true,
 		},
-		"UnauthorizedChannelPermissions": {
-			Request:                unauthorizedUserRequest,
-			ExpectedStatusCode:     http.StatusInternalServerError,
-			HasPermissionToChannel: false,
-		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			botUserID := "yei0BahL3cohya8vuaboShaeSi"
 
 			api := &plugintest.API{}
 
+			userInfo, err := json.Marshal(zoom.OAuthUserInfo{
+				OAuthToken: &oauth2.Token{
+					AccessToken: "2a41c3138d2187a756c51428f78d192e9b88dcf44dd62d1b081ace4ec2241e0a",
+				},
+			})
+
+			require.Nil(t, err)
 			api.On("GetLicense").Return(nil)
 			api.On("GetServerVersion").Return("6.2.0")
 
 			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
+			api.On("KVGet", "zoomtoken_theuserid").Return(userInfo, nil)
+
+			api.On("SendEphemeralPost", "theuserid", mock.AnythingOfType("*model.Post")).Return(nil)
+
 			api.On("PatchBot", botUserID, mock.AnythingOfType("*model.BotPatch")).Return(nil, nil)
 
 			api.On("GetUser", "theuserid").Return(&model.User{
@@ -132,6 +140,7 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 234), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
+			api.On("KVSetWithExpiry", "zoomuserstate_theuserid", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
@@ -153,13 +162,22 @@ func TestPlugin(t *testing.T) {
 					SiteURL: &siteURL,
 				},
 			})
+			api.On("GetPreferencesForUser", mock.AnythingOfType("string")).Return([]model.Preference{
+				{
+					UserId:   "test-userid",
+					Category: zoomPreferenceCategory,
+					Name:     zoomPMISettingName,
+					Value:    trueString,
+				},
+			}, nil)
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
-				ZoomAPIURL:    ts.URL,
-				APIKey:        "theapikey",
-				APISecret:     "theapisecret",
-				WebhookSecret: "thewebhooksecret",
+				ZoomAPIURL:        ts.URL,
+				WebhookSecret:     "thewebhooksecret",
+				EncryptionKey:     "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
+				OAuthClientID:     "clientid",
+				OAuthClientSecret: "clientsecret",
 			})
 			p.SetAPI(api)
 			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)

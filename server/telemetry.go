@@ -1,7 +1,6 @@
 package main
 
 const (
-	telemetryOauthModeJWT               = "JWT"
 	telemetryOauthModeOauth             = "Oauth"
 	telemetryOauthModeOauthAccountLevel = "Oauth Account Level"
 
@@ -40,6 +39,12 @@ func (p *Plugin) trackOAuthModeChange(method string) {
 func (p *Plugin) trackMeetingStart(userID, source string) {
 	p.TrackUserEvent("start_meeting", userID, map[string]interface{}{
 		"source": source,
+	})
+}
+
+func (p *Plugin) trackMeetingType(userID string, usePMI bool) {
+	_ = p.tracker.TrackUserEvent("meeting_type", userID, map[string]interface{}{
+		"use_pmi": usePMI,
 	})
 }
 
