@@ -27,8 +27,17 @@ class Plugin {
             const iconURL = getPluginURL(store.getState()) + '/public/app-bar-icon.png';
             registry.registerAppBarComponent(
                 iconURL,
-                (channel) => {
-                    startMeeting(channel.id)(store.dispatch, store.getState);
+                async (channel) => {
+                    if (channel) {
+                        startMeeting(channel.id, '')(store.dispatch, store.getState);
+                    } else {
+                        const state = store.getState();
+                        const teamId = state?.entities.teams.currentTeamId;
+                        const threadId = state?.views.threads.selectedThreadIdInTeam[teamId];
+                        const baseURL = state?.entities.general.config.SiteURL;
+                        const channelId = await Client.getChannelIdForThread(baseURL, threadId);
+                        startMeeting(channelId, threadId)(store.dispatch, store.getState);
+                    }
                 },
                 'Start Zoom Meeting',
             );

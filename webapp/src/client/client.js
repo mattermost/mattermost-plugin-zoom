@@ -23,9 +23,14 @@ export default class Client {
         return res.meeting_url;
     }
 
-    forceStartMeeting = async (channelId, personal = true, topic = '', meetingId = 0) => {
-        const meetingUrl = await this.startMeeting(channelId, personal, topic, meetingId, true);
+    forceStartMeeting = async (channelId, rootId, personal = true, topic = '', meetingId = 0) => {
+        const meetingUrl = await this.startMeeting(channelId, rootId, personal, topic, meetingId, true);
         return meetingUrl;
+    }
+
+    getChannelIdForThread = async (baseURL, threadId) => {
+        const threadDetails = await doGet(`${baseURL}/api/v4/posts/${threadId}/thread`);
+        return threadDetails.posts[threadId].channel_id;
     }
 }
 
@@ -39,6 +44,26 @@ export const doPost = async (url, body, headers = {}) => {
     const response = await fetch(url, Client4.getOptions(options));
     if (response.ok) {
         return response;
+    }
+
+    const text = await response.text();
+
+    throw new ClientError(Client4.url, {
+        message: text || '',
+        status_code: response.status,
+        url,
+    });
+};
+
+export const doGet = async (url) => {
+    const options = {
+        method: 'get',
+    };
+
+    const response = await fetch(url, Client4.getOptions(options));
+
+    if (response.ok) {
+        return response.json();
     }
 
     const text = await response.text();
