@@ -42,6 +42,12 @@ func (p *Plugin) trackMeetingStart(userID, source string) {
 	})
 }
 
+func (p *Plugin) trackMeetingType(userID string, usePMI bool) {
+	_ = p.tracker.TrackUserEvent("meeting_type", userID, map[string]interface{}{
+		"use_pmi": usePMI,
+	})
+}
+
 func (p *Plugin) trackMeetingDuplication(userID string) {
 	p.TrackUserEvent("meeting_duplicated", userID, map[string]interface{}{})
 }

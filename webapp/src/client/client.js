@@ -11,8 +11,15 @@ export default class Client {
         this.url = url + '/plugins/' + id;
     }
 
-    startMeeting = async (channelId, personal = true, topic = '', meetingId = 0, force = false) => {
-        const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {channel_id: channelId, personal, topic, meeting_id: meetingId});
+    startMeeting = async (
+        channelId, personal = true, topic = '', meetingId = 0, force = false,
+    ) => {
+        const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {
+            channel_id: channelId,
+            personal,
+            topic,
+            meeting_id: meetingId,
+        });
         return res.meeting_url;
     }
 
@@ -30,9 +37,8 @@ export const doPost = async (url, body, headers = {}) => {
     };
 
     const response = await fetch(url, Client4.getOptions(options));
-
     if (response.ok) {
-        return response.json();
+        return response;
     }
 
     const text = await response.text();
