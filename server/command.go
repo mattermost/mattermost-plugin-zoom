@@ -12,18 +12,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-const helpText = `* |/zoom start [meeting topic]| - Start a Zoom meeting with topic (optional)`
-
-const oAuthHelpText = `* |/zoom connect| - Connect to Zoom
+const (
+	starterText   = "###### Mattermost Zoom Plugin - Slash Command Help\n"
+	helpText      = `* |/zoom start| - Start a zoom meeting`
+	oAuthHelpText = `* |/zoom connect| - Connect to Zoom
 * |/zoom disconnect| - Disconnect from Zoom`
-
-const alreadyConnectedString = "Already connected"
+	settingHelpText        = `* |/zoom settings| - Update your preferences`
+	alreadyConnectedText   = "Already connected"
+	zoomPreferenceCategory = "plugin:zoom"
+	zoomPMISettingName     = "use-pmi"
+	zoomPMISettingValueAsk = "ask"
+)
 
 const (
 	actionConnect    = "connect"
 	actionStart      = "start"
 	actionDisconnect = "disconnect"
 	actionHelp       = "help"
+	settings         = "settings"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -32,11 +38,11 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 		return nil, errors.Wrap(err, "failed to get icon data")
 	}
 
-	canConnect := p.configuration.EnableOAuth && !p.configuration.AccountLevelApp
+	canConnect := !p.configuration.AccountLevelApp
 
-	autoCompleteDesc := "Available commands: start, help"
+	autoCompleteDesc := "Available commands: start, help, settings"
 	if canConnect {
-		autoCompleteDesc = "Available commands: start, connect, disconnect, help"
+		autoCompleteDesc = "Available commands: start, connect, disconnect, help, settings"
 	}
 
 	return &model.Command{
@@ -96,15 +102,15 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runDisconnectCommand(user)
 	case actionHelp, "":
 		return p.runHelpCommand(user)
+	case settings:
+		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
 }
 
 func (p *Plugin) canConnect(user *model.User) bool {
-	return p.OAuthEnabled() && // we are not on JWT
-		(!p.configuration.AccountLevelApp || // we are on user managed app
-			user.IsSystemAdmin()) // admins can connect Account level apps
+	return !p.configuration.AccountLevelApp || user.IsSystemAdmin() // admins can connect Account level apps
 }
 
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
@@ -121,7 +127,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 // runStartCommand runs command to start a Zoom meeting.
 func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topic string) (string, error) {
 	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
-		return fmt.Sprintf("We could not get channel members (channelId: %v)", args.ChannelId), nil
+		return fmt.Sprintf("We could not get the channel members (channelId: %v)", args.ChannelId), nil
 	}
 
 	recentMeeting, recentMeetingLink, creatorName, provider, appErr := p.checkPreviousMessages(args.ChannelId)
@@ -142,25 +148,35 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		}
 		return authErr.Message, authErr.Err
 	}
+	var meetingID int
+	var createMeetingErr error
 
-	client, _, err := p.getActiveClient(user)
+	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
-		p.API.LogWarn("Error creating the client", "err", err)
-		return "Error creating the client.", nil
+		return "", err
 	}
 
-	meeting, err := client.CreateMeeting(zoomUser, topic)
-	if err != nil {
-		p.API.LogWarn("Error creating the meeting", "err", err)
-		return "Error creating the meeting.", nil
+	createMeetingWithPMI := false
+	switch userPMISettingPref {
+	case zoomPMISettingValueAsk:
+		p.askPreferenceForMeeting(user.Id, args.ChannelId)
+		return "", nil
+	case "", trueString:
+		createMeetingWithPMI = true
+		meetingID = zoomUser.Pmi
+	default:
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+		if createMeetingErr != nil {
+			return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
+		}
 	}
 
-	if err := p.postMeeting(user, meeting.ID, args.ChannelId, args.RootId, topic); err != nil {
-		return "Failed to post message. Please try again.", nil
+	if postMeetingErr := p.postMeeting(user, meetingID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
+		return "", postMeetingErr
 	}
 
 	p.trackMeetingStart(args.UserId, telemetryStartSourceCommand)
-
+	p.trackMeetingType(args.UserId, createMeetingWithPMI)
 	return "", nil
 }
 
@@ -177,7 +193,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 	if p.configuration.AccountLevelApp {
 		token, err := p.getSuperuserToken()
 		if err == nil && token != nil {
-			return alreadyConnectedString, nil
+			return alreadyConnectedText, nil
 		}
 
 		appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
@@ -190,7 +206,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 	// OAuth User Level
 	_, err := p.fetchOAuthUserInfo(zoomUserByMMID, user.Id)
 	if err == nil {
-		return alreadyConnectedString, nil
+		return alreadyConnectedText, nil
 	}
 
 	appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, true)
@@ -227,22 +243,42 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
-	text := "###### Mattermost Zoom Plugin - Slash Command Help\n"
-	text += strings.ReplaceAll(helpText, "|", "`")
-
+	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
+
 	return text, nil
+}
+
+func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
+	if len(params) == 0 {
+		if err := p.sendUserSettingForm(user.Id, args.ChannelId); err != nil {
+			return "", err
+		}
+		return "", nil
+	}
+	return fmt.Sprintf("Unknown Action %v", ""), nil
+}
+
+func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
+	return p.API.UpdatePreferencesForUser(userID, []model.Preference{
+		{
+			UserId:   userID,
+			Category: zoomPreferenceCategory,
+			Name:     zoomPMISettingName,
+			Value:    usePMIValue,
+		},
+	})
 }
 
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
-	canConnect := p.OAuthEnabled() && !p.configuration.AccountLevelApp
+	canConnect := !p.configuration.AccountLevelApp
 
-	available := "start, help"
+	available := "start, help, settings"
 	if canConnect {
-		available = "start, connect, disconnect, help"
+		available = "start, connect, disconnect, help, settings"
 	}
 
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
@@ -256,6 +292,10 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 		zoom.AddCommand(connect)
 		zoom.AddCommand(disconnect)
 	}
+
+	// setting to allow the user to decide whether to use PMI for instant meetings
+	setting := model.NewAutocompleteData("settings", "[command]", "Update your preferences")
+	zoom.AddCommand(setting)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)

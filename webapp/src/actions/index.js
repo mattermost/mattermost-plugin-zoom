@@ -5,11 +5,19 @@ import {PostTypes} from 'mattermost-redux/action_types';
 
 import Client from '../client';
 
-export function startMeeting(channelId, force = false, topic = '') {
+export function startMeeting(channelId, rootId, force = false, topic = '') {
     return async (dispatch, getState) => {
         try {
-            const startFunction = force ? Client.forceStartMeeting : Client.startMeeting;
-            const meetingURL = await startFunction(channelId, true, topic);
+            let meetingURL = '';
+            if (force) {
+                meetingURL = await Client.forceStartMeeting(
+                    channelId, true, '', 0, topic,
+                );
+            } else {
+                meetingURL = await Client.startMeeting(
+                    channelId, true, '', 0, false, topic,
+                );
+            }
             if (meetingURL) {
                 window.open(meetingURL);
             }
@@ -33,7 +41,7 @@ export function startMeeting(channelId, force = false, topic = '') {
                 is_pinned: false,
                 user_id: getState().entities.users.currentUserId,
                 channel_id: channelId,
-                root_id: '',
+                root_id: rootId,
                 parent_id: '',
                 original_id: '',
                 message: m,
@@ -47,6 +55,7 @@ export function startMeeting(channelId, force = false, topic = '') {
                 type: PostTypes.RECEIVED_NEW_POST,
                 data: post,
                 channelId,
+                rootId,
             });
 
             return {error};
