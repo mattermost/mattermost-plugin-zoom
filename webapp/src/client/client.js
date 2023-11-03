@@ -20,7 +20,9 @@ export default class Client {
             topic,
             meeting_id: meetingId,
         });
-        return res.meeting_url;
+
+        const data = await res.json();
+        return data.meeting_url;
     }
 
     forceStartMeeting = async (channelId, rootId, personal = true, topic = '', meetingId = 0) => {
