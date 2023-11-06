@@ -548,7 +548,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = p.postMeeting(user, meetingID, req.ChannelID, "", topic); err != nil {
+	if err = p.postMeeting(user, meetingID, req.ChannelID, req.RootID, topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
