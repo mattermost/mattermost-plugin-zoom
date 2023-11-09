@@ -48,7 +48,6 @@ type startMeetingRequest struct {
 	RootID    string `json:"root_id"`
 	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
-	MeetingID int    `json:"meeting_id"`
 	UsePMI    string `json:"use_pmi"`
 }
 
