@@ -294,7 +294,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	}
 
 	// setting to allow the user to decide whether to use PMI for instant meetings
-	setting := model.NewAutocompleteData("settings", "[command]", "Update your preferences")
+	setting := model.NewAutocompleteData("settings", "", "Update your preferences")
 	zoom.AddCommand(setting)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
