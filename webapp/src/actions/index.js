@@ -8,7 +8,7 @@ import Client from '../client';
 export function startMeeting(channelId, rootId = '', force = false, topic = '') {
     return async (dispatch, getState) => {
         try {
-            const meetingURL = await Client.startMeeting(channelId, rootId, true, topic, force);
+            const meetingURL = await Client.startMeeting(channelId, rootId, topic, force);
             if (meetingURL) {
                 window.open(meetingURL);
             }

@@ -46,7 +46,6 @@ const (
 type startMeetingRequest struct {
 	ChannelID string `json:"channel_id"`
 	RootID    string `json:"root_id"`
-	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
 	UsePMI    string `json:"use_pmi"`
 }

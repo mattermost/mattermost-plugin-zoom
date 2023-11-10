@@ -11,10 +11,9 @@ export default class Client {
         this.url = url + '/plugins/' + id;
     }
 
-    startMeeting = async (channelId, rootId, personal = true, topic = '', force = false) => {
+    startMeeting = async (channelId, rootId, topic = '', force = false) => {
         const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {
             channel_id: channelId,
-            personal,
             topic,
             root_id: rootId,
         });
