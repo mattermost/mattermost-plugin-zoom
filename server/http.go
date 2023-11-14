@@ -46,9 +46,7 @@ const (
 type startMeetingRequest struct {
 	ChannelID string `json:"channel_id"`
 	RootID    string `json:"root_id"`
-	Personal  bool   `json:"personal"`
 	Topic     string `json:"topic"`
-	MeetingID int    `json:"meeting_id"`
 	UsePMI    string `json:"use_pmi"`
 }
 
@@ -548,7 +546,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = p.postMeeting(user, meetingID, req.ChannelID, "", topic); err != nil {
+	if err = p.postMeeting(user, meetingID, req.ChannelID, req.RootID, topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
