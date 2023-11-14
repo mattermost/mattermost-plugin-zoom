@@ -17,6 +17,7 @@ export default class Client {
             topic,
             root_id: rootId,
         });
+
         return res.meeting_url;
     }
 
@@ -35,7 +36,7 @@ export const doPost = async (url, body, headers = {}) => {
 
     const response = await fetch(url, Client4.getOptions(options));
     if (response.ok) {
-        return response;
+        return response.json();
     }
 
     const text = await response.text();
