@@ -150,7 +150,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		return
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, channelID, "", defaultMeetingTopic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
 		p.API.LogWarn("failed to post the meeting", "Error", postMeetingErr.Error())
 		return
 	}
