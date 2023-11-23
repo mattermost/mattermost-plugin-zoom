@@ -159,7 +159,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	createMeetingWithPMI := false
 	switch userPMISettingPref {
 	case zoomPMISettingValueAsk:
-		p.askPreferenceForMeeting(user.Id, args.ChannelId)
+		p.askPreferenceForMeeting(user.Id, args.ChannelId, args.RootId)
 		return "", nil
 	case "", trueString:
 		createMeetingWithPMI = true
