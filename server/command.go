@@ -258,7 +258,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
-		if err := p.sendUserSettingForm(user.Id, args.ChannelId); err != nil {
+		if err := p.sendUserSettingForm(user.Id, args.ChannelId, args.RootId); err != nil {
 			return "", err
 		}
 		return "", nil

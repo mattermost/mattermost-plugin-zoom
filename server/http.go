@@ -450,6 +450,7 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 	post := &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
+		RootId:    rootID,
 	}
 	model.ParseSlackAttachment(post, []*model.SlackAttachment{&slackAttachment})
 	p.API.SendEphemeralPost(userID, post)
@@ -781,7 +782,7 @@ func parseOAuthUserState(state string) (userID, channelID string, justConnect bo
 	return stateComponents[1], stateComponents[2], stateComponents[3] == trueString, nil
 }
 
-func (p *Plugin) sendUserSettingForm(userID string, channelID string) error {
+func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	var currentValue string
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
@@ -801,6 +802,7 @@ func (p *Plugin) sendUserSettingForm(userID string, channelID string) error {
 	post := &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
+		RootId:    rootID,
 	}
 
 	model.ParseSlackAttachment(post, []*model.SlackAttachment{slackAttachment})
