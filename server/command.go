@@ -166,7 +166,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			p.postEphemeral(user.Id, args.ChannelId, args.RootId, "To use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
+			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
 			return "", nil
 		}
 	default:

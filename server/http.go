@@ -139,7 +139,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			p.postEphemeral(userID, channelID, rootID, "To use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
+			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
 			return
 		}
 	} else {
@@ -553,7 +553,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			p.postEphemeral(userID, req.ChannelID, req.RootID, "To use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
+			p.sendEnableZoomPMISettingMessage(userID, req.ChannelID, req.RootID)
 
 			if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
 				p.API.LogWarn("failed to write the response", "Error", err.Error())
@@ -655,6 +655,10 @@ func (p *Plugin) postAuthenticationMessage(channelID string, userID string, mess
 	}
 
 	return p.API.SendEphemeralPost(userID, post)
+}
+
+func (p *Plugin) sendEnableZoomPMISettingMessage(userID, channelID, rootID string) {
+	p.postEphemeral(userID, channelID, rootID, "To use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
 }
 
 func (p *Plugin) postEphemeral(userID, channelID, rootID, message string) *model.Post {
