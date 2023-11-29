@@ -12,7 +12,7 @@ The Mattermost Zoom integration allows team members to initiate a Zoom meeting w
 
 **Important**: Only Zoom users associated with the Zoom Account that created the Zoom App will be able to use the plugin. You can add these users from the **Manage Users** section in the Zoom Account settings.
 
-![image](https://github.com/mattermost/mattermost-plugin-gitlab/assets/55234496/4315391e-5dc2-4cfd-a1ea-3e6dd87c0473)
+![image](https://github.com/mattermost/mattermost-plugin-zoom/assets/55234496/a109df21-f3c4-4432-b42d-7ef3ae493a50)
 
 ## Admin guide
 
