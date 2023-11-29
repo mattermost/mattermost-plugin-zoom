@@ -12,7 +12,7 @@ The Mattermost Zoom integration allows team members to initiate a Zoom meeting w
 
 **Important**: Only Zoom users associated with the Zoom Account that created the Zoom App will be able to use the plugin. You can add these users from the **Manage Users** section in the Zoom Account settings.
 
-![example](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/64bb5511-0ab0-402f-9fae-7c3c8878a5ac)
+![image](https://github.com/mattermost/mattermost-plugin-gitlab/assets/55234496/4315391e-5dc2-4cfd-a1ea-3e6dd87c0473)
 
 ## Admin guide
 
@@ -198,12 +198,11 @@ Select **Done** and then save your app.
     * If you're using a self-hosted private cloud or on-premises Zoom server, enter the **Zoom URL** and **Zoom API URL** for the Zoom server, for example `https://yourzoom.com` and `https://api.yourzoom.com/v2` respectively. Leave blank if you're using Zoom's vendor-hosted SaaS service.
   * **Cloud Hosted?**
     * Leave **Zoom API URL** and **Zoom URL** fields blank.
+* If you are using and account level app on Zoom, set **OAuth by Account Level App (Beta)** to `true`.
 * Connect your users to Zoom using OAuth.
-  * Use the Client ID and Client Secret generated when configuring Zoom to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**.
+  * Use the Client ID and Client Secret generated when configuring Zoom to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**. (Make sure these credentials are according to the app type (user/account level) you are using.)
   * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
-  * Make sure **Enable Password based authentication** is set to `false`.
-  * Ignore **API Key** and **API Secret** fields.
-* If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field.
+* If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field and set the **Zoom Webhook Secret** from the features page in your Zoom app.
 * Select **Save**.
 
 ## User guide
