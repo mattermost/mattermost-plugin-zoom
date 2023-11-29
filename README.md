@@ -198,7 +198,7 @@ Select **Done** and then save your app.
     * If you're using a self-hosted private cloud or on-premises Zoom server, enter the **Zoom URL** and **Zoom API URL** for the Zoom server, for example `https://yourzoom.com` and `https://api.yourzoom.com/v2` respectively. Leave blank if you're using Zoom's vendor-hosted SaaS service.
   * **Cloud Hosted?**
     * Leave **Zoom API URL** and **Zoom URL** fields blank.
-* If you are using and account level app on Zoom, set **OAuth by Account Level App (Beta)** to `true`.
+* If you are using an account level app on Zoom, set **OAuth by Account Level App (Beta)** to `true`.
 * Connect your users to Zoom using OAuth.
   * Use the Client ID and Client Secret generated when configuring Zoom to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**. (Make sure these credentials are according to the app type (user/account level) you are using.)
   * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
