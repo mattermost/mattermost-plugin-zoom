@@ -200,7 +200,7 @@ Select **Done** and then save your app.
     * Leave **Zoom API URL** and **Zoom URL** fields blank.
 * If you are using an account level app on Zoom, set **OAuth by Account Level App** to `true`.
 * Connect your users to Zoom using OAuth.
-  * Use the Client ID and Client Secret generated when configuring Zoom to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**. (Make sure these credentials are according to the app type (user/account level) you are using.)
+  * Use the Client ID and Client Secret generated when configuring Zoom to fill in the fields **Zoom OAuth Client ID** and **Zoom OAuth Client Secret**. (If you have selected the app type as "Account level app", make sure that you are using a account level app on Zoom side as well)
   * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
 * If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field. Then set the **Zoom Webhook Secret** from the features page in your Zoom app.
 * Select **Save**.
