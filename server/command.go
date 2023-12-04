@@ -167,7 +167,10 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 
 		if meetingID <= 0 {
 			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
-			return "", nil
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+			if createMeetingErr != nil {
+				return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
+			}
 		}
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
