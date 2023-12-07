@@ -139,15 +139,19 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
 			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+			if createMeetingErr != nil {
+				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
+				return
+			}
+			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
 		}
 	} else {
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
-	}
-	if createMeetingErr != nil {
-		p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
-		return
+		if createMeetingErr != nil {
+			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
+			return
+		}
 	}
 
 	if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
@@ -553,13 +557,13 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			p.sendEnableZoomPMISettingMessage(userID, req.ChannelID, req.RootID)
 			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
 			if createMeetingErr != nil {
 				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 				http.Error(w, createMeetingErr.Error(), http.StatusInternalServerError)
 				return
 			}
+			p.sendEnableZoomPMISettingMessage(userID, req.ChannelID, req.RootID)
 		}
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)

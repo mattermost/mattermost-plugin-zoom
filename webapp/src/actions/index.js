@@ -13,16 +13,6 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
                 window.open(meetingURL);
             }
         } catch (error) {
-            let m = error.message;
-            if (error.message && error.message[0] === '{') {
-                const e = JSON.parse(error.message);
-
-                // Error is from Zoom API
-                if (e && e.message) {
-                    m = '\nZoom error: ' + e.message;
-                }
-            }
-
             const post = {
                 id: 'zoomPlugin' + Date.now(),
                 create_at: Date.now(),
@@ -35,7 +25,7 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
                 root_id: rootId,
                 parent_id: '',
                 original_id: '',
-                message: m,
+                message: 'Error occurred while starting the Zoom meeting.',
                 type: 'system_ephemeral',
                 props: {},
                 hashtags: '',
