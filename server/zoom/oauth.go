@@ -98,11 +98,12 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 }
 
 // CreateMeeting creates a new meeting for the user and returns the created meeting.
-func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) {
+func (c *OAuthClient) CreateMeeting(user *User, topic, date, time string, meetingType MeetingType) (*Meeting, error) {
 	client := c.config.Client(context.Background(), c.token)
 	meetingRequest := CreateMeetingRequest{
-		Topic: topic,
-		Type:  MeetingTypeInstant,
+		Topic:     topic,
+		Type:      meetingType,
+		StartTime: fmt.Sprintf("%sT%s:00", date, time),
 	}
 	b, err := json.Marshal(meetingRequest)
 	if err != nil {

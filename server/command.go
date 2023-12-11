@@ -29,7 +29,8 @@ const (
 	actionStart      = "start"
 	actionDisconnect = "disconnect"
 	actionHelp       = "help"
-	settings         = "settings"
+	actionSettings   = "settings"
+	actionSchedule   = "schedule"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -102,8 +103,10 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runDisconnectCommand(user)
 	case actionHelp, "":
 		return p.runHelpCommand(user)
-	case settings:
+	case actionSettings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
+	case actionSchedule:
+		return p.runScheduleCommand(args, user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -171,7 +174,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, args.ChannelId, args.RootId, topic, ""); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
 
@@ -261,6 +264,13 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 	return fmt.Sprintf("Unknown Action %v", ""), nil
 }
 
+func (p *Plugin) runScheduleCommand(args *model.CommandArgs, user *model.User) (string, error) {
+	if err := p.openScheduleMeetingDialog(user.Id, args.ChannelId, args.TriggerId); err != nil {
+		return "", err
+	}
+	return "", nil
+}
+
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
 	return p.API.UpdatePreferencesForUser(userID, []model.Preference{
 		{
@@ -296,6 +306,9 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	// setting to allow the user to decide whether to use PMI for instant meetings
 	setting := model.NewAutocompleteData("settings", "", "Update your preferences")
 	zoom.AddCommand(setting)
+
+	schedule := model.NewAutocompleteData(actionSchedule, "", "Schedule a Zoom meeting")
+	zoom.AddCommand(schedule)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)

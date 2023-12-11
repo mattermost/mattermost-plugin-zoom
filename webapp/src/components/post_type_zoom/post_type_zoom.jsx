@@ -90,7 +90,7 @@ export default class PostTypeZoom extends React.PureComponent {
         let preText;
         let content;
         let subtitle;
-        if (props.meeting_status === 'STARTED') {
+        if (props.meeting_status === 'STARTED' || props.meeting_status === 'SCHEDULED') {
             preText = this.renderPostWithMarkdown(post.message);
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
@@ -126,7 +126,7 @@ export default class PostTypeZoom extends React.PureComponent {
                 );
             } else {
                 subtitle = (
-                    <span>
+                    <>
                         {'Meeting ID : '}
                         <a
                             rel='noopener noreferrer'
@@ -135,7 +135,12 @@ export default class PostTypeZoom extends React.PureComponent {
                         >
                             {props.meeting_id}
                         </a>
-                    </span>
+                        {props.meeting_status === 'SCHEDULED' &&
+                            <p>
+                                {`Meeting Time : ${props.meeting_time}`}
+                            </p>
+                        }
+                    </>
                 );
             }
         } else if (props.meeting_status === 'ENDED') {

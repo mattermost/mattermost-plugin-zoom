@@ -35,7 +35,7 @@ var errNotFound = errors.New("not found")
 type Client interface {
 	GetMeeting(meetingID int) (*Meeting, error)
 	GetUser(user *model.User, firstConnect bool) (*User, *AuthError)
-	CreateMeeting(user *User, topic string) (*Meeting, error)
+	CreateMeeting(user *User, topic, date, time string, meetingType MeetingType) (*Meeting, error)
 }
 
 type PluginAPI interface {

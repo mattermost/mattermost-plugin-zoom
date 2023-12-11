@@ -11,6 +11,7 @@ type EventType string
 
 const (
 	WebhookStatusStarted         = "STARTED"
+	WebhookStatusScheduled       = "SCHEDULED"
 	WebhookStatusEnded           = "ENDED"
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 	RecentlyCreated              = "RECENTLY_CREATED"
