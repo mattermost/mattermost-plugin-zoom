@@ -49,6 +49,7 @@ const (
 	DialogValueDate          = "date"
 	DialogValueTime          = "time"
 	DialogValueTopic         = "topic"
+	DialogValuePostMeeting   = "postMeeting"
 )
 
 type startMeetingRequest struct {
@@ -838,6 +839,12 @@ func (p *Plugin) openScheduleMeetingDialog(userID, channelID, triggerID string) 
 					HelpText:    "Enter meeting start time in 'HH-MM' format",
 					Optional:    false,
 				},
+				{
+					Name:        DialogValuePostMeeting,
+					Type:        "bool",
+					Placeholder: "Post meeting link in channel",
+					Optional:    true,
+				},
 			},
 		},
 	}
@@ -873,6 +880,7 @@ func (p *Plugin) submitScheduleMeetingDialog(w http.ResponseWriter, r *http.Requ
 	meetingDate := submitRequest.Submission[DialogValueDate].(string)
 	meetingTime := submitRequest.Submission[DialogValueTime].(string)
 	meetingTopic := submitRequest.Submission[DialogValueTopic].(string)
+	postMeeting := submitRequest.Submission[DialogValuePostMeeting].(bool)
 
 	response.Errors = map[string]string{}
 	dateValidationError := p.validateDate(meetingDate)
@@ -944,10 +952,12 @@ func (p *Plugin) submitScheduleMeetingDialog(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := p.postMeeting(user, meeting.ID, submitRequest.ChannelId, "", meetingTopic, formattedMeetingTime); err != nil {
-		p.API.LogError("Failed to post the meeting", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if postMeeting {
+		if err := p.postMeeting(user, meeting.ID, submitRequest.ChannelId, "", meetingTopic, formattedMeetingTime); err != nil {
+			p.API.LogError("Failed to post the meeting", "Error", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if _, err := w.Write([]byte("Meeting scheduled successfully")); err != nil {
