@@ -498,6 +498,21 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
+	if authErr != nil {
+		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			p.API.LogWarn("failed to write the response", "error", err.Error())
+		}
+
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
+			p.API.LogWarn("failed to store user state")
+		}
+
+		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
+		return
+	}
+
 	if r.URL.Query().Get("force") == "" {
 		recentMeeting, recentMeetingLink, creatorName, provider, cpmErr := p.checkPreviousMessages(req.ChannelID)
 		if cpmErr != nil {
@@ -512,21 +527,6 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, req.RootID, creatorName, provider)
 			return
 		}
-	}
-
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
-	if authErr != nil {
-		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
-			p.API.LogWarn("failed to write the response", "error", err.Error())
-		}
-
-		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(userID, req.ChannelID, false); appErr != nil {
-			p.API.LogWarn("failed to store user state")
-		}
-
-		p.postAuthenticationMessage(req.ChannelID, userID, authErr.Message)
-		return
 	}
 
 	topic := req.Topic
