@@ -179,14 +179,14 @@ func (p *Plugin) handleValidateZoomWebhook(w http.ResponseWriter, r *http.Reques
 	var webhook zoom.ValidationWebhook
 	err := json.Unmarshal(body, &webhook)
 	if err != nil {
-		p.API.LogWarn("Failed to validate Zoom webhook: " + err.Error())
+		p.API.LogWarn("Failed to unmarshal Zoom webhook: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	hash, err := createWebhookSignatureHash(config.ZoomWebhookSecret, webhook.Payload.PlainToken)
 	if err != nil {
-		p.API.LogWarn("Failed to validate Zoom webhook: " + err.Error())
+		p.API.LogWarn("Failed to create webhook signature hash: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
