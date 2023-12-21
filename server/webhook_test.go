@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
-	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
+	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -60,7 +60,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 
 	api.On("GetLicense").Return(nil)
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
-	api.On("LogDebug", "Could not get meeting post from KVStore", "error", ": , ")
+	api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
 	p.SetAPI(api)
 
 	requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`

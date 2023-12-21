@@ -221,11 +221,7 @@ You can also start a meeting in any chat window by typing `/zoom start`.
 
 ## Development
 
-This plugin contains both a server and web app portion. 
-
-Use `make dist` to build distributions of the plugin that you can upload to a Mattermost server for testing.
-
-Use `make check-style` to check the style for the whole plugin.
+This plugin contains both a server and web app portion. Read our documentation about the [Developer Workflow](https://developers.mattermost.com/integrate/plugins/developer-workflow/) and [Developer Setup](https://developers.mattermost.com/integrate/plugins/developer-setup/) for more information about developing and extending plugins.
 
 ### Server
 
