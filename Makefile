@@ -46,9 +46,9 @@ all: check-style test dist
 check-style: webapp/node_modules
 	@echo Checking for style guide compliance
 
+## TODO: Add check-types after typescript base setup.
 ifneq ($(HAS_WEBAPP),)
 	cd webapp && npm run lint
-	cd webapp && npm run check-types
 endif
 
 ifneq ($(HAS_SERVER),)
@@ -192,9 +192,10 @@ test: webapp/node_modules
 ifneq ($(HAS_SERVER),)
 	$(GO) test -v $(GO_TEST_FLAGS) ./server/...
 endif
-ifneq ($(HAS_WEBAPP),)
-	cd webapp && $(NPM) run test;
-endif
+## TODO: Remove comment after adding test base setup.
+# ifneq ($(HAS_WEBAPP),)
+# 	cd webapp && $(NPM) run test;
+# endif
 
 ## Creates a coverage report for the server code.
 .PHONY: coverage
