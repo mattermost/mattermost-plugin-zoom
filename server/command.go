@@ -130,6 +130,15 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		return fmt.Sprintf("We could not get the channel members (channelId: %v)", args.ChannelId), nil
 	}
 
+	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
+	if authErr != nil {
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
+			p.API.LogWarn("failed to store user state")
+		}
+		return authErr.Message, authErr.Err
+	}
+
 	recentMeeting, recentMeetingLink, creatorName, provider, appErr := p.checkPreviousMessages(args.ChannelId)
 	if appErr != nil {
 		return "Error checking previous messages", nil
@@ -140,14 +149,6 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		return "", nil
 	}
 
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
-	if authErr != nil {
-		// the user state will be needed later while connecting the user to Zoom via OAuth
-		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
-			p.API.LogWarn("failed to store user state")
-		}
-		return authErr.Message, authErr.Err
-	}
 	var meetingID int
 	var createMeetingErr error
 
