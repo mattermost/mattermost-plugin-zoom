@@ -135,6 +135,7 @@ export default class PostTypeZoom extends React.PureComponent {
                         >
                             {props.meeting_id}
                         </a>
+                        <p>{props.meeting_users_status}</p>
                     </span>
                 );
             }
