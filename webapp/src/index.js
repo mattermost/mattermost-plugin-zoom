@@ -17,7 +17,7 @@ class Plugin {
         registry.registerChannelHeaderButtonAction(
             <ChannelHeaderIcon/>,
             (channel) => {
-                startMeeting(channel.id, store.getState()?.views.rhs.selectedPostId)(store.dispatch, store.getState);
+                startMeeting(channel.id)(store.dispatch, store.getState);
             },
             'Start Zoom Meeting',
             'Start Zoom Meeting',
@@ -28,10 +28,10 @@ class Plugin {
             registry.registerAppBarComponent(
                 iconURL,
                 async (channel) => {
-                    const state = store.getState();
                     if (channel) {
-                        startMeeting(channel.id, state?.views.rhs.selectedPostId)(store.dispatch, store.getState);
+                        startMeeting(channel.id, '')(store.dispatch, store.getState);
                     } else {
+                        const state = store.getState();
                         const teamId = state?.entities.teams.currentTeamId;
                         const threadId = state?.views.threads.selectedThreadIdInTeam[teamId];
                         const baseURL = state?.entities.general.config.SiteURL;
