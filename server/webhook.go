@@ -161,13 +161,13 @@ func (p *Plugin) handleParticipantJoinedBeforeHost(w http.ResponseWriter, r *htt
 	participantsJoinedMsg := "Participant(s) joined before host"
 	postAttachments := post.Attachments()
 
-	meetingID, ok := post.Props["meeting_id"].(int64)
+	meetingID, ok := post.Props["meeting_id"].(float64)
 	if !ok {
 		meetingID = 0
 	}
 
 	meetingURL := post.GetProp("meeting_link")
-	postAttachments[0].Text = fmt.Sprintf("Meeting ID: [%d](%s)\n\n%s\n\n[Join Meeting](%s)", meetingID, meetingURL, participantsJoinedMsg, meetingURL)
+	postAttachments[0].Text = fmt.Sprintf("Meeting ID: [%d](%s)\n\n%s\n\n[Join Meeting](%s)", int(meetingID), meetingURL, participantsJoinedMsg, meetingURL)
 	model.ParseSlackAttachment(post, postAttachments)
 
 	post.AddProp("meeting_users_status", participantsJoinedMsg)
