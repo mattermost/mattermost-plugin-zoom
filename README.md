@@ -162,20 +162,20 @@ Follow the instructions for setting up Mattermost to use the plugin.
 
 ### Configure Webhook Events
 
-When a Zoom meeting ends, the original link shared in the channel can be changed to indicate the meeting has ended and how long it lasted. To enable this functionality, we need to create a webhook subscription in Zoom that tells the Mattermost server every time a meeting ends. The Mattermost server then updates the original Zoom message.
+When a Zoom meeting ends or when a user joins the meeting, the original post shared in the channel can be changed to indicate the meeting status. To enable this functionality, we need to create a webhook subscription in Zoom that tells the Mattermost server every time a meeting ends or a user has joined the meeting. The Mattermost server then updates the original Zoom message.
 
 1. Select **Feature**.
 2. Enable **Event Subscriptions**.
-3. Select **Add New Event Subscription** and give it a name \(e.g. "Meeting Ended"\).
+3. Select **Add New Event Subscription** and give it a name \(e.g. "Meeting Status"\).
 4. Enter a valid **Event notification endpoint URL** \(`https://SITEURL/plugins/zoom/webhook?secret=WEBHOOKSECRET`\).
    * `SITEURL` should be your Mattermost server URL.
    * `WEBHOOKSECRET` is generated when setting up Mattermost to use the plugin.
 
 ![mattermost_webhook_secret](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/58b9ac74-ecf9-4e3e-986e-94fd4c39bfb0)
 
-Select **Add events** and select the **End Meeting** event.
+Select **Add events** and select the **End Meeting**, **Participant was waiting for host to join**, and **Participant/Host joined meeting** events.
 
-![event_types](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/a2f04fe9-e4fa-4e78-b198-1f493e53cf93)
+![event_types](https://github.com/mattermost/mattermost-plugin-zoom/assets/55234496/60a29813-b9f3-4dcf-9f70-15f4d7bef021)
 
 Select **Done** and then save your app.
 
