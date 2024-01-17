@@ -268,7 +268,11 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
-	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText+"\n"+channelPreferenceHelpText+"\n"+listChannelPreferenceHelpText, "|", "`")
+	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
+	if p.API.HasPermissionTo(user.Id, model.PermissionManageSystem) {
+		text += "\n" + strings.ReplaceAll(channelPreferenceHelpText+"\n"+listChannelPreferenceHelpText, "|", "`")
+	}
+	
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
