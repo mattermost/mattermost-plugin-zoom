@@ -422,6 +422,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	channelSettings := model.NewAutocompleteData("channel-settings", "", "Update current channel preferences")
 	channelSettingsList := model.NewAutocompleteData("list", "", "List all the channel preferences")
 	channelSettings.AddCommand(channelSettingsList)
+	channelSettings.RoleID = model.SystemAdminRoleId
 	zoom.AddCommand(channelSettings)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
