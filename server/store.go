@@ -20,10 +20,18 @@ const (
 	zoomUserByMMID        = "zoomtoken_"
 	zoomUserByZoomID      = "zoomtokenbyzoomid_"
 	zoomSuperUserTokenKey = "zoomSuperUserToken_"
+	zoomChannelSettings   = "zoomChannelSettings"
 
 	meetingPostIDTTL  = 60 * 60 * 24 // One day
 	oAuthUserStateTTL = 60 * 5       // 5 minutes
 )
+
+type ZoomChannelSettingsMapValue struct {
+	ChannelName string
+	Preference  string
+}
+
+type ZoomChannelSettingsMap map[string]ZoomChannelSettingsMapValue
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 	config := p.getConfiguration()
@@ -205,4 +213,50 @@ func (p *Plugin) removeSuperUserToken() error {
 	}
 
 	return nil
+}
+
+func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsMapValue ZoomChannelSettingsMapValue) error {
+	bytes, appErr := p.API.KVGet(zoomChannelSettings)
+	if appErr != nil {
+		return appErr
+	}
+
+	var zoomChannelSettingsMap ZoomChannelSettingsMap
+	if len(bytes) != 0 {
+		if err := json.Unmarshal(bytes, &zoomChannelSettingsMap); err != nil {
+			return err
+		}
+	} else {
+		zoomChannelSettingsMap = ZoomChannelSettingsMap{}
+	}
+
+	zoomChannelSettingsMap[channelID] = zoomChannelSettingsMapValue
+	bytes, err := json.Marshal(zoomChannelSettingsMap)
+	if err != nil {
+		return err
+	}
+
+	if appErr := p.API.KVSet(zoomChannelSettings, bytes); appErr != nil {
+		return appErr
+	}
+
+	return nil
+}
+
+func (p *Plugin) listZoomChannelSettings() (ZoomChannelSettingsMap, error) {
+	bytes, appErr := p.API.KVGet(zoomChannelSettings)
+	if appErr != nil {
+		return nil, appErr
+	}
+
+	if len(bytes) == 0 {
+		return ZoomChannelSettingsMap{}, nil
+	}
+
+	var zoomChannelSettingsMap ZoomChannelSettingsMap
+	if err := json.Unmarshal(bytes, &zoomChannelSettingsMap); err != nil {
+		return nil, err
+	}
+
+	return zoomChannelSettingsMap, nil
 }

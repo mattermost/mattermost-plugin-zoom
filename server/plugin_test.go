@@ -71,6 +71,15 @@ func TestPlugin(t *testing.T) {
 	unauthorizedUserRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
 	unauthorizedUserRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
+	channelSettingsMap := ZoomChannelSettingsMap{
+		"thechannelid": ZoomChannelSettingsMapValue{
+			ChannelName: "mockChannel",
+			Preference:  ZoomChannelPreferences[DisablePreference],
+		},
+	}
+
+	channelSettingsMapByte, _ := json.Marshal(channelSettingsMap)
+
 	for name, tc := range map[string]struct {
 		Request                *http.Request
 		ExpectedStatusCode     int
@@ -129,6 +138,12 @@ func TestPlugin(t *testing.T) {
 				Email: "theuseremail",
 			}, nil)
 
+			api.On("GetChannel", "thechannelid").Return(&model.Channel{
+				Id:          "thechannelid",
+				Type:        model.ChannelTypeOpen,
+				DisplayName: "mockChannel",
+			}, nil)
+
 			api.On("HasPermissionToChannel", "theuserid", "thechannelid", model.PermissionCreatePost).Return(tc.HasPermissionToChannel)
 
 			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
@@ -144,6 +159,7 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
+			api.On("KVGet", zoomChannelSettings).Return(channelSettingsMapByte, nil)
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 

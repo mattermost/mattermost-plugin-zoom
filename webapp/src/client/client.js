@@ -18,7 +18,7 @@ export default class Client {
             root_id: rootId,
         });
 
-        return res.meeting_url;
+        return {meetingUrl: res.meeting_url, error: res.error};
     }
 
     getChannelIdForThread = async (baseURL, threadId) => {

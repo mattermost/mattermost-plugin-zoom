@@ -91,6 +91,15 @@
                 "regenerate_help_text": "",
                 "placeholder": "",
                 "default": null
+            },
+            {
+                "key": "RestrictBotPosting",
+                "display_name": "Restrict Bot Posting:",
+                "type": "bool",
+                "help_text": "Restrict bot posting meeting links to only DM/GM and private channels.",
+                "regenerate_help_text": "",
+                "placeholder": "",
+                "default": false
             }
         ]
     }
