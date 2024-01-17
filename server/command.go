@@ -272,7 +272,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	if p.API.HasPermissionTo(user.Id, model.PermissionManageSystem) {
 		text += "\n" + strings.ReplaceAll(channelPreferenceHelpText+"\n"+listChannelPreferenceHelpText, "|", "`")
 	}
-	
+
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
