@@ -333,15 +333,15 @@ func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []str
 						Type:        "radio",
 						Options: []*model.PostActionOptions{
 							{
-								Text:  "Enable",
+								Text:  "Enable Zoom Meetings in this channel",
 								Value: "enable",
 							},
 							{
-								Text:  "Disable",
+								Text:  "Disable Zoom Meetings in this channel",
 								Value: "disable",
 							},
 							{
-								Text:  fmt.Sprintf("Default (%t)", p.getConfiguration().RestrictBotPosting),
+								Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictBotPosting),
 								Value: "default",
 							},
 						},
