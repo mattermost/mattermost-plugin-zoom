@@ -159,10 +159,10 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 
 	createMeetingWithPMI := false
 	switch userPMISettingPref {
-	case zoomPMISettingValueAsk:
+	case "", zoomPMISettingValueAsk:
 		p.askPreferenceForMeeting(user.Id, args.ChannelId, args.RootId)
 		return "", nil
-	case "", trueString:
+	case trueString:
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
 
@@ -303,7 +303,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	}
 
 	// setting to allow the user to decide whether to use PMI for instant meetings
-	setting := model.NewAutocompleteData("settings", "", "Update your preferences")
+	setting := model.NewAutocompleteData("settings", "", "Update your meeting ID preferences")
 	zoom.AddCommand(setting)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
