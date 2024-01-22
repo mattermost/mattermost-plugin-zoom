@@ -13,7 +13,7 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
                 window.open(meetingURL);
             }
         } catch (error) {
-            let m = error.message;
+            let m = 'Error occurred while starting the Zoom meeting.';
             if (error.message && error.message[0] === '{') {
                 const e = JSON.parse(error.message);
 

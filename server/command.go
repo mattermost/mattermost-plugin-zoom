@@ -163,11 +163,19 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	createMeetingWithPMI := false
 	switch userPMISettingPref {
 	case zoomPMISettingValueAsk:
-		p.askPreferenceForMeeting(user.Id, args.ChannelId)
+		p.askPreferenceForMeeting(user.Id, args.ChannelId, args.RootId)
 		return "", nil
 	case "", trueString:
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
+
+		if meetingID <= 0 {
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+			if createMeetingErr != nil {
+				return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
+			}
+			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
+		}
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
 		if createMeetingErr != nil {
@@ -257,7 +265,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
-		if err := p.sendUserSettingForm(user.Id, args.ChannelId); err != nil {
+		if err := p.sendUserSettingForm(user.Id, args.ChannelId, args.RootId); err != nil {
 			return "", err
 		}
 		return "", nil

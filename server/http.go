@@ -41,6 +41,7 @@ const (
 	actionForContext         = "action"
 	userIDForContext         = "userID"
 	channelIDForContext      = "channelID"
+	rootIDForContext         = "rootID"
 	usePersonalMeetingID     = "USE PERSONAL MEETING ID"
 	useAUniqueMeetingID      = "USE A UNIQUE MEETING ID"
 	MattermostUserIDHeader   = "Mattermost-User-ID"
@@ -104,6 +105,7 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 	action := postActionIntegrationRequest.Context[actionForContext].(string)
 	userID := postActionIntegrationRequest.Context[userIDForContext].(string)
 	channelID := postActionIntegrationRequest.Context[channelIDForContext].(string)
+	rootID := postActionIntegrationRequest.Context[rootIDForContext].(string)
 
 	slackAttachment := model.SlackAttachment{
 		Text: fmt.Sprintf("You have selected `%s` to start the meeting.", action),
@@ -124,10 +126,10 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 		p.API.LogError("failed to write response", "Error", err.Error())
 	}
 
-	p.startMeeting(action, userID, channelID)
+	p.startMeeting(action, userID, channelID, rootID)
 }
 
-func (p *Plugin) startMeeting(action string, userID string, channelID string) {
+func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 	user, appErr := p.API.GetUser(userID)
 	if appErr != nil {
 		p.API.LogWarn("failed to get the user from userID", "Error", appErr.Error())
@@ -146,12 +148,21 @@ func (p *Plugin) startMeeting(action string, userID string, channelID string) {
 	if action == usePersonalMeetingID {
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
+
+		if meetingID <= 0 {
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+			if createMeetingErr != nil {
+				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
+				return
+			}
+			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
+		}
 	} else {
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
-	}
-	if createMeetingErr != nil {
-		p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
-		return
+		if createMeetingErr != nil {
+			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
+			return
+		}
 	}
 
 	if postMeetingErr := p.postMeeting(user, meetingID, channelID, "", defaultMeetingTopic, ""); postMeetingErr != nil {
@@ -330,7 +341,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	p.trackConnect(userID)
 
 	if justConnect {
-		p.postEphemeral(userID, channelID, "Successfully connected to Zoom \nType `/zoom settings` to change your meeting ID preference")
+		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom \nType `/zoom settings` to change your meeting ID preference")
 	} else {
 		meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic, "", "", zoom.MeetingTypeInstant)
 		if err != nil {
@@ -424,7 +435,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID, root
 	return nil
 }
 
-func (p *Plugin) askPreferenceForMeeting(userID, channelID string) {
+func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathAskPMI)
 
 	slackAttachment := model.SlackAttachment{
@@ -441,6 +452,7 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID string) {
 						actionForContext:    usePersonalMeetingID,
 						userIDForContext:    userID,
 						channelIDForContext: channelID,
+						rootIDForContext:    rootID,
 					},
 				},
 			},
@@ -455,6 +467,7 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID string) {
 						actionForContext:    useAUniqueMeetingID,
 						userIDForContext:    userID,
 						channelIDForContext: channelID,
+						rootIDForContext:    rootID,
 					},
 				},
 			},
@@ -464,6 +477,7 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID string) {
 	post := &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
+		RootId:    rootID,
 	}
 	model.ParseSlackAttachment(post, []*model.SlackAttachment{&slackAttachment})
 	p.API.SendEphemeralPost(userID, post)
@@ -548,18 +562,32 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		p.askPreferenceForMeeting(user.Id, req.ChannelID)
+		p.askPreferenceForMeeting(user.Id, req.ChannelID, req.RootID)
 		return
 	}
 
 	createMeetingWithPMI := false
 	switch userPMISettingPref {
 	case zoomPMISettingValueAsk:
-		p.askPreferenceForMeeting(user.Id, req.ChannelID)
+		p.askPreferenceForMeeting(user.Id, req.ChannelID, req.RootID)
+
+		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			p.API.LogWarn("failed to write the response", "Error", err.Error())
+		}
 		return
 	case "", trueString:
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
+
+		if meetingID <= 0 {
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+			if createMeetingErr != nil {
+				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
+				http.Error(w, createMeetingErr.Error(), http.StatusInternalServerError)
+				return
+			}
+			p.sendEnableZoomPMISettingMessage(userID, req.ChannelID, req.RootID)
+		}
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
 		if createMeetingErr != nil {
@@ -657,10 +685,15 @@ func (p *Plugin) postAuthenticationMessage(channelID string, userID string, mess
 	return p.API.SendEphemeralPost(userID, post)
 }
 
-func (p *Plugin) postEphemeral(userID, channelID, message string) *model.Post {
+func (p *Plugin) sendEnableZoomPMISettingMessage(userID, channelID, rootID string) {
+	p.postEphemeral(userID, channelID, rootID, "The meeting below is created with an unique meeting ID, to use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
+}
+
+func (p *Plugin) postEphemeral(userID, channelID, rootID, message string) *model.Post {
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channelID,
+		RootId:    rootID,
 		Message:   message,
 	}
 
@@ -781,7 +814,7 @@ func parseOAuthUserState(state string) (userID, channelID string, justConnect bo
 	return stateComponents[1], stateComponents[2], stateComponents[3] == trueString, nil
 }
 
-func (p *Plugin) sendUserSettingForm(userID string, channelID string) error {
+func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	var currentValue string
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
@@ -801,6 +834,7 @@ func (p *Plugin) sendUserSettingForm(userID string, channelID string) error {
 	post := &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
+		RootId:    rootID,
 	}
 
 	model.ParseSlackAttachment(post, []*model.SlackAttachment{slackAttachment})
