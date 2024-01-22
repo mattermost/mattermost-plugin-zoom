@@ -508,7 +508,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if restrict {
-		if _, err = w.Write([]byte(`{"error": "Creating zoom meeting is disabled for the channel."}`)); err != nil {
+		if _, err = w.Write([]byte(`{"error": "Creating zoom meeting is disabled for this channel."}`)); err != nil {
 			p.API.LogWarn("failed to write the response", "error", err.Error())
 		}
 		return
@@ -956,14 +956,12 @@ func (p *Plugin) checkChannelPreference(channelID string) (bool, int, error) {
 	*/
 	if exist {
 		if val.Preference == ZoomChannelPreferences[DefaultPreference] {
-			preference = p.configuration.RestrictBotPosting
+			preference = p.configuration.RestrictUserPosting
 		} else if val.Preference == ZoomChannelPreferences[EnablePreference] {
 			preference = true
 		}
-	} else {
-		if channel.Type == model.ChannelTypeOpen {
-			preference = p.configuration.RestrictBotPosting
-		}
+	} else if channel.Type == model.ChannelTypeOpen {
+		preference = p.configuration.RestrictUserPosting
 	}
 
 	return preference, http.StatusOK, nil

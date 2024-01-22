@@ -41,7 +41,7 @@ type configuration struct {
 	// ZoomWebhookSecret is the `Secret Token` taken from Zoom's webhook configuration page
 	ZoomWebhookSecret string
 
-	RestrictBotPosting bool
+	RestrictUserPosting bool
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if

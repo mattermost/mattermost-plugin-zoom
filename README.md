@@ -204,7 +204,7 @@ Select **Done** and then save your app.
   * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
 * If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field. Then set the **Zoom Webhook Secret** from the features page in your Zoom app.
 * Select **Save**.
-* Enable the **Restrict Bot Posting** configuration to restrict bot posting meeting links to only DM/GM and private channels.
+* Enable the **Restrict User Posting** configuration to restrict user posting meeting links to only DM/GM and private channels.
 
 ## User guide
 
@@ -218,21 +218,21 @@ Once enabled, selecting the video icon in a Mattermost channel invites team memb
 
 ### Slash commands
 
-- `/zoom connect` :- This is used to connect your Mattermost account to your Zoom account.
+- `/zoom connect` :- To connect your Mattermost account to your Zoom account.
 
-- `/zoom disconnect` :- This is used to disconnect your Mattermost account from your Zoom account.
+- `/zoom disconnect` :- To disconnect your Mattermost account from your Zoom account.
 
-- `/zoom start [meeting topic]` :- This is used to start a Zoom meeting with the provided meeting topic.
+- `/zoom start [meeting topic]` :- To start a Zoom meeting with the provided meeting topic.
 
-- `/zoom settings` :- This is used to update Zoom meeting settings.
+- `/zoom settings` :- To update Zoom meeting settings.
 
-- `/zoom help` :- This is used to show help text for all the commands.
+- `/zoom help` :- To show help text for all the commands.
 
-### System admins only  
+##### System admins only  
 
-- `/zoom channel-settings` :- This is used to update channel preferences to restrict bot posting meetings to the current channel.
+- `/zoom channel-settings` :- To update channel preferences to restrict user posting meetings to the current channel.
 
-- `/zoom channel-settings list` :- This is used to list the channel with updated preferences.
+- `/zoom channel-settings list` :- To list the channel with updated preferences.
 
 
 ## Development
