@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -82,8 +81,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.submitFormPMIForPreference(w, r)
 	case pathAskPMI:
 		p.submitFormPMIForMeeting(w, r)
-	case pathScheduleMeeting:
-		p.submitScheduleMeetingDialog(w, r)
+	// case pathScheduleMeeting:
+	// 	p.submitScheduleMeetingDialog(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -842,196 +841,196 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	return nil
 }
 
-func (p *Plugin) openScheduleMeetingDialog(userID, channelID, triggerID string) error {
-	body := model.OpenDialogRequest{
-		TriggerId: triggerID,
-		URL:       fmt.Sprintf("/plugins/%s%s", manifest.ID, pathScheduleMeeting),
-		Dialog: model.Dialog{
-			Title: "Schedule Meeting",
-			Elements: []model.DialogElement{
-				{
-					DisplayName: "Topic",
-					Name:        DialogValueTopic,
-					Type:        "text",
-					Placeholder: "Topic",
-					HelpText:    "Enter meeting topic",
-					Optional:    false,
-				},
-				{
-					DisplayName: "Date",
-					Name:        DialogValueDate,
-					Type:        "text",
-					Placeholder: "YYYY-MM-DD",
-					HelpText:    "Enter meeting start date in 'YYYY-MM-DD' format",
-					Optional:    false,
-				},
-				{
-					DisplayName: "Time",
-					Name:        DialogValueTime,
-					Type:        "text",
-					Placeholder: "HH:MM",
-					HelpText:    "Enter meeting start time in 'HH-MM' format",
-					Optional:    false,
-				},
-				{
-					Name:        DialogValuePostMeeting,
-					Type:        "bool",
-					Placeholder: "Post meeting link in channel",
-					Optional:    true,
-				},
-			},
-		},
-	}
+// func (p *Plugin) openScheduleMeetingDialog(userID, channelID, triggerID string) error {
+// 	body := model.OpenDialogRequest{
+// 		TriggerId: triggerID,
+// 		URL:       fmt.Sprintf("/plugins/%s%s", manifest.ID, pathScheduleMeeting),
+// 		Dialog: model.Dialog{
+// 			Title: "Schedule Meeting",
+// 			Elements: []model.DialogElement{
+// 				{
+// 					DisplayName: "Topic",
+// 					Name:        DialogValueTopic,
+// 					Type:        "text",
+// 					Placeholder: "Topic",
+// 					HelpText:    "Enter meeting topic",
+// 					Optional:    false,
+// 				},
+// 				{
+// 					DisplayName: "Date",
+// 					Name:        DialogValueDate,
+// 					Type:        "text",
+// 					Placeholder: "YYYY-MM-DD",
+// 					HelpText:    "Enter meeting start date in 'YYYY-MM-DD' format",
+// 					Optional:    false,
+// 				},
+// 				{
+// 					DisplayName: "Time",
+// 					Name:        DialogValueTime,
+// 					Type:        "text",
+// 					Placeholder: "HH:MM",
+// 					HelpText:    "Enter meeting start time in 'HH-MM' format",
+// 					Optional:    false,
+// 				},
+// 				{
+// 					Name:        DialogValuePostMeeting,
+// 					Type:        "bool",
+// 					Placeholder: "Post meeting link in channel",
+// 					Optional:    true,
+// 				},
+// 			},
+// 		},
+// 	}
 
-	requestBody, err := json.Marshal(body)
-	if err != nil {
-		p.API.LogError("Error occurred while marshaling open dialog request body.", "Error", err)
-		return err
-	}
+// 	requestBody, err := json.Marshal(body)
+// 	if err != nil {
+// 		p.API.LogError("Error occurred while marshaling open dialog request body.", "Error", err)
+// 		return err
+// 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s%s", p.siteURL, pathOpenDialog), "application/json", bytes.NewBuffer(requestBody))
-	if err != nil {
-		p.API.LogError("Error occurred while open dialog request.", "Error", err)
-		return err
-	}
+// 	resp, err := http.Post(fmt.Sprintf("%s%s", p.siteURL, pathOpenDialog), "application/json", bytes.NewBuffer(requestBody))
+// 	if err != nil {
+// 		p.API.LogError("Error occurred while open dialog request.", "Error", err)
+// 		return err
+// 	}
 
-	defer resp.Body.Close()
-	return nil
-}
+// 	defer resp.Body.Close()
+// 	return nil
+// }
 
-func (p *Plugin) submitScheduleMeetingDialog(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get(MattermostUserIDHeader)
+// func (p *Plugin) submitScheduleMeetingDialog(w http.ResponseWriter, r *http.Request) {
+// 	userID := r.Header.Get(MattermostUserIDHeader)
 
-	response := &model.SubmitDialogResponse{}
-	submitRequest := &model.SubmitDialogRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&submitRequest); err != nil {
-		p.API.LogError("Error occurred while unmarshalling submit dialog request body", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		p.returnSubmitDialogResponse(w, response)
-		return
-	}
+// 	response := &model.SubmitDialogResponse{}
+// 	submitRequest := &model.SubmitDialogRequest{}
+// 	if err := json.NewDecoder(r.Body).Decode(&submitRequest); err != nil {
+// 		p.API.LogError("Error occurred while unmarshalling submit dialog request body", "Error", err.Error())
+// 		http.Error(w, err.Error(), http.StatusBadRequest)
+// 		p.returnSubmitDialogResponse(w, response)
+// 		return
+// 	}
 
-	meetingDate := submitRequest.Submission[DialogValueDate].(string)
-	meetingTime := submitRequest.Submission[DialogValueTime].(string)
-	meetingTopic := submitRequest.Submission[DialogValueTopic].(string)
-	postMeeting := submitRequest.Submission[DialogValuePostMeeting].(bool)
+// 	meetingDate := submitRequest.Submission[DialogValueDate].(string)
+// 	meetingTime := submitRequest.Submission[DialogValueTime].(string)
+// 	meetingTopic := submitRequest.Submission[DialogValueTopic].(string)
+// 	postMeeting := submitRequest.Submission[DialogValuePostMeeting].(bool)
 
-	response.Errors = map[string]string{}
-	dateValidationError := p.validateDate(meetingDate)
-	if dateValidationError != "" {
-		response.Errors[DialogValueDate] = dateValidationError
-	}
+// 	response.Errors = map[string]string{}
+// 	dateValidationError := p.validateDate(meetingDate)
+// 	if dateValidationError != "" {
+// 		response.Errors[DialogValueDate] = dateValidationError
+// 	}
 
-	timeValidationError := p.validateTime(meetingTime)
-	if timeValidationError != "" {
-		response.Errors[DialogValueTime] = timeValidationError
-	}
+// 	timeValidationError := p.validateTime(meetingTime)
+// 	if timeValidationError != "" {
+// 		response.Errors[DialogValueTime] = timeValidationError
+// 	}
 
-	if timeValidationError != "" || dateValidationError != "" {
-		p.API.LogInfo("Invalid date/time format.")
-		http.Error(w, "Invalid dete/time format.", http.StatusBadRequest)
-		p.returnSubmitDialogResponse(w, response)
-		return
-	}
+// 	if timeValidationError != "" || dateValidationError != "" {
+// 		p.API.LogInfo("Invalid date/time format.")
+// 		http.Error(w, "Invalid dete/time format.", http.StatusBadRequest)
+// 		p.returnSubmitDialogResponse(w, response)
+// 		return
+// 	}
 
-	user, appErr := p.API.GetUser(userID)
-	if appErr != nil {
-		p.API.LogError("Error getting the user details.", "Error", appErr.Message)
-		http.Error(w, appErr.Message, appErr.StatusCode)
-		return
-	}
+// 	user, appErr := p.API.GetUser(userID)
+// 	if appErr != nil {
+// 		p.API.LogError("Error getting the user details.", "Error", appErr.Message)
+// 		http.Error(w, appErr.Message, appErr.StatusCode)
+// 		return
+// 	}
 
-	loc, err := time.LoadLocation(user.GetPreferredTimezone())
-	if err != nil {
-		p.API.LogError("Error loading the location.", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	loc, err := time.LoadLocation(user.GetPreferredTimezone())
+// 	if err != nil {
+// 		p.API.LogError("Error loading the location.", "Error", err.Error())
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	parsedMeetingTime, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT%s:00+00:00", meetingDate, meetingTime))
-	if err != nil {
-		p.API.LogError("Error parsing the meeting time.", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	parsedMeetingTime, err := time.Parse(time.RFC3339, fmt.Sprintf("%sT%s:00+00:00", meetingDate, meetingTime))
+// 	if err != nil {
+// 		p.API.LogError("Error parsing the meeting time.", "Error", err.Error())
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	if time.Until(parsedMeetingTime) < 0 {
-		p.API.LogError("Meeting time cannot be less than the current time.")
-		http.Error(w, "Meeting time cannot be less than the current time.", http.StatusInternalServerError)
-		response.Error = "Meeting time cannot be less than the current time."
-		p.returnSubmitDialogResponse(w, response)
-		return
-	}
+// 	if time.Until(parsedMeetingTime) < 0 {
+// 		p.API.LogError("Meeting time cannot be less than the current time.")
+// 		http.Error(w, "Meeting time cannot be less than the current time.", http.StatusInternalServerError)
+// 		response.Error = "Meeting time cannot be less than the current time."
+// 		p.returnSubmitDialogResponse(w, response)
+// 		return
+// 	}
 
-	formattedMeetingTime := time.Unix(parsedMeetingTime.UnixMilli()/1000, 0).In(loc).Format(DateTimeFormat)
+// 	formattedMeetingTime := time.Unix(parsedMeetingTime.UnixMilli()/1000, 0).In(loc).Format(DateTimeFormat)
 
-	client, _, err := p.getActiveClient(user)
-	if err != nil {
-		p.API.LogError("Error getting the client", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	client, _, err := p.getActiveClient(user)
+// 	if err != nil {
+// 		p.API.LogError("Error getting the client", "Error", err.Error())
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
-	if authErr != nil {
-		p.API.LogError("Error getting the Zoom user", "Error", authErr.Error())
-		http.Error(w, authErr.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
+// 	if authErr != nil {
+// 		p.API.LogError("Error getting the Zoom user", "Error", authErr.Error())
+// 		http.Error(w, authErr.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	meeting, err := client.CreateMeeting(zoomUser, meetingTopic, meetingDate, meetingTime, zoom.MeetingTypeScheduled)
-	if err != nil {
-		p.API.LogError("Error creating the meeting", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+// 	meeting, err := client.CreateMeeting(zoomUser, meetingTopic, meetingDate, meetingTime, zoom.MeetingTypeScheduled)
+// 	if err != nil {
+// 		p.API.LogError("Error creating the meeting", "Error", err.Error())
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	if postMeeting {
-		if err := p.postMeeting(user, meeting.ID, submitRequest.ChannelId, "", meetingTopic, formattedMeetingTime); err != nil {
-			p.API.LogError("Failed to post the meeting", "Error", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
+// 	if postMeeting {
+// 		if err := p.postMeeting(user, meeting.ID, submitRequest.ChannelId, "", meetingTopic, formattedMeetingTime); err != nil {
+// 			p.API.LogError("Failed to post the meeting", "Error", err.Error())
+// 			http.Error(w, err.Error(), http.StatusInternalServerError)
+// 			return
+// 		}
+// 	}
 
-	if _, err := w.Write([]byte("Meeting scheduled successfully")); err != nil {
-		p.API.LogError("failed to write the response", "Error", err.Error())
-	}
+// 	if _, err := w.Write([]byte("Meeting scheduled successfully")); err != nil {
+// 		p.API.LogError("failed to write the response", "Error", err.Error())
+// 	}
 
-	p.returnSubmitDialogResponse(w, response)
-}
+// 	p.returnSubmitDialogResponse(w, response)
+// }
 
-func (p *Plugin) validateDate(meetingDate string) string {
-	_, err := time.Parse(DateLayout, meetingDate)
-	if err != nil {
-		return "Please enter a valid date"
-	}
-	return ""
-}
+// func (p *Plugin) validateDate(meetingDate string) string {
+// 	_, err := time.Parse(DateLayout, meetingDate)
+// 	if err != nil {
+// 		return "Please enter a valid date"
+// 	}
+// 	return ""
+// }
 
-func (p *Plugin) validateTime(time string) string {
-	var timeMatched [][]string
+// func (p *Plugin) validateTime(time string) string {
+// 	var timeMatched [][]string
 
-	timeRegex := regexp.MustCompile(`^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$`)
-	timeMatched = timeRegex.FindAllStringSubmatch(time, -1)
-	if timeMatched == nil {
-		return "Please enter a valid time"
-	}
-	return ""
-}
+// 	timeRegex := regexp.MustCompile(`^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$`)
+// 	timeMatched = timeRegex.FindAllStringSubmatch(time, -1)
+// 	if timeMatched == nil {
+// 		return "Please enter a valid time"
+// 	}
+// 	return ""
+// }
 
-func (p *Plugin) returnSubmitDialogResponse(w http.ResponseWriter, res *model.SubmitDialogResponse) {
-	w.Header().Set("Content-Type", "application/json")
+// func (p *Plugin) returnSubmitDialogResponse(w http.ResponseWriter, res *model.SubmitDialogResponse) {
+// 	w.Header().Set("Content-Type", "application/json")
 
-	b, err := json.Marshal(res)
-	if err != nil {
-		p.API.LogWarn("Error occurred while marshaling submit dialog response", "Error", err.Error())
-	}
+// 	b, err := json.Marshal(res)
+// 	if err != nil {
+// 		p.API.LogWarn("Error occurred while marshaling submit dialog response", "Error", err.Error())
+// 	}
 
-	if _, err := w.Write(b); err != nil {
-		p.API.LogWarn("Failed to write SubmitDialogResponse", "Error", err.Error())
-	}
-}
+// 	if _, err := w.Write(b); err != nil {
+// 		p.API.LogWarn("Failed to write SubmitDialogResponse", "Error", err.Error())
+// 	}
+// }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathUpdatePMI)

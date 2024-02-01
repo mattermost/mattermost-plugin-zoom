@@ -91,7 +91,7 @@ export default class PostTypeZoom extends React.PureComponent {
         let content;
         let subtitle;
         if (props.meeting_status === 'STARTED' || props.meeting_status === 'SCHEDULED') {
-            preText = this.renderPostWithMarkdown(post.message);
+            preText = post.message;
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
             }
@@ -144,7 +144,7 @@ export default class PostTypeZoom extends React.PureComponent {
                 );
             }
         } else if (props.meeting_status === 'ENDED') {
-            preText = this.renderPostWithMarkdown(post.message);
+            preText = post.message;
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has ended the meeting`;
             }
@@ -207,6 +207,9 @@ export default class PostTypeZoom extends React.PureComponent {
         if (props.meeting_topic) {
             title = props.meeting_topic;
         }
+
+        title = this.renderPostWithMarkdown(title);
+        preText = this.renderPostWithMarkdown(preText);
 
         return (
             <div className='attachment attachment--pretext'>
