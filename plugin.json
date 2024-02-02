@@ -93,10 +93,10 @@
                 "default": null
             },
             {
-                "key": "RestrictUserPosting",
-                "display_name": "Restrict User Posting:",
+                "key": "RestrictMeetingCreation",
+                "display_name": "Restrict Meeting Creation:",
                 "type": "bool",
-                "help_text": "Restrict user posting meeting links to only DM/GM and private channels.",
+                "help_text": "Restrict user from creating meetings in public channels.",
                 "regenerate_help_text": "",
                 "placeholder": "",
                 "default": false

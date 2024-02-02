@@ -204,7 +204,7 @@ Select **Done** and then save your app.
   * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
 * If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field. Then set the **Zoom Webhook Secret** from the features page in your Zoom app.
 * Select **Save**.
-* Enable the **Restrict User Posting** configuration to restrict user posting meeting links to only DM/GM and private channels.
+* Enable the **Restrict Meeting Creation** configuration to restrict users from creating meetings in public channels.
 
 ## User guide
 
@@ -230,7 +230,7 @@ Once enabled, selecting the video icon in a Mattermost channel invites team memb
 
 ##### System admins only  
 
-- `/zoom channel-settings` :- To update channel preferences to restrict user posting meetings to the current channel.
+- `/zoom channel-settings` :- To update channel preferences to restrict users from creating meetings in the current channel.
 
 - `/zoom channel-settings list` :- To list the channel with updated preferences.
 

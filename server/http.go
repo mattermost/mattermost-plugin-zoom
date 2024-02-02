@@ -956,12 +956,12 @@ func (p *Plugin) checkChannelPreference(channelID string) (bool, int, error) {
 	*/
 	if exist {
 		if val.Preference == ZoomChannelPreferences[DefaultPreference] {
-			preference = p.configuration.RestrictUserPosting
+			preference = p.configuration.RestrictMeetingCreation
 		} else if val.Preference == ZoomChannelPreferences[EnablePreference] {
 			preference = true
 		}
 	} else if channel.Type == model.ChannelTypeOpen {
-		preference = p.configuration.RestrictUserPosting
+		preference = p.configuration.RestrictMeetingCreation
 	}
 
 	return preference, http.StatusOK, nil

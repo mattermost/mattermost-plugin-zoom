@@ -341,7 +341,7 @@ func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []str
 								Value: "disable",
 							},
 							{
-								Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictUserPosting),
+								Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictMeetingCreation),
 								Value: "default",
 							},
 						},
@@ -379,7 +379,7 @@ func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []str
 		for key, value := range zoomChannelSettingsMap {
 			preference := value.Preference
 			if value.Preference == ZoomChannelPreferences[DefaultPreference] {
-				preference = fmt.Sprintf("%s (%t)", preference, p.getConfiguration().RestrictUserPosting)
+				preference = fmt.Sprintf("%s (%t)", preference, p.getConfiguration().RestrictMeetingCreation)
 			}
 
 			sb.WriteString(fmt.Sprintf("\n|%s|%s|%s|", key, value.ChannelName, preference))
