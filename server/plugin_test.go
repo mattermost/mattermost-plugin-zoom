@@ -75,15 +75,6 @@ func TestPlugin(t *testing.T) {
 	unauthorizedUserRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\", \"personal\": true}"))
 	unauthorizedUserRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	channelSettingsMap := ZoomChannelSettingsMap{
-		"thechannelid": ZoomChannelSettingsMapValue{
-			ChannelName: "mockChannel",
-			Preference:  ZoomChannelPreferences[DisablePreference],
-		},
-	}
-
-	channelSettingsMapByte, _ := json.Marshal(channelSettingsMap)
-
 	for name, tc := range map[string]struct {
 		Request                *http.Request
 		ExpectedStatusCode     int
@@ -171,7 +162,7 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
-			api.On("KVGet", zoomChannelSettings).Return(channelSettingsMapByte, nil)
+			api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil)
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 
@@ -201,11 +192,12 @@ func TestPlugin(t *testing.T) {
 
 			p := Plugin{}
 			p.setConfiguration(&configuration{
-				ZoomAPIURL:        ts.URL,
-				WebhookSecret:     "thewebhooksecret",
-				EncryptionKey:     "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
-				OAuthClientID:     "clientid",
-				OAuthClientSecret: "clientsecret",
+				ZoomAPIURL:              ts.URL,
+				WebhookSecret:           "thewebhooksecret",
+				EncryptionKey:           "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
+				OAuthClientID:           "clientid",
+				OAuthClientSecret:       "clientsecret",
+				RestrictMeetingCreation: true,
 			})
 			p.SetAPI(api)
 			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
