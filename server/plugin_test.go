@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -58,6 +59,9 @@ func TestPlugin(t *testing.T) {
 
 	noAuthMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 
+	restrictMeetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
+	restrictMeetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
+
 	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
@@ -83,6 +87,7 @@ func TestPlugin(t *testing.T) {
 	for name, tc := range map[string]struct {
 		Request                *http.Request
 		ExpectedStatusCode     int
+		MeetingAllowed         bool
 		HasPermissionToChannel bool
 	}{
 		"UnauthorizedMeetingRequest": {
@@ -90,9 +95,16 @@ func TestPlugin(t *testing.T) {
 			ExpectedStatusCode:     http.StatusUnauthorized,
 			HasPermissionToChannel: true,
 		},
+		"RestrictMeetingRequest": {
+			Request:                restrictMeetingRequest,
+			ExpectedStatusCode:     http.StatusOK,
+			MeetingAllowed:         false,
+			HasPermissionToChannel: true,
+		},
 		"ValidMeetingRequest": {
 			Request:                meetingRequest,
 			ExpectedStatusCode:     http.StatusOK,
+			MeetingAllowed:         true,
 			HasPermissionToChannel: true,
 		},
 		"ValidStoppedWebhookRequest": {
@@ -206,6 +218,231 @@ func TestPlugin(t *testing.T) {
 			w := httptest.NewRecorder()
 			p.ServeHTTP(&plugin.Context{}, w, tc.Request)
 			assert.Equal(t, tc.ExpectedStatusCode, w.Result().StatusCode)
+		})
+	}
+}
+
+func TestHandleChannelPreference(t *testing.T) {
+	for _, test := range []struct {
+		Name               string
+		SetupAPI           func(*plugintest.API)
+		RequestBody        string
+		ExpectedStatusCode int
+		ExpectedResult     string
+	}{
+		{
+			Name: "HandleChannelPreference: invalid body",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("LogError", "Error decoding dialog request", "Error", mock.AnythingOfType("string")).Once()
+			},
+			RequestBody: `{
+				"user_id":
+			}`,
+			ExpectedStatusCode: http.StatusBadRequest,
+			ExpectedResult:     "invalid character '}' looking for beginning of value\n",
+		},
+		{
+			Name: "HandleChannelPreference: empty user ID",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("LogError", "Invalid user ID", "UserID", "").Once()
+			},
+			RequestBody: `{
+				"user_id": ""
+			}`,
+			ExpectedStatusCode: http.StatusUnauthorized,
+			ExpectedResult:     "Not authorized\n",
+		},
+		{
+			Name: "HandleChannelPreference: insufficient permissions",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("LogError", "Unable to resolve request due to insufficient permissions", "UserID", "mockUserID").Once()
+				api.On("HasPermissionTo", "mockUserID", model.PermissionManageSystem).Return(false).Once()
+			},
+			RequestBody: `{
+				"user_id": "mockUserID"
+			}`,
+			ExpectedStatusCode: http.StatusForbidden,
+			ExpectedResult:     "Insufficient permissions\n",
+		},
+		{
+			Name: "HandleChannelPreference: invalid reqest body",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("LogError", "Invalid request body", "Error", "channel name should not be empty").Once()
+				api.On("HasPermissionTo", "mockUserID", model.PermissionManageSystem).Return(true).Once()
+			},
+			RequestBody: `{
+				"user_id": "mockUserID",
+				"callback_id": "",
+				"channel_id": "mockChannelID",
+				"submission": {
+					  "preference": "Enabled"
+				}
+			}`,
+			ExpectedStatusCode: http.StatusBadRequest,
+			ExpectedResult:     "channel name should not be empty\n",
+		},
+		{
+			Name: "HandleChannelPreference: unable to set preference",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("LogError", "Error setting channel preference", "Error", "unable to set preference").Once()
+				api.On("HasPermissionTo", "mockUserID", model.PermissionManageSystem).Return(true).Once()
+				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
+				api.On("KVSet", zoomChannelSettings, mock.Anything).Return(&model.AppError{
+					Message: "unable to set preference",
+				}).Once()
+			},
+			RequestBody: `{
+				"user_id": "mockUserID",
+				"callback_id": "mockCallbackID",
+				"channel_id": "mockChannelID",
+				"submission": {
+					  "preference": "Enabled"
+				}
+			}`,
+			ExpectedStatusCode: http.StatusInternalServerError,
+			ExpectedResult:     "unable to set preference\n",
+		},
+		{
+			Name: "HandleChannelPreference: success",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("HasPermissionTo", "mockUserID", model.PermissionManageSystem).Return(true).Once()
+				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
+				api.On("KVSet", zoomChannelSettings, mock.Anything).Return(nil).Once()
+			},
+			RequestBody: `{
+				"user_id": "mockUserID",
+				"callback_id": "mockCallbackID",
+				"channel_id": "mockChannelID",
+				"submission": {
+					  "preference": "Enabled"
+				}
+			}`,
+			ExpectedStatusCode: http.StatusOK,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			api := &plugintest.API{}
+			p := Plugin{}
+			p.SetAPI(api)
+			p.setConfiguration(&configuration{
+				ZoomAPIURL:        "mockURL",
+				WebhookSecret:     "thewebhooksecret",
+				EncryptionKey:     "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
+				OAuthClientID:     "clientid",
+				OAuthClientSecret: "clientsecret",
+			})
+
+			test.SetupAPI(api)
+
+			licenseTrue := true
+			api.On("GetLicense").Return(&model.License{
+				Features: &model.Features{
+					Cloud: &licenseTrue,
+				},
+			})
+
+			defer api.AssertExpectations(t)
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodPost, pathChannelPreference, strings.NewReader(test.RequestBody))
+			r.Header.Add("Mattermost-User-Id", "mockUserID")
+			p.ServeHTTP(&plugin.Context{}, w, r)
+
+			result := w.Result()
+			require.NotNil(t, result)
+			defer result.Body.Close()
+
+			bodyBytes, err := io.ReadAll(result.Body)
+			assert.Nil(err)
+
+			bodyString := string(bodyBytes)
+			assert.Equal(bodyString, test.ExpectedResult)
+			assert.Equal(result.StatusCode, test.ExpectedStatusCode)
+		})
+	}
+}
+
+func TestCheckChannelPreference(t *testing.T) {
+	for _, test := range []struct {
+		Name               string
+		SetupAPI           func(*plugintest.API)
+		ExpectedPreference bool
+		ExpectedStatusCode int
+		ExpectedError      string
+	}{
+		{
+			Name: "CheckChannelPreference: unable to get channel",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("GetChannel", "mockChannelID").Return(nil, &model.AppError{
+					Message: "unable to get channel",
+				}).Once()
+			},
+			ExpectedPreference: false,
+			ExpectedStatusCode: http.StatusInternalServerError,
+			ExpectedError:      "unable to get channel",
+		},
+		{
+			Name: "CheckChannelPreference: unable to get preference",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("GetChannel", "mockChannelID").Return(&model.Channel{
+					Id:   "mockChannelID",
+					Type: model.ChannelTypeOpen,
+				}, nil).Once()
+				api.On("KVGet", zoomChannelSettings).Return(nil, &model.AppError{
+					Message: "unable to get preference",
+				}).Once()
+			},
+			ExpectedPreference: false,
+			ExpectedStatusCode: http.StatusInternalServerError,
+			ExpectedError:      "unable to get preference",
+		},
+		{
+			Name: "CheckChannelPreference: preference not set and channel is public",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("GetChannel", "mockChannelID").Return(&model.Channel{
+					Id:   "mockChannelID",
+					Type: model.ChannelTypeOpen,
+				}, nil).Once()
+				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
+			},
+			ExpectedPreference: true,
+			ExpectedStatusCode: http.StatusOK,
+		},
+		{
+			Name: "CheckChannelPreference: preference not set and channel is private",
+			SetupAPI: func(api *plugintest.API) {
+				api.On("GetChannel", "mockChannelID").Return(&model.Channel{
+					Id:   "mockChannelID",
+					Type: model.ChannelTypePrivate,
+				}, nil).Once()
+				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
+			},
+			ExpectedPreference: false,
+			ExpectedStatusCode: http.StatusOK,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			api := &plugintest.API{}
+			p := Plugin{}
+			p.SetAPI(api)
+			p.setConfiguration(&configuration{
+				RestrictMeetingCreation: true,
+			})
+
+			test.SetupAPI(api)
+
+			preference, statusCode, err := p.checkChannelPreference("mockChannelID")
+			assert.Equal(test.ExpectedPreference, preference)
+			assert.Equal(test.ExpectedStatusCode, statusCode)
+			if err != nil {
+				assert.Equal(test.ExpectedError, err.Error())
+			} else {
+				assert.Nil(err)
+			}
 		})
 	}
 }

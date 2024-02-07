@@ -218,7 +218,7 @@ func (p *Plugin) removeSuperUserToken() error {
 func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsMapValue ZoomChannelSettingsMapValue) error {
 	bytes, appErr := p.API.KVGet(zoomChannelSettings)
 	if appErr != nil {
-		return appErr
+		return errors.New(appErr.Message)
 	}
 
 	var zoomChannelSettingsMap ZoomChannelSettingsMap
@@ -237,7 +237,7 @@ func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsM
 	}
 
 	if appErr := p.API.KVSet(zoomChannelSettings, bytes); appErr != nil {
-		return appErr
+		return errors.New(appErr.Message)
 	}
 
 	return nil
@@ -246,7 +246,7 @@ func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsM
 func (p *Plugin) listZoomChannelSettings() (ZoomChannelSettingsMap, error) {
 	bytes, appErr := p.API.KVGet(zoomChannelSettings)
 	if appErr != nil {
-		return nil, appErr
+		return nil, errors.New(appErr.Message)
 	}
 
 	if len(bytes) == 0 {

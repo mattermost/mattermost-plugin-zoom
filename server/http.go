@@ -940,7 +940,7 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 func (p *Plugin) checkChannelPreference(channelID string) (bool, int, error) {
 	channel, appErr := p.API.GetChannel(channelID)
 	if appErr != nil {
-		return false, http.StatusInternalServerError, appErr
+		return false, http.StatusInternalServerError, errors.New(appErr.Message)
 	}
 
 	zoomChannelSettingsMap, err := p.listZoomChannelSettings()
