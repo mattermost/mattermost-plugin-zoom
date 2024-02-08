@@ -55,3 +55,18 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
         return {data: true};
     };
 }
+
+export function openScheduleMeetingModal(channelId) {
+    return {
+        type: 'OPEN_SCHEDULE_MEETING_MODAL',
+        data: {
+            channelId,
+        },
+    };
+}
+
+export function closeScheduleMeetingModal() {
+    return {
+        type: 'CLOSE_SCHEDULE_MEETING_MODAL',
+    };
+}

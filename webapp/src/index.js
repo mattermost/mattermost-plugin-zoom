@@ -10,10 +10,12 @@ import PostTypeZoom from './components/post_type_zoom';
 import {startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
+import Reducer from './reducers'
 
 class Plugin {
     // eslint-disable-next-line no-unused-vars
     initialize(registry, store) {
+        registry.registerReducer(Reducer);
         registry.registerChannelHeaderButtonAction(
             <ChannelHeaderIcon/>,
             (channel) => {
