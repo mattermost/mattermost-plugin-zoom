@@ -204,9 +204,10 @@ test: apply webapp/node_modules install-go-tools
 ifneq ($(HAS_SERVER),)
 	$(GOBIN)/gotestsum -- -v ./...
 endif
-ifneq ($(HAS_WEBAPP),)
-	cd webapp && $(NPM) run test;
-endif
+# TODO: uncomment after adding webapp test cases and its setup
+# ifneq ($(HAS_WEBAPP),)
+# 	cd webapp && $(NPM) run test;
+# endif
 
 ## Runs any lints and unit tests defined for the server and webapp, if they exist, optimized
 ## for a CI environment.
