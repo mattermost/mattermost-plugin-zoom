@@ -402,7 +402,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 }
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID string) {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathAskPMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
 
 	slackAttachment := model.SlackAttachment{
 		Pretext: askForPMIMeeting,
@@ -786,7 +786,7 @@ func (p *Plugin) sendUserSettingForm(userID string, channelID string) error {
 }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathUpdatePMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: "You can not set your preference",

@@ -233,6 +233,15 @@ Inside the `/webapp` directory, you will find the JS and React files that make u
 
 Read our documentation about the [Developer Workflow](https://developers.mattermost.com/extend/plugins/developer-workflow/) and [Developer Setup](https://developers.mattermost.com/extend/plugins/developer-setup/) for more information about developing and extending plugins.
 
+### Releasing new versions
+
+The version of a plugin is determined at compile time, automatically populating a `version` field in the [plugin manifest](plugin.json):
+* If the current commit matches a tag, the version will match after stripping any leading `v`, e.g. `1.3.1`.
+* Otherwise, the version will combine the nearest tag with `git rev-parse --short HEAD`, e.g. `1.3.1+d06e53e1`.
+* If there is no version tag, an empty version will be combined with the short hash, e.g. `0.0.0+76081421`.
+
+To disable this behaviour, manually populate and maintain the `version` field.
+
 ## Help and Support
 
 For Mattermost customers - please open a [support case](https://mattermost.zendesk.com/hc/en-us/requests/new) to ensure your issue is tracked properly.

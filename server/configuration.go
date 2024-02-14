@@ -130,7 +130,7 @@ func (p *Plugin) OnConfigurationChange() error {
 
 	p.setConfiguration(configuration)
 
-	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.ID, manifest.Version, "zoom", telemetry.NewTrackerConfig(p.API.GetConfig()), logger.New(p.API))
+	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "zoom", telemetry.NewTrackerConfig(p.API.GetConfig()), logger.New(p.API))
 
 	if prevConfigAccountLevelOAuth != p.configuration.AccountLevelApp {
 		method := telemetryOauthModeOauth
