@@ -159,12 +159,20 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 
 	createMeetingWithPMI := false
 	switch userPMISettingPref {
-	case zoomPMISettingValueAsk:
-		p.askPreferenceForMeeting(user.Id, args.ChannelId)
+	case "", zoomPMISettingValueAsk:
+		p.askPreferenceForMeeting(user.Id, args.ChannelId, args.RootId)
 		return "", nil
-	case "", trueString:
+	case trueString:
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
+
+		if meetingID <= 0 {
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+			if createMeetingErr != nil {
+				return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
+			}
+			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
+		}
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
 		if createMeetingErr != nil {
@@ -254,7 +262,7 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
-		if err := p.sendUserSettingForm(user.Id, args.ChannelId); err != nil {
+		if err := p.sendUserSettingForm(user.Id, args.ChannelId, args.RootId); err != nil {
 			return "", err
 		}
 		return "", nil
@@ -295,7 +303,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	}
 
 	// setting to allow the user to decide whether to use PMI for instant meetings
-	setting := model.NewAutocompleteData("settings", "", "Update your preferences")
+	setting := model.NewAutocompleteData("settings", "", "Update your meeting ID preferences")
 	zoom.AddCommand(setting)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
