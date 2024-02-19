@@ -7,10 +7,11 @@ import {id as pluginId} from './manifest';
 
 import ChannelHeaderIcon from './components/channel-header-icon';
 import PostTypeZoom from './components/post_type_zoom';
-import {startMeeting} from './actions';
+import {openScheduleMeetingModal, startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
 import Reducer from './reducers'
+import ScheduleMeetingModal from './components/schedule_meeting/schedule_meeting_modal'
 
 class Plugin {
     // eslint-disable-next-line no-unused-vars
@@ -25,13 +26,16 @@ class Plugin {
             'Start Zoom Meeting',
         );
 
+        registry.registerRootComponent(ScheduleMeetingModal);
+
         if (registry.registerAppBarComponent) {
             const iconURL = getPluginURL(store.getState()) + '/public/app-bar-icon.png';
             registry.registerAppBarComponent(
                 iconURL,
                 async (channel) => {
                     if (channel) {
-                        startMeeting(channel.id, '')(store.dispatch, store.getState);
+                        openScheduleMeetingModal(channel.id)(store.dispatch);
+                        // startMeeting(channel.id, '')(store.dispatch, store.getState);
                     } else {
                         const state = store.getState();
                         const teamId = state?.entities.teams.currentTeamId;

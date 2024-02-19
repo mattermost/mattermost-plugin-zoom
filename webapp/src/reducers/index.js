@@ -1,3 +1,5 @@
+import {combineReducers} from "redux";
+
 const isScheduleMeetingModalVisible = (state = false, action) => {
     switch (action.type) {
     case 'OPEN_SCHEDULE_MEETING_MODAL':

@@ -57,11 +57,13 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
 }
 
 export function openScheduleMeetingModal(channelId) {
-    return {
-        type: 'OPEN_SCHEDULE_MEETING_MODAL',
-        data: {
-            channelId,
-        },
+    return async (dispatch) => {
+        dispatch({
+            type: 'OPEN_SCHEDULE_MEETING_MODAL',
+            data: {
+                channelId,
+            },
+        });
     };
 }
 

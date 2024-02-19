@@ -3,14 +3,15 @@ import {useDispatch, useSelector} from 'react-redux';
 import {Modal} from 'react-bootstrap';
 import { closeScheduleMeetingModal } from '../../actions';
 import { isScheduleMeetingModalVisible } from '../../selectors';
+import ScheduleMeetingForm from './schedule_meeting_form';
 
-const CreateIssueModal = () => {
+const ScheduleMeetingModal = () => {
     const dispatch = useDispatch();
     const handleClose = () => {
         dispatch(closeScheduleMeetingModal());
     };
 
-    const visible = useSelector(isScheduleMeetingModalVisible);
+    const visible = useSelector(isScheduleMeetingModalVisible);    
     if (!visible) {
         return null;
     }
@@ -29,8 +30,9 @@ const CreateIssueModal = () => {
                     {'Schedule Zoom Meeting'}
                 </Modal.Title>
             </Modal.Header>
+            <ScheduleMeetingForm/>
         </Modal>
     );
 };
 
-export default CreateIssueModal;
+export default ScheduleMeetingModal;
