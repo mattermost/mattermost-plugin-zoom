@@ -30,7 +30,9 @@ const ScheduleMeetingModal = () => {
                     {'Schedule Zoom Meeting'}
                 </Modal.Title>
             </Modal.Header>
-            <ScheduleMeetingForm/>
+            <ScheduleMeetingForm
+                handleClose={handleClose}
+            />
         </Modal>
     );
 };
