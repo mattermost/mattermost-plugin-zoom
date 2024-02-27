@@ -24,7 +24,6 @@ const (
 	defaultMeetingTopic      = "Zoom Meeting"
 	zoomOAuthUserStateLength = 4
 	settingDataError         = "something went wrong while getting settings data"
-	askForPMIMeeting         = "Would you like to use your personal meeting ID?"
 	pathWebhook              = "/webhook"
 	pathStartMeeting         = "/api/v1/meetings"
 	pathConnectUser          = "/oauth2/connect"
