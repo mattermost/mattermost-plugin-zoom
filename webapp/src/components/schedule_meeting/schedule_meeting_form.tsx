@@ -4,6 +4,9 @@ import FormButton from '../form_button';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './schedule_meeting.css'
+import {useDispatch, useSelector}  from 'react-redux';
+import {scheduleMeeting} from '@/actions';
+import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common';
 
 type Props = {
     handleClose: () => void;
@@ -19,12 +22,25 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
     const [postMeetingAnnouncement, setPostMeetingAnnouncement] = useState(true)
     const [postMeetingReminder, setPostMeetingReminder] = useState(false)
 
+    const currentChannelId = useSelector(getCurrentChannelId)
+
+    const dispatch = useDispatch();
     const handleSchedule = (e: React.FormEvent<HTMLFormElement> | Event) => {
         e.preventDefault();
 
         if(!topic || !startDate || Number.isNaN(durationHours) || Number.isNaN(durationMinutes)){
             setShowErrors(true);
         }
+
+        dispatch(scheduleMeeting({
+            channelId: currentChannelId, 
+            topic, 
+            startTime: startDate, 
+            duration: durationHours, 
+            postMeetingAnnouncement, 
+            postMeetingReminder, 
+            meetingIdType
+        }))
     }
 
     const getRequiredLabel = (label: string) => (
