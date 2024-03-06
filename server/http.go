@@ -21,28 +21,29 @@ import (
 )
 
 const (
-	defaultMeetingTopic        = "Zoom Meeting"
-	zoomOAuthUserStateLength   = 4
-	settingDataError           = "something went wrong while getting settings data"
-	zoomSettingsCommandMessage = "You can set a default value for this in your user settings via `/zoom settings` command."
-	askForMeetingType          = "Which meeting ID would you like to use for creating this meeting?"
-	pathWebhook                = "/webhook"
-	pathStartMeeting           = "/api/v1/meetings"
-	pathConnectUser            = "/oauth2/connect"
-	pathCompleteUserOAuth      = "/oauth2/complete"
-	pathDeauthorizeUser        = "/deauthorization"
-	pathUpdatePMI              = "/api/v1/updatePMI"
-	pathAskPMI                 = "/api/v1/askPMI"
-	yes                        = "Yes"
-	no                         = "No"
-	ask                        = "Ask"
-	actionForContext           = "action"
-	userIDForContext           = "userID"
-	channelIDForContext        = "channelID"
-	rootIDForContext           = "rootID"
-	usePersonalMeetingID       = "Use Personal Meeting ID"
-	useAUniqueMeetingID        = "Use a Unique Meeting ID"
-	MattermostUserIDHeader     = "Mattermost-User-ID"
+	defaultMeetingTopic          = "Zoom Meeting"
+	zoomOAuthUserStateLength     = 4
+	settingDataError             = "something went wrong while getting settings data"
+	zoomSettingsCommandMessage   = "You can set a default value for this in your user settings via `/zoom settings` command."
+	askForMeetingType            = "Which meeting ID would you like to use for creating this meeting?"
+	pathWebhook                  = "/webhook"
+	pathStartMeeting             = "/api/v1/meetings"
+	pathConnectUser              = "/oauth2/connect"
+	pathCompleteUserOAuth        = "/oauth2/complete"
+	pathDeauthorizeUser          = "/deauthorization"
+	pathUpdatePMI                = "/api/v1/updatePMI"
+	pathAskPMI                   = "/api/v1/askPMI"
+	yes                          = "Yes"
+	no                           = "No"
+	ask                          = "Ask"
+	actionForContext             = "action"
+	userIDForContext             = "userID"
+	channelIDForContext          = "channelID"
+	rootIDForContext             = "rootID"
+	usePersonalMeetingID         = "Use Personal Meeting ID"
+	useAUniqueMeetingID          = "Use a Unique Meeting ID"
+	MattermostUserIDHeader       = "Mattermost-User-ID"
+	WebsocketEventMeetingStarted = "meeting_started"
 )
 
 type startMeetingRequest struct {
@@ -109,10 +110,10 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 
 	if userPMISettingPref == "" {
 		val := falseString
-		meetingIdType := "unique"
+		meetingIDType := "unique"
 		if action == usePersonalMeetingID {
 			val = trueString
-			meetingIdType = "personal"
+			meetingIDType = "personal"
 		}
 
 		if err := p.updateUserPersonalSettings(val, userID); err != nil {
@@ -121,7 +122,7 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 		}
 
 		slackAttachment = model.SlackAttachment{
-			Text: fmt.Sprintf("All future meetings will use `%s` meeting ID. Type `/zoom settings` to change your meeting ID preference", meetingIdType),
+			Text: fmt.Sprintf("All future meetings will use `%s` meeting ID. Type `/zoom settings` to change your meeting ID preference", meetingIDType),
 		}
 	}
 
@@ -434,6 +435,15 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	if appErr = p.storeMeetingPostID(meetingID, createdPost.Id); appErr != nil {
 		p.API.LogDebug("failed to store post id", "error", appErr)
 	}
+
+	p.client.Frontend.PublishWebSocketEvent(
+		WebsocketEventMeetingStarted,
+		map[string]interface{}{
+			"meeting_url": meetingURL,
+		},
+		&model.WebsocketBroadcast{UserId: creator.Id},
+	)
+
 	return nil
 }
 

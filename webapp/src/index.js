@@ -10,6 +10,7 @@ import PostTypeZoom from './components/post_type_zoom';
 import {startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
+import {handleMeetingStarted} from './websocket/index.ts';
 
 class Plugin {
     // eslint-disable-next-line no-unused-vars
@@ -42,6 +43,11 @@ class Plugin {
                 'Start Zoom Meeting',
             );
         }
+
+        registry.registerWebSocketEventHandler(
+            `custom_${pluginId}_meeting_started`,
+            handleMeetingStarted(),
+        );
 
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         Client.setServerRoute(getServerRoute(store.getState()));
