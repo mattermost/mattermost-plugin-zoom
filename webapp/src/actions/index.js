@@ -79,8 +79,8 @@ export function scheduleMeeting(data) {
                 delete_at: 0,
                 is_pinned: false,
                 user_id: getState().entities.users.currentUserId,
-                channel_id: channelId,
-                root_id: rootId,
+                channel_id: data.channelId,
+                root_id: '',
                 parent_id: '',
                 original_id: '',
                 message: m,
@@ -93,8 +93,7 @@ export function scheduleMeeting(data) {
             dispatch({
                 type: PostTypes.RECEIVED_NEW_POST,
                 data: post,
-                channelId,
-                rootId,
+                channelId: data.channelId,
             });
 
             return {error};

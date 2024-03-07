@@ -35,7 +35,7 @@ type Meeting struct {
 	Password          string      `json:"password"`
 	H323Password      string      `json:"h323_password"`
 	EncryptedPassword string      `json:"encrypted_password"`
-	PMI               int         `json:"pmi"`
+	PMI               string      `json:"pmi"`
 	TrackingFields    []struct {
 		Field string `json:"field"`
 		Value string `json:"value"`
@@ -103,36 +103,38 @@ type CreateMeetingRequest struct {
 		EndTimes       int    `json:"end_times,omitempty"`
 		EndDateTime    int    `json:"end_date_time,omitempty"`
 	} `json:"recurrence,omitempty"`
-	Settings struct {
-		HostVideo             bool     `json:"host_video"`
-		ParticipantVideo      bool     `json:"participant_video"`
-		CNMeeting             bool     `json:"cn_meeting"`
-		INMeeting             bool     `json:"in_meeting"`
-		JoinBeforeHost        bool     `json:"join_before_host"`
-		MuteUponEntry         bool     `json:"mute_upon_entry"`
-		Watermark             bool     `json:"watermark"`
-		UsePMI                bool     `json:"use_pmi"`
-		ApprovalType          int      `json:"approval_type"`
-		RegistrationType      int      `json:"registration_type"`
-		Audio                 string   `json:"audio"`
-		AutoRecording         string   `json:"auto_recording"`
-		AlternativeHosts      string   `json:"alternative_hosts"`
-		WaitingRoom           bool     `json:"waiting_room"`
-		GlobalDialInCountries []string `json:"global_dial_in_countries"`
-		GlobalDialInNumbers   []struct {
-			Country     string `json:"country"`
-			CountryName string `json:"country_name"`
-			City        string `json:"city"`
-			Number      string `json:"number"`
-			Type        string `json:"type"`
-		} `json:"global_dial_in_numbers"`
-		ContactName                  string `json:"contact_name"`
-		ContactEmail                 string `json:"contact_email"`
-		RegistrantsConfirmationEmail bool   `json:"registrants_confirmation_email"`
-		RegistrantsEmailNotification bool   `json:"registrants_email_notification"`
-		MeetingAuthentication        bool   `json:"meeting_authentication"`
-		AuthenticationOption         string `json:"authentication_option"`
-		AuthenticationDomains        string `json:"authentication_domains"`
-		AuthenticationName           string `json:"authentication_name"`
-	} `json:"settings,omitempty"`
+	Settings CreateMeetingRequestSettings `json:"settings,omitempty"`
+}
+
+type CreateMeetingRequestSettings struct {
+	HostVideo             bool     `json:"host_video"`
+	ParticipantVideo      bool     `json:"participant_video"`
+	CNMeeting             bool     `json:"cn_meeting"`
+	INMeeting             bool     `json:"in_meeting"`
+	JoinBeforeHost        bool     `json:"join_before_host"`
+	MuteUponEntry         bool     `json:"mute_upon_entry"`
+	Watermark             bool     `json:"watermark"`
+	UsePMI                bool     `json:"use_pmi"`
+	ApprovalType          int      `json:"approval_type"`
+	RegistrationType      int      `json:"registration_type"`
+	Audio                 string   `json:"audio"`
+	AutoRecording         string   `json:"auto_recording"`
+	AlternativeHosts      string   `json:"alternative_hosts"`
+	WaitingRoom           bool     `json:"waiting_room"`
+	GlobalDialInCountries []string `json:"global_dial_in_countries"`
+	GlobalDialInNumbers   []struct {
+		Country     string `json:"country"`
+		CountryName string `json:"country_name"`
+		City        string `json:"city"`
+		Number      string `json:"number"`
+		Type        string `json:"type"`
+	} `json:"global_dial_in_numbers"`
+	ContactName                  string `json:"contact_name"`
+	ContactEmail                 string `json:"contact_email"`
+	RegistrantsConfirmationEmail bool   `json:"registrants_confirmation_email"`
+	RegistrantsEmailNotification bool   `json:"registrants_email_notification"`
+	MeetingAuthentication        bool   `json:"meeting_authentication"`
+	AuthenticationOption         string `json:"authentication_option"`
+	AuthenticationDomains        string `json:"authentication_domains"`
+	AuthenticationName           string `json:"authentication_name"`
 }

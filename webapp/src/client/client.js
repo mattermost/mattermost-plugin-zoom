@@ -21,7 +21,7 @@ export default class Client {
         return res.meeting_url;
     }
 
-    scheduleMeeting = async ({channelId, topic, startTime, duration, postMeetingAnnouncement, postMeetingReminder, meetingIdType}) => {
+    scheduleMeeting = async ({channelId, topic, startTime, duration, postMeetingAnnouncement, postMeetingReminder, usePmi}) => {
         await doPost(`${this.url}/api/v1/schedule-meeting`, {
             channel_id: channelId,
             meeting_topic: topic,
@@ -30,7 +30,7 @@ export default class Client {
             meeting_date: startTime,
             post_meting_reminder: postMeetingReminder,
             meeting_duration: duration,
-            meeting_id_type: meetingIdType,
+            use_pmi: usePmi,
         });
     }
 

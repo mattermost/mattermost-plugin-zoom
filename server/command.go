@@ -105,8 +105,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runHelpCommand(user)
 	case actionSettings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
-	// case actionSchedule:
-	// 	return p.runScheduleCommand(args, user)
+	case actionSchedule:
+		return p.runScheduleCommand(args, user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -273,12 +273,17 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 	return fmt.Sprintf("Unknown Action %v", ""), nil
 }
 
-// func (p *Plugin) runScheduleCommand(args *model.CommandArgs, user *model.User) (string, error) {
-// 	if err := p.openScheduleMeetingDialog(user.Id, args.ChannelId, args.TriggerId); err != nil {
-// 		return "", err
-// 	}
-// 	return "", nil
-// }
+func (p *Plugin) runScheduleCommand(args *model.CommandArgs, user *model.User) (string, error) {
+	p.client.Frontend.PublishWebSocketEvent(
+		"open_schedule_meeting_dialog",
+		map[string]interface{}{
+			"channelId": args.ChannelId,
+		},
+		&model.WebsocketBroadcast{UserId: user.Id},
+	)
+
+	return "", nil
+}
 
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
 	return p.API.UpdatePreferencesForUser(userID, []model.Preference{
@@ -316,8 +321,8 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	setting := model.NewAutocompleteData("settings", "", "Update your preferences")
 	zoom.AddCommand(setting)
 
-	// schedule := model.NewAutocompleteData(actionSchedule, "", "Schedule a Zoom meeting")
-	// zoom.AddCommand(schedule)
+	schedule := model.NewAutocompleteData(actionSchedule, "", "Schedule a Zoom meeting")
+	zoom.AddCommand(schedule)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)

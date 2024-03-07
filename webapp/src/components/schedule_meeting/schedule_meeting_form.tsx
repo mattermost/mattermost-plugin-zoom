@@ -13,7 +13,7 @@ type Props = {
 }
 
 const ScheduleMeetingForm = ({handleClose}: Props) => {
-    const [startDate, setStartDate] = useState(new Date());
+    const [startDate, setStartDate] = useState(new Date(new Date().getTime() + 30*60000));
     const [showErrors, setShowErrors] = useState(false)
     const [topic, setTopic] = useState("Zoom Meeting")
     const [durationHours, setDurationHours] = useState(0)
@@ -34,13 +34,15 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
 
         dispatch(scheduleMeeting({
             channelId: currentChannelId, 
-            topic, 
+            topic,
             startTime: startDate, 
-            duration: durationHours, 
+            duration: durationHours * 60 + durationMinutes, // meeting duration in minutes
             postMeetingAnnouncement, 
             postMeetingReminder, 
-            meetingIdType
+            usePmi: meetingIdType === 'personal_meeting_id',
         }))
+
+        handleClose();
     }
 
     const getRequiredLabel = (label: string) => (

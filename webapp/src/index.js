@@ -7,11 +7,12 @@ import {id as pluginId} from './manifest';
 
 import ChannelHeaderIcon from './components/channel-header-icon';
 import PostTypeZoom from './components/post_type_zoom';
-import {openScheduleMeetingModal, startMeeting} from './actions';
+import {startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
-import Reducer from './reducers'
-import ScheduleMeetingModal from './components/schedule_meeting/schedule_meeting_modal'
+import Reducer from './reducers';
+import ScheduleMeetingModal from './components/schedule_meeting/schedule_meeting_modal';
+import {handleOpenScheduleMeetingDialog} from './websocket';
 
 class Plugin {
     // eslint-disable-next-line no-unused-vars
@@ -34,8 +35,7 @@ class Plugin {
                 iconURL,
                 async (channel) => {
                     if (channel) {
-                        openScheduleMeetingModal(channel.id)(store.dispatch);
-                        // startMeeting(channel.id, '')(store.dispatch, store.getState);
+                        startMeeting(channel.id, '')(store.dispatch, store.getState);
                     } else {
                         const state = store.getState();
                         const teamId = state?.entities.teams.currentTeamId;
@@ -48,6 +48,11 @@ class Plugin {
                 'Start Zoom Meeting',
             );
         }
+
+        registry.registerWebSocketEventHandler(
+            `custom_${pluginId}_open_schedule_meeting_dialog`,
+            handleOpenScheduleMeetingDialog(store),
+        );
 
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         Client.setServerRoute(getServerRoute(store.getState()));
