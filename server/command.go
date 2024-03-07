@@ -31,6 +31,8 @@ const (
 	actionHelp       = "help"
 	actionSettings   = "settings"
 	actionSchedule   = "schedule"
+
+	WSEventOpenScheduleMeetingModal = "open_schedule_meeting_dialog"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -106,7 +108,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case actionSettings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
 	case actionSchedule:
-		return p.runScheduleCommand(args, user)
+		return p.runScheduleCommand(args)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -273,13 +275,11 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 	return fmt.Sprintf("Unknown Action %v", ""), nil
 }
 
-func (p *Plugin) runScheduleCommand(args *model.CommandArgs, user *model.User) (string, error) {
+func (p *Plugin) runScheduleCommand(args *model.CommandArgs) (string, error) {
 	p.client.Frontend.PublishWebSocketEvent(
-		"open_schedule_meeting_dialog",
-		map[string]interface{}{
-			"channelId": args.ChannelId,
-		},
-		&model.WebsocketBroadcast{UserId: user.Id},
+		WSEventOpenScheduleMeetingModal,
+		nil,
+		&model.WebsocketBroadcast{UserId: args.UserId},
 	)
 
 	return "", nil

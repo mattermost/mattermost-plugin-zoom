@@ -33,7 +33,6 @@ const (
 	pathUpdatePMI            = "/api/v1/updatePMI"
 	pathAskPMI               = "/api/v1/askPMI"
 	pathScheduleMeeting      = "/api/v1/schedule-meeting"
-	pathOpenDialog           = "/api/v4/actions/dialogs/open"
 	yes                      = "Yes"
 	no                       = "No"
 	ask                      = "Ask"
@@ -44,12 +43,7 @@ const (
 	usePersonalMeetingID     = "USE PERSONAL MEETING ID"
 	useAUniqueMeetingID      = "USE A UNIQUE MEETING ID"
 	MattermostUserIDHeader   = "Mattermost-User-ID"
-	DateLayout               = "2006-01-02"
 	DateTimeFormat           = "02/01/2006 at 03:04 PM MST"
-	DialogValueDate          = "date"
-	DialogValueTime          = "time"
-	DialogValueTopic         = "topic"
-	DialogValuePostMeeting   = "postMeeting"
 )
 
 type startMeetingRequest struct {
@@ -57,6 +51,17 @@ type startMeetingRequest struct {
 	RootID    string `json:"root_id"`
 	Topic     string `json:"topic"`
 	UsePMI    string `json:"use_pmi"`
+}
+
+type ScheduleMeetingRequest struct {
+	MeetingTopic            string    `json:"meeting_topic"`
+	MeetingTime             string    `json:"meeting_time"`
+	MeetingDate             time.Time `json:"meeting_date"`
+	UsePMI                  bool      `json:"use_pmi"`
+	PostMeetingAnnouncement bool      `json:"post_meeting_announcement"`
+	PostMeetingReminder     bool      `json:"post_meting_reminder"`
+	MeetingDuration         int       `json:"meeting_duration"`
+	ChannelID               string    `json:"channel_id"`
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -839,17 +844,6 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	model.ParseSlackAttachment(post, []*model.SlackAttachment{slackAttachment})
 	p.API.SendEphemeralPost(userID, post)
 	return nil
-}
-
-type ScheduleMeetingRequest struct {
-	MeetingTopic            string    `json:"meeting_topic"`
-	MeetingTime             string    `json:"meeting_time"`
-	MeetingDate             time.Time `json:"meeting_date"`
-	UsePMI                  bool      `json:"use_pmi"`
-	PostMeetingAnnouncement bool      `json:"post_meeting_announcement"`
-	PostMeetingReminder     bool      `json:"post_meting_reminder"`
-	MeetingDuration         int       `json:"meeting_duration"`
-	ChannelID               string    `json:"channel_id"`
 }
 
 func (p *Plugin) scheduleMeeting(w http.ResponseWriter, r *http.Request) {

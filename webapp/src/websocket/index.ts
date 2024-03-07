@@ -1,11 +1,8 @@
 import {openScheduleMeetingModal} from "@/actions";
+import {Store} from "redux";
 
-export function handleOpenScheduleMeetingDialog(store: any) {
-    return (msg: any) => {
-        if (!msg.data) {
-            return;
-        }
-
-        openScheduleMeetingModal(msg.ChannelId)(store.dispatch);
+export function handleOpenScheduleMeetingDialog(store: Store) {
+    return () => {
+        openScheduleMeetingModal()(store.dispatch);
     };
 }

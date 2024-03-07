@@ -103,13 +103,10 @@ export function scheduleMeeting(data) {
     };
 }
 
-export function openScheduleMeetingModal(channelId) {
+export function openScheduleMeetingModal() {
     return async (dispatch) => {
         dispatch({
             type: 'OPEN_SCHEDULE_MEETING_MODAL',
-            data: {
-                channelId,
-            },
         });
     };
 }
