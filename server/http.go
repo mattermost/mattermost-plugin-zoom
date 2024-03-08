@@ -21,29 +21,31 @@ import (
 )
 
 const (
-	defaultMeetingTopic      = "Zoom Meeting"
-	zoomOAuthUserStateLength = 4
-	settingDataError         = "something went wrong while getting settings data"
-	askForPMIMeeting         = "Would you like to use your personal meeting ID?"
-	pathWebhook              = "/webhook"
-	pathStartMeeting         = "/api/v1/meetings"
-	pathConnectUser          = "/oauth2/connect"
-	pathCompleteUserOAuth    = "/oauth2/complete"
-	pathDeauthorizeUser      = "/deauthorization"
-	pathUpdatePMI            = "/api/v1/updatePMI"
-	pathAskPMI               = "/api/v1/askPMI"
-	pathScheduleMeeting      = "/api/v1/schedule-meeting"
-	yes                      = "Yes"
-	no                       = "No"
-	ask                      = "Ask"
-	actionForContext         = "action"
-	userIDForContext         = "userID"
-	channelIDForContext      = "channelID"
-	rootIDForContext         = "rootID"
-	usePersonalMeetingID     = "USE PERSONAL MEETING ID"
-	useAUniqueMeetingID      = "USE A UNIQUE MEETING ID"
-	MattermostUserIDHeader   = "Mattermost-User-ID"
-	DateTimeFormat           = "02/01/2006 at 03:04 PM MST"
+	defaultMeetingTopic        = "Zoom Meeting"
+	zoomOAuthUserStateLength   = 4
+	settingDataError           = "something went wrong while getting settings data"
+	askForPMIMeeting           = "Would you like to use your personal meeting ID?"
+	pathWebhook                = "/webhook"
+	pathStartMeeting           = "/api/v1/meetings"
+	pathConnectUser            = "/oauth2/connect"
+	pathCompleteUserOAuth      = "/oauth2/complete"
+	pathDeauthorizeUser        = "/deauthorization"
+	pathUpdatePMI              = "/api/v1/updatePMI"
+	pathAskPMI                 = "/api/v1/askPMI"
+	pathScheduleMeeting        = "/api/v1/schedule-meeting"
+	yes                        = "Yes"
+	no                         = "No"
+	ask                        = "Ask"
+	actionForContext           = "action"
+	userIDForContext           = "userID"
+	channelIDForContext        = "channelID"
+	rootIDForContext           = "rootID"
+	usePersonalMeetingID       = "USE PERSONAL MEETING ID"
+	useAUniqueMeetingID        = "USE A UNIQUE MEETING ID"
+	MattermostUserIDHeader     = "Mattermost-User-ID"
+	DateTimeFormat             = "02/01/2006 at 03:04 PM MST"
+	zoomSettingsCommandMessage = "You can set a default value for this in your user settings via `/zoom settings` command."
+	askForMeetingType          = "Which meeting ID would you like to use for creating this meeting?"
 )
 
 type startMeetingRequest struct {
@@ -443,7 +445,8 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathAskPMI)
 
 	slackAttachment := model.SlackAttachment{
-		Pretext: askForPMIMeeting,
+		Pretext: zoomSettingsCommandMessage,
+		Title:   askForMeetingType,
 		Actions: []*model.PostAction{
 			{
 				Id:    "WithPMI",
@@ -572,14 +575,14 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	createMeetingWithPMI := false
 	switch userPMISettingPref {
-	case zoomPMISettingValueAsk:
+	case "", zoomPMISettingValueAsk:
 		p.askPreferenceForMeeting(user.Id, req.ChannelID, req.RootID)
 
 		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
 			p.API.LogWarn("failed to write the response", "Error", err.Error())
 		}
 		return
-	case "", trueString:
+	case trueString:
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
 
@@ -826,9 +829,9 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	}
 
 	switch userPMISettingPref {
-	case zoomPMISettingValueAsk:
+	case "", zoomPMISettingValueAsk:
 		currentValue = ask
-	case "", trueString:
+	case trueString:
 		currentValue = yes
 	default:
 		currentValue = no
@@ -917,7 +920,7 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
-		Fallback: "You can not set your preference",
+		Fallback: "Failed to set your preference",
 		Title:    "*Setting: Use your Personal Meeting ID*",
 		Text:     fmt.Sprintf("\n\nDo you want to use your Personal Meeting ID when starting a meeting?\n\nCurrent value: %s", currentValue),
 		Actions: []*model.PostAction{
