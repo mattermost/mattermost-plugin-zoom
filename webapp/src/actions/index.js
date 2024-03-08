@@ -58,7 +58,8 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
 
 export async function scheduleMeeting(data) {
     try {
-        await Client.scheduleMeeting(data);
+        const res = await Client.scheduleMeeting(data);
+        return {res};
     } catch (error) {
         let errMsg = 'Error occurred while scheduling the Zoom meeting.';
         if (error.message && error.message[0] === '{') {

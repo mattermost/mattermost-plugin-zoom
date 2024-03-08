@@ -901,7 +901,7 @@ func (p *Plugin) scheduleMeeting(w http.ResponseWriter, r *http.Request) {
 
 	formattedMeetingTime := time.Unix(body.MeetingDate.UnixMilli()/1000, 0).In(loc).Format(DateTimeFormat)
 	if body.PostMeetingAnnouncement {
-		if err := p.postMeeting(user, meeting.ID, body.ChannelID, "", body.MeetingTopic, formattedMeetingTime); err != nil {
+		if err = p.postMeeting(user, meeting.ID, body.ChannelID, "", body.MeetingTopic, formattedMeetingTime); err != nil {
 			p.API.LogError("Failed to post the meeting", "Error", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
