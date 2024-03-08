@@ -4,7 +4,7 @@ import FormButton from '../form_button';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './schedule_meeting.css'
-import {useDispatch, useSelector}  from 'react-redux';
+import {useSelector}  from 'react-redux';
 import {scheduleMeeting} from '@/actions';
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common';
 
@@ -21,18 +21,21 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
     const [meetingIdType, setMeetingIdType] = useState('personal_meeting_id')
     const [postMeetingAnnouncement, setPostMeetingAnnouncement] = useState(true)
     const [postMeetingReminder, setPostMeetingReminder] = useState(false)
+    const [isScheduling, setIsScheduling] = useState(false)
+    const [apiError, setApiError] = useState('')
 
     const currentChannelId = useSelector(getCurrentChannelId)
 
-    const dispatch = useDispatch();
-    const handleSchedule = (e: React.FormEvent<HTMLFormElement> | Event) => {
+    const handleSchedule = async (e: React.FormEvent<HTMLFormElement> | Event) => {
         e.preventDefault();
 
         if(!topic || !startDate || Number.isNaN(durationHours) || Number.isNaN(durationMinutes)){
             setShowErrors(true);
         }
 
-        dispatch(scheduleMeeting({
+        setIsScheduling(true);
+
+        const res = await scheduleMeeting({
             channelId: currentChannelId, 
             topic,
             startTime: startDate, 
@@ -40,7 +43,14 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
             postMeetingAnnouncement, 
             postMeetingReminder, 
             usePmi: meetingIdType === 'personal_meeting_id',
-        }))
+        });
+        if (res?.error) {
+            console.log(res.error);
+            setShowErrors(true);
+            setIsScheduling(false);
+            setApiError(res.error);
+            return;
+        }
 
         handleClose();
     }
@@ -63,6 +73,12 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
     const handleMeetingIdChange = (e: ChangeEvent<HTMLInputElement>) => setMeetingIdType(e.target.value)
     const handlePostMeetingAnnouncement = (e: ChangeEvent<HTMLInputElement>) => setPostMeetingAnnouncement(e.target.checked)
     const handlePostMeetingReminder = (e: ChangeEvent<HTMLInputElement>) => setPostMeetingReminder(e.target.checked)
+
+    const submitError = apiError ? (
+        <p className='help-text error-text'>
+            <span>{apiError}</span>
+        </p>
+    ) : null;
 
     return (
         <form
@@ -115,6 +131,7 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
                 </div>
             </Modal.Body>
             <Modal.Footer>
+                {submitError}
                 <FormButton
                     btnClass='btn-link'
                     defaultMessage='Cancel'
@@ -122,7 +139,7 @@ const ScheduleMeetingForm = ({handleClose}: Props) => {
                 />
                 <FormButton
                     btnClass='btn btn-primary'
-                    // saving={false}
+                    saving={isScheduling}
                     defaultMessage='Schedule'
                     savingMessage='Scheduling'
                 />

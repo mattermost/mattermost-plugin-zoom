@@ -908,8 +908,8 @@ func (p *Plugin) scheduleMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if _, err := w.Write([]byte("Meeting scheduled successfully")); err != nil {
-		p.API.LogError("failed to write the response", "Error", err.Error())
+	if _, err = w.Write([]byte(`{"message": "Meeting scheduled successfully"}`)); err != nil {
+		p.API.LogWarn("failed to write the response", "Error", err.Error())
 	}
 }
 
