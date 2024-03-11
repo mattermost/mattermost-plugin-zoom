@@ -109,11 +109,11 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 	}
 
 	if userPMISettingPref == "" {
-		val := falseString
-		meetingIDType := "unique"
-		if action == usePersonalMeetingID {
-			val = trueString
-			meetingIDType = "personal"
+		val := trueString
+		meetingIDType := "personal"
+		if action == useAUniqueMeetingID {
+			val = falseString
+			meetingIDType = "unique"
 		}
 
 		if err := p.updateUserPersonalSettings(val, userID); err != nil {
