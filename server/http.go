@@ -452,7 +452,7 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
-		p.API.LogDebug("failed to get user PMI data", "userID", userID, "error", err)
+		p.API.LogDebug("failed to get user PMI setting value", "userID", userID, "error", err)
 		return
 	}
 

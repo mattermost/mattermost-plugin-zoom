@@ -1,9 +1,3 @@
-export function handleMeetingStarted() {
-    return (msg) => {
-        if (!msg.data) {
-            return;
-        }
-
-        window.open(msg.data.meeting_url)
-    };
+export function handleMeetingStarted(msg) {
+    window.open(msg.data.meeting_url)
 }

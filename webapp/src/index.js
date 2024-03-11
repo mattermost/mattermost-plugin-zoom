@@ -46,7 +46,7 @@ class Plugin {
 
         registry.registerWebSocketEventHandler(
             `custom_${pluginId}_meeting_started`,
-            handleMeetingStarted(),
+            handleMeetingStarted,
         );
 
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
