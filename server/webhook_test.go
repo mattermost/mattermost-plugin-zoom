@@ -3,15 +3,15 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
-	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
+	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -35,12 +35,12 @@ func TestWebhookValidate(t *testing.T) {
 	requestBody := `{"payload":{"plainToken":"Kn5a3Wv7SP6YP5b4BWfZpg"},"event":"endpoint.url_validation"}`
 
 	w := httptest.NewRecorder()
-	reqBody := ioutil.NopCloser(bytes.NewBufferString(requestBody))
+	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
 	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 	request.Header.Add("Content-Type", "application/json")
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
-	body, _ := ioutil.ReadAll(w.Result().Body)
+	body, _ := io.ReadAll(w.Result().Body)
 	t.Log(string(body))
 
 	require.Equal(t, 200, w.Result().StatusCode)
@@ -60,7 +60,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 
 	api.On("GetLicense").Return(nil)
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
-	api.On("LogDebug", "Could not get meeting post from KVStore", "error", ": , ")
+	api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
 	p.SetAPI(api)
 
 	requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
@@ -69,14 +69,14 @@ func TestWebhookVerifySignature(t *testing.T) {
 	signature := "v0=7fe2f9e66d133961eff4746eda161096cebe8d677319d66546281d88ea147189"
 
 	w := httptest.NewRecorder()
-	reqBody := ioutil.NopCloser(bytes.NewBufferString(requestBody))
+	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
 	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("x-zm-signature", signature)
 	request.Header.Add("x-zm-request-timestamp", ts)
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
-	body, _ := ioutil.ReadAll(w.Result().Body)
+	body, _ := io.ReadAll(w.Result().Body)
 	t.Log(string(body))
 
 	require.Equal(t, 200, w.Result().StatusCode)
@@ -97,13 +97,13 @@ func TestWebhookVerifySignatureInvalid(t *testing.T) {
 	signature := "v0=7fe2f9e66d133961eff4746eda161096cebe8d677319d66546281d88ea147190"
 
 	w := httptest.NewRecorder()
-	reqBody := ioutil.NopCloser(bytes.NewBufferString(requestBody))
+	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
 	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("x-zm-signature", signature)
 	request.Header.Add("x-zm-request-timestamp", ts)
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
-	body, _ := ioutil.ReadAll(w.Result().Body)
+	body, _ := io.ReadAll(w.Result().Body)
 	t.Log(string(body))
 }
