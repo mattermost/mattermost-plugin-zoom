@@ -61,6 +61,8 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		p.handleMeetingEnded(w, r, b)
 	case zoom.EventTypeValidateWebhook:
 		p.handleValidateZoomWebhook(w, r, b)
+	case zoom.EventTypeParticipantJoined, zoom.EventTypeParticipantJoinedWaiting:
+		p.handleParticipantJoined(w, r, b)
 	default:
 		w.WriteHeader(http.StatusOK)
 	}
@@ -125,6 +127,93 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 
 	if appErr = p.deleteMeetingPostID(meetingPostID); appErr != nil {
 		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(post); err != nil {
+		p.API.LogWarn("failed to write response", "error", err.Error())
+	}
+}
+
+func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, r *http.Request, body []byte) {
+	var webhook zoom.MeetingWebhook
+	if err := json.Unmarshal(body, &webhook); err != nil {
+		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	meetingID := webhook.Payload.Object.ID
+	postID, appErr := p.fetchMeetingPostID(meetingID)
+	if appErr != nil {
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	post, appErr := p.API.GetPost(postID)
+	if appErr != nil {
+		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
+		http.Error(w, appErr.Error(), appErr.StatusCode)
+		return
+	}
+
+	participant := webhook.Payload.Object.Participant
+	isHostJoined, ok := post.Props["meeting_host_joined"].(bool)
+	if !ok {
+		isHostJoined = false
+	}
+	// if host has joined, then no need to proceed further
+	if isHostJoined {
+		return
+	}
+
+	waitingCount, ok := post.Props["meeting_waiting_count"].(float64)
+	if !ok {
+		waitingCount = 0
+	}
+
+	meetingURL := post.GetProp("meeting_link")
+	participantsJoinedMsg := ""
+	// check whether participant is the host
+	if participant.ID == webhook.Payload.Object.HostID {
+		isHostJoined = true
+		participantsJoinedMsg = "Host is already in the meeting"
+	} else {
+		waitingCount++
+		participantsJoinedMsg = fmt.Sprintf("%d participant(s) waiting for host", int(waitingCount))
+
+		var channel *model.Channel
+		channel, appErr = p.API.GetDirectChannel(p.botUserID, post.UserId)
+		if appErr != nil {
+			p.API.LogWarn("Could not get direct channel", "err", appErr)
+			http.Error(w, appErr.Error(), appErr.StatusCode)
+			return
+		}
+
+		_, appErr = p.API.CreatePost(&model.Post{
+			ChannelId: channel.Id,
+			Message:   fmt.Sprintf("**%s** has joined the [meeting](%s) before you.", participant.UserName, meetingURL),
+			UserId:    p.botUserID,
+		})
+		if appErr != nil {
+			p.API.LogWarn("Error occurred while sending DM to meeting host", "err", appErr)
+			http.Error(w, appErr.Error(), appErr.StatusCode)
+			return
+		}
+	}
+
+	post.Props["meeting_host_joined"] = isHostJoined
+	post.Props["meeting_waiting_count"] = waitingCount
+
+	postAttachments := post.Attachments()
+	postAttachments[0].Text = fmt.Sprintf("Meeting ID: [%s](%s)\n\n%s\n\n[Join Meeting](%s)", meetingID, meetingURL, participantsJoinedMsg, meetingURL)
+	model.ParseSlackAttachment(post, postAttachments)
+
+	_, appErr = p.API.UpdatePost(post)
+	if appErr != nil {
+		p.API.LogWarn("Could not update the post", "err", appErr)
+		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
