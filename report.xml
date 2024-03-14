@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/mattermost/mattermost-plugin-zoom/build/manifest" timestamp="2024-03-14T14:00:14+05:30">
+		<properties>
+			<property name="go.version" value="go1.21.7 linux/amd64"></property>
+		</properties>
+	</testsuite>
+	<testsuite tests="18" failures="0" time="0.000000" name="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" timestamp="2024-03-14T14:00:14+05:30">
+		<properties>
+			<property name="go.version" value="go1.21.7 linux/amd64"></property>
+		</properties>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/one_new_entry,_no_old_entry" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/one_new_entry,_one_old_entry" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/multipile_new_entries,_ultipile_old_entries" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/nil_logs" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/empty_logs" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/no_new_entries,_one_old_entry" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/no_new_entries,_multipile_old_entries" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/multipile_new_entries,_no_old_entry" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry/one_new_entry,_multipile_old_entries" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestCheckOldestEntry" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/no_JSON" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/unknown_time_format" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/one_matching_entry" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/filter_out_non_plugin_entries" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/filter_out_old_entries" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/nil_slice" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries/empty_slice" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/build/pluginctl" name="TestFilterLogEntries" time="0.000000"></testcase>
+	</testsuite>
+	<testsuite tests="9" failures="0" time="0.000000" name="github.com/mattermost/mattermost-plugin-zoom/server" timestamp="2024-03-14T14:00:14+05:30">
+		<properties>
+			<property name="go.version" value="go1.21.7 linux/amd64"></property>
+		</properties>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestPlugin/ValidStartedWebhookRequest" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestPlugin/NoSecretWebhookRequest" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestPlugin/UnauthorizedMeetingRequest" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestPlugin/ValidMeetingRequest" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestPlugin/ValidStoppedWebhookRequest" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestPlugin" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestWebhookValidate" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestWebhookVerifySignature" time="0.000000"></testcase>
+		<testcase classname="github.com/mattermost/mattermost-plugin-zoom/server" name="TestWebhookVerifySignatureInvalid" time="0.000000"></testcase>
+	</testsuite>
+	<testsuite tests="0" failures="0" time="0.000000" name="github.com/mattermost/mattermost-plugin-zoom/server/zoom" timestamp="2024-03-14T14:00:14+05:30">
+		<properties>
+			<property name="go.version" value="go1.21.7 linux/amd64"></property>
+		</properties>
+	</testsuite>
+</testsuites>
