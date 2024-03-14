@@ -1,3 +1,3 @@
-export function handleMeetingStarted(msg) {
-    window.open(msg.data.meeting_url)
+export function handleMeetingStarted(msg: {data: {meeting_url: string}}) {
+    window.open(msg.data.meeting_url);
 }

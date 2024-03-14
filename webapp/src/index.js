@@ -45,7 +45,7 @@ class Plugin {
         }
 
         registry.registerWebSocketEventHandler(
-            `custom_${pluginId}_meeting_started`,
+            `custom_${manifest.id}_meeting_started`,
             handleMeetingStarted,
         );
 
