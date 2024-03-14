@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -414,7 +414,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 }
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathAskPMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
 
 	slackAttachment := model.SlackAttachment{
 		Pretext: zoomSettingsCommandMessage,
@@ -822,7 +822,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathUpdatePMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: "Failed to set your preference",

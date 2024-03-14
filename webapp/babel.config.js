@@ -31,16 +31,8 @@ const config = {
         '@babel/proposal-object-rest-spread',
         '@babel/plugin-proposal-optional-chaining',
         'babel-plugin-typescript-to-proptypes',
+        '@babel/plugin-proposal-nullish-coalescing-operator',
     ],
 };
-
-// Jest needs module transformation
-config.env = {
-    test: {
-        presets: config.presets,
-        plugins: config.plugins,
-    },
-};
-config.env.test.presets[0][1].modules = 'auto';
 
 module.exports = config;
