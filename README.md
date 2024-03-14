@@ -204,6 +204,7 @@ Select **Done** and then save your app.
   * Select the **Regenerate** button next to the field **At Rest Token Encryption Key**.
 * If you are using Webhooks or Deauthorization, make sure you select the **Regenerate** button on **Webhook Secret** field. Then set the **Zoom Webhook Secret** from the features page in your Zoom app.
 * Select **Save**.
+* Enable the **Restrict Meeting Creation** configuration to restrict users from creating meetings in public channels.
 
 ## User guide
 
@@ -215,9 +216,24 @@ The first time you create a meeting, you may be required to connect your account
 
 Once enabled, selecting the video icon in a Mattermost channel invites team members to join a Zoom call, hosted using the credentials of the user who initiated the call.
 
-### Slash Command
+### Slash commands
 
-You can also start a meeting in any chat window by typing `/zoom start`.
+- `/zoom connect` :- To connect your Mattermost account to your Zoom account.
+
+- `/zoom disconnect` :- To disconnect your Mattermost account from your Zoom account.
+
+- `/zoom start [meeting topic]` :- To start a Zoom meeting with the provided meeting topic.
+
+- `/zoom settings` :- To update Zoom meeting settings.
+
+- `/zoom help` :- To show help text for all the commands.
+
+##### System admins only  
+
+- `/zoom channel-settings` :- To update channel preferences to restrict users from creating meetings in the current channel.
+
+- `/zoom channel-settings list` :- To list the channel with updated preferences.
+
 
 ## Development
 

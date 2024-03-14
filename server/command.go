@@ -17,19 +17,25 @@ const (
 	helpText      = `* |/zoom start| - Start a zoom meeting`
 	oAuthHelpText = `* |/zoom connect| - Connect to Zoom
 * |/zoom disconnect| - Disconnect from Zoom`
-	settingHelpText        = `* |/zoom settings| - Update your preferences`
-	alreadyConnectedText   = "Already connected"
-	zoomPreferenceCategory = "plugin:zoom"
-	zoomPMISettingName     = "use-pmi"
-	zoomPMISettingValueAsk = "ask"
+	settingHelpText               = `* |/zoom settings| - Update your preferences`
+	channelPreferenceHelpText     = `* |/zoom channel-settings| - Update your current channel preference`
+	listChannelPreferenceHelpText = `* |/zoom channel-settings list| - List all channel preferences`
+	alreadyConnectedText          = "Already connected"
+	zoomPreferenceCategory        = "plugin:zoom"
+	zoomPMISettingName            = "use-pmi"
+	zoomPMISettingValueAsk        = "ask"
 )
 
 const (
-	actionConnect    = "connect"
-	actionStart      = "start"
-	actionDisconnect = "disconnect"
-	actionHelp       = "help"
-	settings         = "settings"
+	actionConnect         = "connect"
+	actionStart           = "start"
+	actionDisconnect      = "disconnect"
+	actionHelp            = "help"
+	settings              = "settings"
+	actionChannelSettings = "channel-settings"
+	channelSettingsAction = "list"
+
+	actionUnkown = "Unknown Action"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -40,9 +46,9 @@ func (p *Plugin) getCommand() (*model.Command, error) {
 
 	canConnect := !p.configuration.AccountLevelApp
 
-	autoCompleteDesc := "Available commands: start, help, settings"
+	autoCompleteDesc := "Available commands: start, help, settings, channel-settings"
 	if canConnect {
-		autoCompleteDesc = "Available commands: start, connect, disconnect, help, settings"
+		autoCompleteDesc = "Available commands: start, connect, disconnect, help, settings, channel-settings"
 	}
 
 	return &model.Command{
@@ -104,8 +110,10 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runHelpCommand(user)
 	case settings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
+	case actionChannelSettings:
+		return p.runChannelSettingsCommand(args, strings.Fields(args.Command)[2:], user)
 	default:
-		return fmt.Sprintf("Unknown action %v", action), nil
+		return fmt.Sprintf("%s %v", actionUnkown, action), nil
 	}
 }
 
@@ -126,6 +134,16 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 // runStartCommand runs command to start a Zoom meeting.
 func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topic string) (string, error) {
+	restrict, _, err := p.checkChannelPreference(args.ChannelId)
+	if err != nil {
+		p.API.LogError("Unable to check channel preference", "ChannelID", args.ChannelId, "Error", err.Error())
+		return "Error occurred while starting meeting", nil
+	}
+
+	if restrict {
+		return "Creating zoom meeting is disabled for this channel.", nil
+	}
+
 	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
 		return fmt.Sprintf("We could not get the channel members (channelId: %v)", args.ChannelId), nil
 	}
@@ -191,7 +209,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 
 func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (string, error) {
 	if !p.canConnect(user) {
-		return "Unknown action `connect`", nil
+		return fmt.Sprintf("%s `%s`", actionUnkown, actionConnect), nil
 	}
 
 	oauthMsg := fmt.Sprintf(
@@ -228,7 +246,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 // runDisconnectCommand runs command to disconnect from Zoom. Will fail if user cannot connect.
 func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	if !p.canConnect(user) {
-		return "Unknown action `disconnect`", nil
+		return fmt.Sprintf("%s `%s`", actionUnkown, actionDisconnect), nil
 	}
 
 	if p.configuration.AccountLevelApp {
@@ -253,6 +271,10 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
+	if p.API.HasPermissionTo(user.Id, model.PermissionManageSystem) {
+		text += "\n" + strings.ReplaceAll(channelPreferenceHelpText+"\n"+listChannelPreferenceHelpText, "|", "`")
+	}
+
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
@@ -262,12 +284,111 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
+		restrict, _, err := p.checkChannelPreference(args.ChannelId)
+		if err != nil {
+			p.API.LogError("Unable to check channel preference", "ChannelID", args.ChannelId, "Error", err.Error())
+			return "Error occurred while viewing zoom settings", nil
+		}
+
+		if restrict {
+			return "Updating zoom settings is disabled for this current channel.", nil
+		}
+
 		if err := p.sendUserSettingForm(user.Id, args.ChannelId, args.RootId); err != nil {
 			return "", err
 		}
 		return "", nil
 	}
-	return fmt.Sprintf("Unknown Action %v", ""), nil
+	return actionUnkown, nil
+}
+
+func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
+	if !p.API.HasPermissionTo(args.UserId, model.PermissionManageSystem) {
+		return "Unable to execute the command, only system admins have access to execute this command.", nil
+	}
+
+	if len(params) == 0 {
+		channel, appErr := p.API.GetChannel(args.ChannelId)
+		if appErr != nil {
+			p.API.LogError("Unable to get channel", "ChannelID", args.ChannelId, "Error", appErr.Error())
+			return "Error occurred while fetching channel information", nil
+		}
+
+		if channel.Type == model.ChannelTypeDirect || channel.Type == model.ChannelTypeGroup {
+			return "Preference not allowed to set for DM/GM.", nil
+		}
+
+		requestBody := model.OpenDialogRequest{
+			TriggerId: args.TriggerId,
+			URL:       fmt.Sprintf("%s/plugins/%s%s", p.siteURL, manifest.ID, pathChannelPreference),
+			Dialog: model.Dialog{
+				Title:       "Set Channel Preference",
+				SubmitLabel: "Submit",
+				CallbackId:  channel.DisplayName,
+				Elements: []model.DialogElement{
+					{
+						DisplayName: fmt.Sprintf("Select your channel preference for ~%s", channel.DisplayName),
+						HelpText:    "Enable to restrict creating meetings in this channel.",
+						Name:        "preference",
+						Type:        "radio",
+						Options: []*model.PostActionOptions{
+							{
+								Text:  "Enable Zoom Meetings in this channel",
+								Value: "enable",
+							},
+							{
+								Text:  "Disable Zoom Meetings in this channel",
+								Value: "disable",
+							},
+							{
+								Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictMeetingCreation),
+								Value: "default",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		client, _, err := p.getActiveClient(user)
+		if err != nil {
+			p.API.LogError("Unable to get the client", "Error", err.Error())
+			return "Unable to send request to open preference dialog", nil
+		}
+
+		if err := client.OpenDialogRequest(&requestBody); err != nil {
+			p.API.LogError("Failed to fulfill the request to open preference dialog", "Error", err.Error())
+			return "Unable to open the dialog for setting preference", nil
+		}
+
+		return "", nil
+	} else if params[0] == channelSettingsAction {
+		zoomChannelSettingsMap, err := p.listZoomChannelSettings()
+		if err != nil {
+			p.API.LogError("Unable to list channel preferences", "Error", err.Error())
+			return "Unable to list channel preferences", nil
+		}
+
+		if len(zoomChannelSettingsMap) == 0 {
+			return "No channel preference present", nil
+		}
+
+		var sb strings.Builder
+		sb.WriteString("#### Channel preferences\n")
+		sb.WriteString("| Channel ID | Channel Name | Preference |\n| :----|:--------|:--------|")
+		for key, value := range zoomChannelSettingsMap {
+			preference := value.Preference
+			if value.Preference == ZoomChannelPreferences[DefaultPreference] {
+				preference = fmt.Sprintf("%s (%t)", preference, p.getConfiguration().RestrictMeetingCreation)
+			}
+
+			sb.WriteString(fmt.Sprintf("\n|%s|%s|%s|", key, value.ChannelName, preference))
+		}
+
+		return sb.String(), nil
+	}
+
+	return actionUnkown, nil
 }
 
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
@@ -285,9 +406,9 @@ func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.A
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	canConnect := !p.configuration.AccountLevelApp
 
-	available := "start, help, settings"
+	available := "start, help, settings, channel-settings"
 	if canConnect {
-		available = "start, connect, disconnect, help, settings"
+		available = "start, connect, disconnect, help, settings, channel-settings"
 	}
 
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
@@ -305,6 +426,13 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	// setting to allow the user to decide whether to use PMI for instant meetings
 	setting := model.NewAutocompleteData("settings", "", "Update your meeting ID preferences")
 	zoom.AddCommand(setting)
+
+	// channel-settings to update channel preferences
+	channelSettings := model.NewAutocompleteData("channel-settings", "", "Update current channel preference")
+	channelSettingsList := model.NewAutocompleteData("list", "", "List all the channel preferences")
+	channelSettings.AddCommand(channelSettingsList)
+	channelSettings.RoleID = model.SystemAdminRoleId
+	zoom.AddCommand(channelSettings)
 
 	help := model.NewAutocompleteData("help", "", "Display usage")
 	zoom.AddCommand(help)
