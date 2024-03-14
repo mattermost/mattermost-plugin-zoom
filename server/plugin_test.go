@@ -16,11 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/telemetry"
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
-	"github.com/mattermost/mattermost-server/v6/plugin/plugintest"
-	"github.com/mattermost/mattermost-server/v6/plugin/plugintest/mock"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
+	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
+	"github.com/mattermost/mattermost/server/public/plugin/plugintest/mock"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -142,6 +142,15 @@ func TestPlugin(t *testing.T) {
 			api.On("KVSetWithExpiry", fmt.Sprintf("%v%v", postMeetingKey, 123), mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 			api.On("KVSetWithExpiry", "zoomuserstate_theuserid", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 
+			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{Atomic: true, OldValue: []uint8(nil), ExpireInSeconds: 15}).Return(true, nil)
+			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
+
+			api.On("EnsureBotUser", &model.Bot{
+				Username:    botUserName,
+				DisplayName: botDisplayName,
+				Description: botDescription,
+			}).Return(botUserID, nil)
+
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
 
@@ -180,7 +189,7 @@ func TestPlugin(t *testing.T) {
 				OAuthClientSecret: "clientsecret",
 			})
 			p.SetAPI(api)
-			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", false)
+			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", telemetry.TrackerConfig{}, nil)
 
 			err = p.OnActivate()
 			require.Nil(t, err)
