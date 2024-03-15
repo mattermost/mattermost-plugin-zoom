@@ -54,7 +54,7 @@ const config = {
                     options: {
                         cacheDirectory: true,
 
-                        // Babel configuration is in babel.config.js because jest requires it to be there.
+                        // Babel configuration is in .babelrc because jest requires it to be there.
                     },
                 },
             },
@@ -80,6 +80,7 @@ const config = {
     externals: {
         react: 'React',
         'react-dom': 'ReactDOM',
+        'react-intl': 'ReactIntl',
         redux: 'Redux',
         'react-redux': 'ReactRedux',
         'prop-types': 'PropTypes',

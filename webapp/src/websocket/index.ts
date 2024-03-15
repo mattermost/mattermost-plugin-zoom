@@ -1,5 +1,6 @@
-import {openScheduleMeetingModal} from "@/actions";
-import {Store} from "redux";
+import {Store} from 'redux';
+
+import {openScheduleMeetingModal} from '../actions';
 
 export function handleOpenScheduleMeetingDialog(store: Store) {
     return () => {

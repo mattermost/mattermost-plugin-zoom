@@ -3,7 +3,7 @@
 
 import React from 'react';
 
-import {id as pluginId} from './manifest';
+import manifest from './manifest';
 
 import ChannelHeaderIcon from './components/channel-header-icon';
 import PostTypeZoom from './components/post_type_zoom';
@@ -50,7 +50,7 @@ class Plugin {
         }
 
         registry.registerWebSocketEventHandler(
-            `custom_${pluginId}_open_schedule_meeting_dialog`,
+            `custom_${manifest.id}_open_schedule_meeting_dialog`,
             handleOpenScheduleMeetingDialog(store),
         );
 
@@ -59,4 +59,4 @@ class Plugin {
     }
 }
 
-window.registerPlugin(pluginId, new Plugin());
+window.registerPlugin(manifest.id, new Plugin());

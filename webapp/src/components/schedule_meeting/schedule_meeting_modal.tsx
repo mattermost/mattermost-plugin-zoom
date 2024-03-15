@@ -1,8 +1,10 @@
 import React from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {Modal} from 'react-bootstrap';
-import { closeScheduleMeetingModal } from '../../actions';
-import { isScheduleMeetingModalVisible } from '../../selectors';
+
+import {closeScheduleMeetingModal} from '../../actions';
+import {isScheduleMeetingModalVisible} from '../../selectors';
+
 import ScheduleMeetingForm from './schedule_meeting_form';
 
 const ScheduleMeetingModal = () => {
@@ -11,7 +13,7 @@ const ScheduleMeetingModal = () => {
         dispatch(closeScheduleMeetingModal());
     };
 
-    const visible = useSelector(isScheduleMeetingModalVisible);    
+    const visible = useSelector(isScheduleMeetingModalVisible);
     if (!visible) {
         return null;
     }

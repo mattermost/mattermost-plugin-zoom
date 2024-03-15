@@ -1,10 +1,6 @@
-{
+{  
   "compilerOptions": {
     "target": "esnext",
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["src/*"],
-    },
     "lib": [
       "dom",
       "dom.iterable",
@@ -23,11 +19,13 @@
     "isolatedModules": true,
     "noEmit": true,
     "experimentalDecorators": true,
+    "baseUrl": "./",
+    "types": ["node"],
     "jsx": "react"
   },
   "include": [
-    "./**/*"
-  ],
+    "src"
+, "babel.config.js"  ],
   "exclude": [
     "dist",
     "node_modules",
