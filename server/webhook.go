@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,8 +62,59 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		p.handleMeetingEnded(w, r, b)
 	case zoom.EventTypeValidateWebhook:
 		p.handleValidateZoomWebhook(w, r, b)
+	case zoom.EventTypeMeetingStarted:
+		p.handleMeetingStarted(w, r, b)
 	default:
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, body []byte) {
+	var webhook zoom.MeetingWebhook
+	if err := json.Unmarshal(body, &webhook); err != nil {
+		p.client.Log.Error("Error unmarshaling meeting webhook", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	meetingID := webhook.Payload.Object.ID
+	postReminderData, err := p.fetchMeetingReminderData(meetingID)
+	if err != nil {
+		p.client.Log.Error("Error getting meeting reminder data", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	postID, appErr := p.fetchMeetingPostID(meetingID)
+	if appErr != nil {
+		p.client.Log.Error("Error getting meeting post ID", "Error", appErr.Message)
+		http.Error(w, appErr.Message, appErr.StatusCode)
+		return
+	}
+
+	user, err := p.client.User.Get(postReminderData.UserID)
+	if err != nil {
+		p.client.Log.Error("Error getting user info", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	UpdatedMeetingID, err := strconv.Atoi(meetingID)
+	if err != nil {
+		p.client.Log.Error("Error updating meeting ID", "Error", appErr.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := p.postMeeting(user, UpdatedMeetingID, postReminderData.ChannelID, postID, postReminderData.MeetingTopic, ""); err != nil {
+		p.client.Log.Error("Failed to post the meeting reminder", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if appErr = p.deleteMeetingReminderData(meetingID); appErr != nil {
+		p.client.Log.Warn("failed to delete db entry", "Error", appErr.Error())
+		return
 	}
 }
 

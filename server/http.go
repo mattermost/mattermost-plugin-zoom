@@ -24,7 +24,6 @@ const (
 	defaultMeetingTopic        = "Zoom Meeting"
 	zoomOAuthUserStateLength   = 4
 	settingDataError           = "something went wrong while getting settings data"
-	askForPMIMeeting           = "Would you like to use your personal meeting ID?"
 	pathWebhook                = "/webhook"
 	pathStartMeeting           = "/api/v1/meetings"
 	pathConnectUser            = "/oauth2/connect"
@@ -854,27 +853,27 @@ func (p *Plugin) scheduleMeeting(w http.ResponseWriter, r *http.Request) {
 
 	body := &ScheduleMeetingRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		p.API.LogError("Error occurred while unmarshalling submit dialog request body", "Error", err.Error())
+		p.client.Log.Error("Error occurred while unmarshalling submit dialog request body", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if time.Until(body.MeetingDate) < 0 {
-		p.API.LogError("Meeting time cannot be less than the current time.")
+		p.client.Log.Error("Meeting time cannot be less than the current time.")
 		http.Error(w, "Meeting time cannot be less than the current time.", http.StatusInternalServerError)
 		return
 	}
 
-	user, appErr := p.API.GetUser(userID)
-	if appErr != nil {
-		p.API.LogError("Error getting the user details.", "Error", appErr.Message)
-		http.Error(w, appErr.Message, appErr.StatusCode)
+	user, err := p.client.User.Get(userID)
+	if err != nil {
+		p.client.Log.Error("Error getting the user details.", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	loc, err := time.LoadLocation(user.GetPreferredTimezone())
 	if err != nil {
-		p.API.LogError("Error loading the location.", "Error", err.Error())
+		p.client.Log.Error("Error loading the location.", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -883,36 +882,47 @@ func (p *Plugin) scheduleMeeting(w http.ResponseWriter, r *http.Request) {
 
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
-		p.API.LogError("Error getting the client", "Error", err.Error())
+		p.client.Log.Error("Error getting the client", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		p.API.LogError("Error getting the Zoom user", "Error", authErr.Error())
+		p.client.Log.Error("Error getting the Zoom user", "Error", authErr.Error())
 		http.Error(w, authErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	meeting, err := client.CreateMeeting(zoomUser, body.MeetingTopic, meetingDateTime[0], meetingDateTime[1], body.MeetingDuration, zoom.MeetingTypeScheduled, body.UsePMI)
 	if err != nil {
-		p.API.LogError("Error creating the meeting", "Error", err.Error())
+		p.client.Log.Error("Error creating the meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	meetingID := meeting.ID
+	if body.UsePMI {
+		meetingID = zoomUser.Pmi
+	}
+
 	formattedMeetingTime := time.Unix(body.MeetingDate.UnixMilli()/1000, 0).In(loc).Format(DateTimeFormat)
 	if body.PostMeetingAnnouncement {
-		if err = p.postMeeting(user, meeting.ID, body.ChannelID, "", body.MeetingTopic, formattedMeetingTime); err != nil {
-			p.API.LogError("Failed to post the meeting", "Error", err.Error())
+		if err = p.postMeeting(user, meetingID, body.ChannelID, "", body.MeetingTopic, formattedMeetingTime); err != nil {
+			p.client.Log.Error("Failed to post the meeting", "Error", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
+	if body.PostMeetingReminder {
+		if err = p.storeMeetingReminderData(meetingID, body.ChannelID, userID, body.MeetingTopic); err != nil {
+			p.client.Log.Debug("Failed to store reminder preference data", "Error", err.Error())
+		}
+	}
+
 	if _, err = w.Write([]byte(`{"message": "Meeting scheduled successfully"}`)); err != nil {
-		p.API.LogWarn("failed to write the response", "Error", err.Error())
+		p.client.Log.Warn("Failed to write the response", "Error", err.Error())
 	}
 }
 

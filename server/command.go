@@ -108,7 +108,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case actionSettings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
 	case actionSchedule:
-		return p.runScheduleCommand(args)
+		return p.runScheduleCommand(args, user)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -275,7 +275,16 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 	return fmt.Sprintf("Unknown Action %v", ""), nil
 }
 
-func (p *Plugin) runScheduleCommand(args *model.CommandArgs) (string, error) {
+func (p *Plugin) runScheduleCommand(args *model.CommandArgs, user *model.User) (string, error) {
+	_, authErr := p.authenticateAndFetchZoomUser(user)
+	if authErr != nil {
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, true); appErr != nil {
+			p.client.Log.Warn("Failed to store user state", "Error", appErr.Message)
+		}
+		return authErr.Message, authErr.Err
+	}
+
 	p.client.Frontend.PublishWebSocketEvent(
 		WSEventOpenScheduleMeetingModal,
 		nil,

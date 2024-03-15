@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	pluginapi "github.com/mattermost/mattermost-plugin-api"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -16,6 +17,7 @@ import (
 
 const (
 	postMeetingKey        = "post_meeting_"
+	meetingReminderKey    = "meeting_reminder_"
 	zoomStateKeyPrefix    = "zoomuserstate"
 	zoomUserByMMID        = "zoomtoken_"
 	zoomUserByZoomID      = "zoomtokenbyzoomid_"
@@ -24,6 +26,12 @@ const (
 	meetingPostIDTTL  = 60 * 60 * 24 // One day
 	oAuthUserStateTTL = 60 * 5       // 5 minutes
 )
+
+type MeetingReminderData struct {
+	ChannelID    string `json:"channel_id"`
+	UserID       string `json:"user_id"`
+	MeetingTopic string `json:"meeting_topic"`
+}
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 	config := p.getConfiguration()
@@ -140,6 +148,25 @@ func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppErro
 	return p.API.KVSetWithExpiry(key, bytes, meetingPostIDTTL)
 }
 
+func (p *Plugin) storeMeetingReminderData(meetingID int, channelID, userID, meetingTopic string) error {
+	key := fmt.Sprintf("%v%v", meetingReminderKey, meetingID)
+
+	data := &MeetingReminderData{
+		ChannelID:    channelID,
+		UserID:       userID,
+		MeetingTopic: meetingTopic,
+	}
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		p.client.Log.Error("Error marshaling meeting reminder data", "Error", err.Error())
+		return err
+	}
+
+	_, err = p.client.KV.Set(key, bytes, pluginapi.SetExpiry(meetingPostIDTTL))
+	return err
+}
+
 func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
 	postID, appErr := p.API.KVGet(key)
@@ -156,8 +183,30 @@ func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) 
 	return string(postID), nil
 }
 
+func (p *Plugin) fetchMeetingReminderData(meetingID string) (*MeetingReminderData, error) {
+	key := fmt.Sprintf("%v%v", meetingReminderKey, meetingID)
+	var reminderData MeetingReminderData
+	err := p.client.KV.Get(key, &reminderData)
+	if err != nil {
+		p.client.Log.Debug("Could not get meeting reminder data from KVStore", "Error", err.Error())
+		return nil, err
+	}
+
+	if reminderData.UserID == "" {
+		p.client.Log.Debug("Stored meeting reminder data not found")
+		return nil, errors.New("stored meeting reminder data not found")
+	}
+
+	return &reminderData, nil
+}
+
 func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", postMeetingKey, postID)
+	return p.API.KVDelete(key)
+}
+
+func (p *Plugin) deleteMeetingReminderData(meetingID string) *model.AppError {
+	key := fmt.Sprintf("%v%v", meetingReminderKey, meetingID)
 	return p.API.KVDelete(key)
 }
 
