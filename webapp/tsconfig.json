@@ -20,7 +20,8 @@
     "noEmit": true,
     "experimentalDecorators": true,
     "baseUrl": "./",
-    "types": ["node"]
+    "types": ["node"],
+    "jsx": "react"
   },
   "include": [
     "src"

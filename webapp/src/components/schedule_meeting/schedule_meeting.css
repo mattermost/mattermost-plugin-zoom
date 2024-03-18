@@ -1,0 +1,38 @@
+.schedule-meeting_form {
+    display: flex;
+    flex-direction: column;
+}
+
+.display-flex{
+    display: flex;
+}
+
+.schedule-meeting_duration-input{
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+}
+
+.margin-bottom_15 {
+    margin-bottom: 15px;
+}
+
+.margin-right_10 {
+    margin: 0 10px 0 0 !important;
+}
+
+.margin-right_60 {
+    margin-right: 40px;
+}
+
+.meeting-calendar_icon {
+    margin: 5px 0 0 3px;
+}
+
+.meeting-calendar{
+    font-size: 10px;
+}
+
+.margin_5{
+    margin: 5px;
+}

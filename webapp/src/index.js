@@ -10,10 +10,14 @@ import PostTypeZoom from './components/post_type_zoom';
 import {startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
+import Reducer from './reducers';
+import ScheduleMeetingModal from './components/schedule_meeting/schedule_meeting_modal';
+import {handleOpenScheduleMeetingDialog} from './websocket';
 
 class Plugin {
     // eslint-disable-next-line no-unused-vars
     initialize(registry, store) {
+        registry.registerReducer(Reducer);
         registry.registerChannelHeaderButtonAction(
             <ChannelHeaderIcon/>,
             (channel) => {
@@ -22,6 +26,8 @@ class Plugin {
             'Start Zoom Meeting',
             'Start Zoom Meeting',
         );
+
+        registry.registerRootComponent(ScheduleMeetingModal);
 
         if (registry.registerAppBarComponent) {
             const iconURL = getPluginURL(store.getState()) + '/public/app-bar-icon.png';
@@ -42,6 +48,11 @@ class Plugin {
                 'Start Zoom Meeting',
             );
         }
+
+        registry.registerWebSocketEventHandler(
+            `custom_${manifest.id}_open_schedule_meeting_dialog`,
+            handleOpenScheduleMeetingDialog(store),
+        );
 
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         Client.setServerRoute(getServerRoute(store.getState()));

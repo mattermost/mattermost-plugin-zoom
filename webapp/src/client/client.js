@@ -21,6 +21,19 @@ export default class Client {
         return res.meeting_url;
     }
 
+    scheduleMeeting = async ({channelId, topic, startTime, duration, postMeetingAnnouncement, postMeetingReminder, usePmi}) => {
+        await doPost(`${this.url}/api/v1/schedule-meeting`, {
+            channel_id: channelId,
+            meeting_topic: topic,
+            meeting_time: startTime,
+            post_meeting_announcement: postMeetingAnnouncement,
+            meeting_date: startTime,
+            post_meting_reminder: postMeetingReminder,
+            meeting_duration: duration,
+            use_pmi: usePmi,
+        });
+    }
+
     getChannelIdForThread = async (baseURL, threadId) => {
         const threadDetails = await doGet(`${baseURL}/api/v4/posts/${threadId}/thread`);
         return threadDetails.posts[threadId].channel_id;

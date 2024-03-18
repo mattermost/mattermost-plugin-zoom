@@ -21,3 +21,5 @@ export const getPluginURL = (state) => {
     const siteURL = getServerRoute(state);
     return siteURL + '/plugins/' + manifest.id;
 };
+
+export const isScheduleMeetingModalVisible = (state) => state[`plugins-${manifest.id}`].isScheduleMeetingModalVisible;

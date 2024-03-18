@@ -55,3 +55,36 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
         return {data: true};
     };
 }
+
+export async function scheduleMeeting(data) {
+    try {
+        const res = await Client.scheduleMeeting(data);
+        return {res};
+    } catch (error) {
+        let errMsg = 'Error occurred while scheduling the Zoom meeting.';
+        if (error.message && error.message[0] === '{') {
+            const e = JSON.parse(error.message);
+
+            // Error is from Zoom API
+            if (e && e.message) {
+                errMsg = '\nZoom error: ' + e.message;
+            }
+        }
+
+        return {error: errMsg};
+    }
+}
+
+export function openScheduleMeetingModal() {
+    return async (dispatch) => {
+        dispatch({
+            type: 'OPEN_SCHEDULE_MEETING_MODAL',
+        });
+    };
+}
+
+export function closeScheduleMeetingModal() {
+    return {
+        type: 'CLOSE_SCHEDULE_MEETING_MODAL',
+    };
+}
