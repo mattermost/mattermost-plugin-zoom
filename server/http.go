@@ -356,7 +356,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	p.trackConnect(userID)
 
 	if justConnect {
-		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom \nType `/zoom settings` to change your meeting ID preference")
+		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
 		meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
 		if err != nil {
