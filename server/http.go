@@ -147,8 +147,6 @@ func (p *Plugin) submitFormDMPreference(w http.ResponseWriter, r *http.Request) 
 		p.client.Log.Warn("failed to get the bot's DM channel", "Error", err.Error())
 		return
 	}
-	// slackAttachment := p.slackAttachmentToUpdateDMNotificationPreference(action, channel.Id)
-	// slackAttachment.Actions = nil // Remove action buttons once responded
 
 	slackAttachment := &model.SlackAttachment{
 		Text: fmt.Sprintf("You have selected `%s` for DM notfication preference.", action),
