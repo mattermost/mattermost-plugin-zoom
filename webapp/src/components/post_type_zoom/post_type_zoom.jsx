@@ -112,10 +112,10 @@ export default class PostTypeZoom extends React.PureComponent {
             );
 
             let announcementText = '';
-            if (props.meeting_host_joined) {
-                announcementText = 'Host is already in the meeting';
-            } else if (props.meeting_waiting_count >= 1) {
-                announcementText = `${props.meeting_waiting_count} participant(s) waiting for host`;
+            if (props.meeting_waiting_count === 1) {
+                announcementText = `${props.meeting_waiting_count} participant waiting for host`;
+            } else if (props.meeting_waiting_count > 1) {
+                announcementText = `${props.meeting_waiting_count} participants waiting for host`;
             }
 
             if (props.meeting_personal) {

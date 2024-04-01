@@ -25,11 +25,12 @@ const (
 )
 
 const (
-	actionConnect    = "connect"
-	actionStart      = "start"
-	actionDisconnect = "disconnect"
-	actionHelp       = "help"
-	settings         = "settings"
+	actionConnect            = "connect"
+	actionStart              = "start"
+	actionDisconnect         = "disconnect"
+	actionHelp               = "help"
+	settings                 = "settings"
+	dmNotificationPreference = "notification_preference"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -104,6 +105,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runHelpCommand(user)
 	case settings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
+	case dmNotificationPreference:
+		return p.runDMPreferenceCommand(args)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -270,6 +273,14 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 	return fmt.Sprintf("Unknown Action %v", ""), nil
 }
 
+func (p *Plugin) runDMPreferenceCommand(args *model.CommandArgs) (string, error) {
+	if err := p.sendUserDMNotificationForm(args.UserId, args.ChannelId, args.RootId); err != nil {
+		return "", err
+	}
+
+	return "", nil
+}
+
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
 	return p.API.UpdatePreferencesForUser(userID, []model.Preference{
 		{
@@ -293,6 +304,9 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting with a topic (optional)")
 	zoom.AddCommand(start)
+
+	dmNotification := model.NewAutocompleteData(dmNotificationPreference, "", "Enable to get a DM notfication whenever a user joins the meeting before you (i.e. host).")
+	zoom.AddCommand(dmNotification)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if canConnect {

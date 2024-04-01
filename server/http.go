@@ -33,6 +33,7 @@ const (
 	pathDeauthorizeUser        = "/deauthorization"
 	pathUpdatePMI              = "/api/v1/updatePMI"
 	pathAskPMI                 = "/api/v1/askPMI"
+	pathUpdateDMPreferences    = "/api/v1/dmPreference"
 	yes                        = "Yes"
 	no                         = "No"
 	ask                        = "Ask"
@@ -74,6 +75,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.submitFormPMIForPreference(w, r)
 	case pathAskPMI:
 		p.submitFormPMIForMeeting(w, r)
+	case pathUpdateDMPreferences:
+		p.submitFormDMPreference(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -117,6 +120,66 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 	}
 
 	p.startMeeting(action, userID, channelID, rootID)
+}
+
+func (p *Plugin) submitFormDMPreference(w http.ResponseWriter, r *http.Request) {
+	response := &model.PostActionIntegrationResponse{}
+	decoder := json.NewDecoder(r.Body)
+	postActionIntegrationRequest := &model.PostActionIntegrationRequest{}
+	if err := decoder.Decode(&postActionIntegrationRequest); err != nil {
+		p.client.Log.Warn("Error decoding PostActionIntegrationRequest params.", "Error", err.Error())
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, "failed to write the response", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	action := postActionIntegrationRequest.Context[actionForContext].(string)
+	mattermostUserID := r.Header.Get(MattermostUserIDHeader)
+	if mattermostUserID == "" {
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	channel, err := p.client.Channel.GetDirect(mattermostUserID, p.botUserID)
+	if err != nil {
+		p.client.Log.Warn("failed to get the bot's DM channel", "Error", err.Error())
+		return
+	}
+	// slackAttachment := p.slackAttachmentToUpdateDMNotificationPreference(action, channel.Id)
+	// slackAttachment.Actions = nil // Remove action buttons once responded
+
+	slackAttachment := &model.SlackAttachment{
+		Text: fmt.Sprintf("You have selected `%s` for DM notfication preference.", action),
+	}
+
+	val := ""
+	switch action {
+	case no:
+		val = falseString
+	default:
+		val = trueString
+	}
+
+	if err = p.storeUserDMNotificationPreference(mattermostUserID, val); err != nil {
+		p.client.Log.Warn("failed to update preferences for the user", "Error", err.Error())
+		return
+	}
+
+	post := &model.Post{
+		ChannelId: channel.Id,
+		UserId:    p.botUserID,
+		Id:        postActionIntegrationRequest.PostId,
+		CreateAt:  time.Now().Unix() * 1000,
+	}
+
+	model.ParseSlackAttachment(post, []*model.SlackAttachment{slackAttachment})
+	p.client.Post.UpdateEphemeralPost(mattermostUserID, post)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(post); err != nil {
+		p.client.Log.Error("failed to write response", "Error", err.Error())
+	}
 }
 
 func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
@@ -821,6 +884,27 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	return nil
 }
 
+func (p *Plugin) sendUserDMNotificationForm(userID, channelID, rootID string) error {
+	var currentValue string
+	switch p.getUserDMNotificationPreference(userID) {
+	case false:
+		currentValue = no
+	default:
+		currentValue = yes
+	}
+
+	slackAttachment := p.slackAttachmentToUpdateDMNotificationPreference(currentValue, channelID)
+	post := &model.Post{
+		ChannelId: channelID,
+		UserId:    p.botUserID,
+		RootId:    rootID,
+	}
+
+	model.ParseSlackAttachment(post, []*model.SlackAttachment{slackAttachment})
+	p.client.Post.SendEphemeralPost(userID, post)
+	return nil
+}
+
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
 
@@ -862,6 +946,44 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 					URL: apiEndPoint,
 					Context: map[string]interface{}{
 						actionForContext: ask,
+					},
+				},
+			},
+		},
+	}
+
+	return &slackAttachment
+}
+
+func (p *Plugin) slackAttachmentToUpdateDMNotificationPreference(currentValue, channelID string) *model.SlackAttachment {
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdateDMPreferences)
+
+	slackAttachment := model.SlackAttachment{
+		Fallback: "Failed to set your DM notification preference",
+		Title:    "*Setting: Send DM notification when someone has joined the meeting before you (i.e. host)*",
+		Text:     fmt.Sprintf("Current value: %s", currentValue),
+		Actions: []*model.PostAction{
+			{
+				Id:    yes,
+				Name:  yes,
+				Type:  model.PostActionTypeButton,
+				Style: "default",
+				Integration: &model.PostActionIntegration{
+					URL: apiEndPoint,
+					Context: map[string]interface{}{
+						actionForContext: yes,
+					},
+				},
+			},
+			{
+				Id:    no,
+				Name:  no,
+				Type:  model.PostActionTypeButton,
+				Style: "default",
+				Integration: &model.PostActionIntegration{
+					URL: apiEndPoint,
+					Context: map[string]interface{}{
+						actionForContext: no,
 					},
 				},
 			},

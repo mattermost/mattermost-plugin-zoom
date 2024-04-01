@@ -178,28 +178,33 @@ func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, r *http.Request,
 	// check whether participant is the host
 	if participant.ID == webhook.Payload.Object.HostID {
 		isHostJoined = true
-		participantsJoinedMsg = "Host is already in the meeting"
 	} else {
 		waitingCount++
-		participantsJoinedMsg = fmt.Sprintf("%d participant(s) waiting for host", int(waitingCount))
 
-		var channel *model.Channel
-		channel, appErr = p.API.GetDirectChannel(p.botUserID, post.UserId)
-		if appErr != nil {
-			p.API.LogWarn("Could not get direct channel", "err", appErr)
-			http.Error(w, appErr.Error(), appErr.StatusCode)
-			return
+		participantsJoinedMsg = fmt.Sprintf("%d participant waiting for host", int(waitingCount))
+		if waitingCount > 1 {
+			participantsJoinedMsg = fmt.Sprintf("%d participants waiting for host", int(waitingCount))
 		}
 
-		_, appErr = p.API.CreatePost(&model.Post{
-			ChannelId: channel.Id,
-			Message:   fmt.Sprintf("**%s** has joined the [meeting](%s) before you.", participant.UserName, meetingURL),
-			UserId:    p.botUserID,
-		})
-		if appErr != nil {
-			p.API.LogWarn("Error occurred while sending DM to meeting host", "err", appErr)
-			http.Error(w, appErr.Error(), appErr.StatusCode)
-			return
+		if p.getUserDMNotificationPreference(post.UserId) {
+			var channel *model.Channel
+			channel, appErr = p.API.GetDirectChannel(p.botUserID, post.UserId)
+			if appErr != nil {
+				p.API.LogWarn("Could not get direct channel", "err", appErr)
+				http.Error(w, appErr.Error(), appErr.StatusCode)
+				return
+			}
+
+			_, appErr = p.API.CreatePost(&model.Post{
+				ChannelId: channel.Id,
+				Message:   fmt.Sprintf("**%s** has joined the [meeting](%s) before you.", participant.UserName, meetingURL),
+				UserId:    p.botUserID,
+			})
+			if appErr != nil {
+				p.API.LogWarn("Error occurred while sending DM to meeting host", "err", appErr)
+				http.Error(w, appErr.Error(), appErr.StatusCode)
+				return
+			}
 		}
 	}
 

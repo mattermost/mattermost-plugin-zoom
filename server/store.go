@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/pluginapi"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -16,6 +17,7 @@ import (
 
 const (
 	postMeetingKey        = "post_meeting_"
+	dmNotificationKey     = "dm_notification_"
 	zoomStateKeyPrefix    = "zoomuserstate"
 	zoomUserByMMID        = "zoomtoken_"
 	zoomUserByZoomID      = "zoomtokenbyzoomid_"
@@ -159,6 +161,25 @@ func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) 
 func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", postMeetingKey, postID)
 	return p.API.KVDelete(key)
+}
+
+func (p *Plugin) storeUserDMNotificationPreference(userID string, notificationPreference string) error {
+	key := fmt.Sprintf("%v%v", dmNotificationKey, userID)
+	bytes := []byte(notificationPreference)
+
+	_, err := p.client.KV.Set(key, bytes, pluginapi.SetExpiry(meetingPostIDTTL))
+	return err
+}
+
+func (p *Plugin) getUserDMNotificationPreference(userID string) bool {
+	key := fmt.Sprintf("%v%v", dmNotificationKey, userID)
+	preference := true
+	if err := p.client.KV.Get(key, &preference); err != nil {
+		p.client.Log.Debug("Could not get user DM notification preference from KV store", "error", err.Error())
+		return true
+	}
+
+	return preference
 }
 
 // getOAuthUserStateKey generates and returns the key for storing the OAuth user state in the KV store.
