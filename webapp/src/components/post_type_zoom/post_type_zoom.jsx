@@ -9,6 +9,10 @@ import {makeStyleFromTheme} from 'mattermost-redux/utils/theme_utils';
 import {Svgs} from '../../constants';
 import {formatDate} from '../../utils/date_utils';
 
+const MEETING_STATUS_SCHEDULED = 'SCHEDULED';
+const MEETING_STATUS_STARTED = 'STARTED';
+const MEETING_STATUS_ENDED = 'ENDED';
+
 export default class PostTypeZoom extends React.PureComponent {
     static propTypes = {
 
@@ -90,26 +94,29 @@ export default class PostTypeZoom extends React.PureComponent {
         let preText;
         let content;
         let subtitle;
-        if (props.meeting_status === 'STARTED' || props.meeting_status === 'SCHEDULED') {
+        if (props.meeting_status === MEETING_STATUS_STARTED || props.meeting_status === MEETING_STATUS_SCHEDULED) {
             preText = post.message;
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has started a meeting`;
             }
-            content = (
-                <a
-                    className='btn btn-primary'
-                    style={style.button}
-                    rel='noopener noreferrer'
-                    target='_blank'
-                    href={props.meeting_link}
-                >
-                    <i
-                        style={style.buttonIcon}
-                        dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
-                    />
-                    {'JOIN MEETING'}
-                </a>
-            );
+
+            if (props.meeting_status === MEETING_STATUS_STARTED) {
+                content = (
+                    <a
+                        className='btn btn-primary'
+                        style={style.button}
+                        rel='noopener noreferrer'
+                        target='_blank'
+                        href={props.meeting_link}
+                    >
+                        <i
+                            style={style.buttonIcon}
+                            dangerouslySetInnerHTML={{__html: Svgs.VIDEO_CAMERA_3}}
+                        />
+                        {'JOIN MEETING'}
+                    </a>
+                );
+            }
 
             if (props.meeting_personal) {
                 subtitle = (
@@ -135,7 +142,7 @@ export default class PostTypeZoom extends React.PureComponent {
                         >
                             {props.meeting_id}
                         </a>
-                        {props.meeting_status === 'SCHEDULED' &&
+                        {props.meeting_status === MEETING_STATUS_SCHEDULED &&
                             <p>
                                 {`Meeting Time : ${props.meeting_time}`}
                             </p>
@@ -143,7 +150,7 @@ export default class PostTypeZoom extends React.PureComponent {
                     </>
                 );
             }
-        } else if (props.meeting_status === 'ENDED') {
+        } else if (props.meeting_status === MEETING_STATUS_ENDED) {
             preText = post.message;
             if (this.props.fromBot) {
                 preText = `${this.props.creatorName} has ended the meeting`;
