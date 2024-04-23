@@ -135,6 +135,8 @@ func TestPlugin(t *testing.T) {
 
 			api.On("GetChannelMember", "thechannelid", "theuserid").Return(&model.ChannelMember{}, nil)
 
+			api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/234"}, mock.AnythingOfType("*model.WebsocketBroadcast")).Return(nil)
+
 			api.On("GetPost", "thepostid").Return(&model.Post{Props: map[string]interface{}{}}, nil)
 			api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 			api.On("UpdatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
