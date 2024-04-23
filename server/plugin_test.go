@@ -64,7 +64,8 @@ func TestPlugin(t *testing.T) {
 	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	startedPayload := `{"event": "meeting.started", "payload": {"object": {"id": "234"}}}`
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(startedPayload))
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
@@ -112,10 +113,11 @@ func TestPlugin(t *testing.T) {
 					AccessToken: "2a41c3138d2187a756c51428f78d192e9b88dcf44dd62d1b081ace4ec2241e0a",
 				},
 			})
-
 			require.Nil(t, err)
 			api.On("GetLicense").Return(nil)
 			api.On("GetServerVersion").Return("6.2.0")
+
+			api.On("KVGet", "meeting_reminder_234").Return([]byte(`{"channel_id": "thechannelid", "meeting_topic": "mockTopic", "user_id": "theuserid"}`), nil)
 
 			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
 			api.On("KVGet", "zoomtoken_theuserid").Return(userInfo, nil)
@@ -155,6 +157,7 @@ func TestPlugin(t *testing.T) {
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
+			api.On("KVDelete", fmt.Sprintf("%v%v", meetingReminderKey, 234)).Return(nil)
 
 			api.On("LogWarn", mock.AnythingOfType("string")).Return()
 			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
