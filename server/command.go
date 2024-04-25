@@ -6,9 +6,9 @@ import (
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 
-	"github.com/mattermost/mattermost-plugin-api/experimental/command"
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/command"
 	"github.com/pkg/errors"
 )
 
@@ -320,7 +320,7 @@ func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []str
 
 		requestBody := model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s%s", p.siteURL, manifest.ID, pathChannelPreference),
+			URL:       fmt.Sprintf("%s/plugins/%s%s", p.siteURL, manifest.Id, pathChannelPreference),
 			Dialog: model.Dialog{
 				Title:       "Set Channel Preference",
 				SubmitLabel: "Submit",

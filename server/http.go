@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -47,8 +47,9 @@ const (
 	DisablePreference = "Disable"
 	DefaultPreference = "Default"
 
-	zoomSettingsCommandMessage = "You can set a default value for this in your user settings via `/zoom settings` command."
-	askForMeetingType          = "Which meeting ID would you like to use for creating this meeting?"
+	zoomSettingsCommandMessage   = "You can set a default value for this in your user settings via `/zoom settings` command."
+	askForMeetingType            = "Which meeting ID would you like to use for creating this meeting?"
+	WebsocketEventMeetingStarted = "meeting_started"
 )
 
 var ZoomChannelPreferences = map[string]string{
@@ -113,6 +114,30 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 
 	slackAttachment := model.SlackAttachment{
 		Text: fmt.Sprintf("You have selected `%s` to start the meeting.", action),
+	}
+
+	userPMISettingPref, err := p.getPMISettingData(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if userPMISettingPref == "" {
+		val := trueString
+		meetingIDType := "personal"
+		if action == useAUniqueMeetingID {
+			val = falseString
+			meetingIDType = "unique"
+		}
+
+		if err := p.updateUserPersonalSettings(val, userID); err != nil {
+			p.API.LogWarn("failed to update preferences for the user", "Error", err.Error())
+			return
+		}
+
+		slackAttachment = model.SlackAttachment{
+			Text: fmt.Sprintf("All future meetings will use `%s` meeting ID. Type `/zoom settings` to change your meeting ID preference", meetingIDType),
+		}
 	}
 
 	post := &model.Post{
@@ -345,7 +370,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	p.trackConnect(userID)
 
 	if justConnect {
-		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom \nType `/zoom settings` to change your meeting ID preference")
+		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
 		meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
 		if err != nil {
@@ -424,14 +449,34 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 	if appErr = p.storeMeetingPostID(meetingID, createdPost.Id); appErr != nil {
 		p.API.LogDebug("failed to store post id", "error", appErr)
 	}
+
+	p.client.Frontend.PublishWebSocketEvent(
+		WebsocketEventMeetingStarted,
+		map[string]interface{}{
+			"meeting_url": meetingURL,
+		},
+		&model.WebsocketBroadcast{UserId: creator.Id},
+	)
+
 	return nil
 }
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathAskPMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
+
+	userPMISettingPref, err := p.getPMISettingData(userID)
+	if err != nil {
+		p.API.LogDebug("failed to get user PMI setting value", "userID", userID, "error", err)
+		return
+	}
+
+	pretext := zoomSettingsCommandMessage
+	if userPMISettingPref == "" {
+		pretext = ""
+	}
 
 	slackAttachment := model.SlackAttachment{
-		Pretext: zoomSettingsCommandMessage,
+		Pretext: pretext,
 		Title:   askForMeetingType,
 		Actions: []*model.PostAction{
 			{
@@ -891,7 +936,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.ID, pathUpdatePMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: "Failed to set your preference",

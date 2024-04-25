@@ -21,6 +21,10 @@ node_modules
 .npminstall
 webapp/dist
 
+# Manifest files
+webapp/src/manifest.ts
+server/manifest.go
+
 # Mac
 *.swp
 .DS_Store

@@ -3,13 +3,14 @@
 
 import React from 'react';
 
-import {id as pluginId} from './manifest';
+import manifest from './manifest';
 
 import ChannelHeaderIcon from './components/channel-header-icon';
 import PostTypeZoom from './components/post_type_zoom';
 import {startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
+import {handleMeetingStarted} from './websocket/index.ts';
 
 class Plugin {
     // eslint-disable-next-line no-unused-vars
@@ -43,9 +44,14 @@ class Plugin {
             );
         }
 
+        registry.registerWebSocketEventHandler(
+            `custom_${manifest.id}_meeting_started`,
+            handleMeetingStarted,
+        );
+
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         Client.setServerRoute(getServerRoute(store.getState()));
     }
 }
 
-window.registerPlugin(pluginId, new Plugin());
+window.registerPlugin(manifest.id, new Plugin());
