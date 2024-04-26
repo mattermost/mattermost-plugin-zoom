@@ -83,7 +83,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 
 	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
-		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
