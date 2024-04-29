@@ -150,7 +150,7 @@ func (p *Plugin) fetchMeetingPostID(meetingID string) (string, error) {
 
 	if postID == "" {
 		p.client.Log.Warn("Stored meeting post ID not found or the meeting was not created using the plugin", "MeetingID", meetingID)
-		return "", errors.New("Stored meeting post ID not found")
+		return "", errors.New("stored meeting post ID not found")
 	}
 
 	return postID, nil
