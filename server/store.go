@@ -140,25 +140,25 @@ func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppErro
 	return p.API.KVSetWithExpiry(key, bytes, meetingPostIDTTL)
 }
 
-func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) {
+func (p *Plugin) fetchMeetingPostID(meetingID string) (string, error) {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
-	postID, appErr := p.API.KVGet(key)
-	if appErr != nil {
-		p.API.LogDebug("Could not get meeting post from KVStore", "error", appErr.Error())
-		return "", appErr
+	var postID string
+	if err := p.client.KV.Get(key, postID); err != nil {
+		p.client.Log.Debug("Could not get meeting post from KVStore", "error", err.Error())
+		return "", err
 	}
 
-	if postID == nil {
-		p.API.LogWarn("Stored meeting not found")
-		return "", appErr
+	if postID == "" {
+		p.client.Log.Warn("Stored meeting post ID not found or the meeting was not created using the plugin", "MeetingID", meetingID)
+		return "", errors.New("Stored meeting post ID not found")
 	}
 
-	return string(postID), nil
+	return postID, nil
 }
 
-func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
+func (p *Plugin) deleteMeetingPostID(postID string) error {
 	key := fmt.Sprintf("%v%v", postMeetingKey, postID)
-	return p.API.KVDelete(key)
+	return p.client.KV.Delete(key)
 }
 
 // getOAuthUserStateKey generates and returns the key for storing the OAuth user state in the KV store.
