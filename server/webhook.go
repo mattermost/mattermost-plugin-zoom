@@ -115,15 +115,14 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
 	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
-	err = p.client.Post.UpdatePost(post)
-	if err != nil {
-		p.client.Log.Warn("Could not update the post", "err", err.Error())
+	if err = p.client.Post.UpdatePost(post); err != nil {
+		p.client.Log.Warn("Could not update the post", "post_id", postID, "err", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err = p.deleteMeetingPostID(meetingPostID); err != nil {
-		p.client.Log.Warn("failed to delete db entry", "error", err.Error())
+		p.client.Log.Warn("failed to delete db entry", "err", err.Error())
 		return
 	}
 
