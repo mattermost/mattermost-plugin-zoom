@@ -162,6 +162,9 @@ export default class PostTypeZoom extends React.PureComponent {
                     <span style={style.summaryItem}>{'Date: ' + start}</span>
                     <br/>
                     <span style={style.summaryItem}>{'Meeting Length: ' + length + ' minute(s)'}</span>
+                    {props.meeting_recording && (<div><a href={props.meeting_recording} target='_blank'>{'View Meeting Recording'}</a></div>)}
+                    {props.meeting_transcript && (<div><a href={props.meeting_transcript} target='_blank'>{'View Meeting Transcript'}</a></div>)}
+                    {props.meeting_password && (<div>{'Meeting Password: ' + props.meeting_password}</div>)}
                 </div>
             );
         } else if (props.meeting_status === 'RECENTLY_CREATED') {
