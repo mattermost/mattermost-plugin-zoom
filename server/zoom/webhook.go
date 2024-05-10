@@ -22,6 +22,7 @@ const (
 	EventTypeValidateWebhook     EventType = "endpoint.url_validation"
 
 	RecordingTypeAudioTranscript = "audio_transcript"
+	RecordingTypeChat            = "chat_file"
 	RecordingTypeVideo           = "shared_screen_with_speaker_view"
 )
 

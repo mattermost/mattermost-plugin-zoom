@@ -52,6 +52,7 @@ class Plugin {
 
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
         registry.registerPostTypeComponent('custom_zoom_transcript', PostTypeTranscription);
+        registry.registerPostTypeComponent('custom_zoom_chat', PostTypeTranscription);
         Client.setServerRoute(getServerRoute(store.getState()));
     }
 }
