@@ -215,7 +215,7 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 				return
 			}
 			newPost.FileIds = append(newPost.FileIds, fileInfo.Id)
-			post.Props["captions"] = []map[string]string{{"file_id": fileInfo.Id}}
+			newPost.AddProp("captions", []any{map[string]any{"file_id": fileInfo.Id}})
 		}
 	}
 
