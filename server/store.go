@@ -157,11 +157,6 @@ func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, *model.AppError
 	return string(postID), nil
 }
 
-func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
-	key := fmt.Sprintf("%v%v", postMeetingKey, postID)
-	return p.API.KVDelete(key)
-}
-
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
 	bytes := []byte(channelID)

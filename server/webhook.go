@@ -189,18 +189,19 @@ func (p *Plugin) handleTranscript(recording zoom.RecordingFile, postID, channelI
 	retries := 5
 	var response *http.Response
 	for retries > 0 {
-		var err error
 		response, err = http.DefaultClient.Do(request)
 		if err != nil {
 			p.API.LogWarn("Unable to get the transcription", "err", err)
 			time.Sleep(1 * time.Second)
-			retries -= 1
+			retries--
 			continue
 		}
+
 		if response.StatusCode != http.StatusOK {
+			response.Body.Close()
 			p.API.LogWarn("Unable to get the transcription", "err", "bad status code "+strconv.Itoa(response.StatusCode))
 			time.Sleep(1 * time.Second)
-			retries -= 1
+			retries--
 			continue
 		}
 		break
@@ -265,17 +266,17 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var lastTranscription *zoom.RecordingFile
-	for _, recording := range webhook.Payload.Object.RecordingFiles {
+	lastTranscriptionIdx := -1
+	for idx, recording := range webhook.Payload.Object.RecordingFiles {
 		if recording.RecordingType == zoom.RecordingTypeAudioTranscript {
-			lastTranscription = &recording
+			lastTranscriptionIdx = idx
 		}
 	}
 
-	if lastTranscription != nil {
-		err := p.handleTranscript(*lastTranscription, post.Id, post.ChannelId, webhook.DownloadToken)
+	if lastTranscriptionIdx != -1 {
+		err := p.handleTranscript(webhook.Payload.Object.RecordingFiles[lastTranscriptionIdx], post.Id, post.ChannelId, webhook.DownloadToken)
 		if err != nil {
-			http.Error(w, appErr.Error(), appErr.StatusCode)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -350,10 +351,10 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 					http.Error(w, err.Error(), http.StatusBadRequest)
 					return
 				}
-				fileInfo, appErr := p.API.UploadFile(chat, post.ChannelId, "Chat-history.txt")
-				if appErr != nil {
-					p.API.LogWarn("Unable to get the chat", "err", appErr)
-					http.Error(w, appErr.Error(), http.StatusBadRequest)
+				fileInfo, appErr2 := p.API.UploadFile(chat, post.ChannelId, "Chat-history.txt")
+				if appErr2 != nil {
+					p.API.LogWarn("Unable to get the chat", "err", appErr2)
+					http.Error(w, appErr2.Error(), http.StatusBadRequest)
 					return
 				}
 
