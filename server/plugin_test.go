@@ -61,10 +61,10 @@ func TestPlugin(t *testing.T) {
 	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
+	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234", "uuid": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started", "payload": {"object": {"id": "234"}}}`))
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
@@ -153,6 +153,7 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return([]byte("thepostid"), nil)
 			api.On("KVGet", fmt.Sprintf("%v%v", postMeetingKey, 123)).Return([]byte("thepostid"), nil)
+			api.On("KVGet", fmt.Sprintf("%v%v", meetingChannelKey, 234)).Return([]byte(""), nil)
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 

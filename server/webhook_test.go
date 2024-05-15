@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http/httptest"
@@ -63,10 +66,12 @@ func TestWebhookVerifySignature(t *testing.T) {
 	api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
 	p.SetAPI(api)
 
-	requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
+	requestBody := `{"payload":{"object": {"id": "123", "uuid": "123"}},"event":"meeting.ended"}`
 
 	ts := "1660149894817"
-	signature := "v0=7fe2f9e66d133961eff4746eda161096cebe8d677319d66546281d88ea147189"
+	h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
+	_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
+	signature := "v0=" + hex.EncodeToString(h.Sum(nil))
 
 	w := httptest.NewRecorder()
 	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
