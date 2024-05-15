@@ -180,7 +180,13 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
+	meeting, err := p.getMeeting(user, meetingID)
+	if err != nil {
+		p.API.LogWarn("failed to get the meeting", "Error", err.Error())
+		return
+	}
+
+	if postMeetingErr := p.postMeeting(user, meetingID, meeting.UUID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
 		p.API.LogWarn("failed to post the meeting", "Error", postMeetingErr.Error())
 		return
 	}
@@ -365,7 +371,8 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		}
 
 		meetingID := meeting.ID
-		if err = p.postMeeting(user, meetingID, channelID, "", ""); err != nil {
+		meetingUUID := meeting.UUID
+		if err = p.postMeeting(user, meetingID, meetingUUID, channelID, "", ""); err != nil {
 			p.API.LogWarn("Failed to post the meeting", "error", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -392,14 +399,14 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID string, rootID string, topic string) error {
+func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID string, channelID string, rootID string, topic string) error {
 	meetingURL := p.getMeetingURL(creator, meetingID)
 
 	if topic == "" {
 		topic = defaultMeetingTopic
 	}
 
-	if !p.API.HasPermissionToChannel(creator.Id, channelID, model.PermissionCreatePost) {
+	if p.botUserID != creator.Id && !p.API.HasPermissionToChannel(creator.Id, channelID, model.PermissionCreatePost) {
 		return errors.New("this channel is not accessible, you might not have permissions to write in this channel. Contact the administrator of this channel to find out if you have access permissions")
 	}
 
@@ -418,6 +425,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		Props: map[string]interface{}{
 			"attachments":              []*model.SlackAttachment{&slackAttachment},
 			"meeting_id":               meetingID,
+			"meeting_uuid":             meetingUUID,
 			"meeting_link":             meetingURL,
 			"meeting_status":           zoom.WebhookStatusStarted,
 			"meeting_personal":         false,
@@ -432,7 +440,8 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 		return appErr
 	}
 
-	if appErr = p.storeMeetingPostID(meetingID, createdPost.Id); appErr != nil {
+	p.API.LogWarn("MEETING UUID ID", "uuid", meetingUUID)
+	if appErr = p.storeMeetingPostID(meetingUUID, createdPost.Id); appErr != nil {
 		p.API.LogDebug("failed to store post id", "error", appErr)
 	}
 
@@ -621,7 +630,14 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = p.postMeeting(user, meetingID, req.ChannelID, req.RootID, topic); err != nil {
+	meeting, err := p.getMeeting(user, meetingID)
+	if err != nil {
+		p.API.LogWarn("failed to get the meeting", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err = p.postMeeting(user, meetingID, meeting.UUID, req.ChannelID, req.RootID, topic); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -653,6 +669,21 @@ func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, 
 	}
 
 	return meeting.ID, nil
+}
+
+func (p *Plugin) getMeeting(user *model.User, meetingID int) (*zoom.Meeting, error) {
+	client, _, err := p.getActiveClient(user)
+	if err != nil {
+		p.API.LogWarn("could not get the active zoom client", "error", err.Error())
+		return nil, err
+	}
+
+	meeting, err := client.GetMeeting(meetingID)
+	if err != nil {
+		p.API.LogDebug("failed to get meeting")
+		return nil, err
+	}
+	return meeting, nil
 }
 
 func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {

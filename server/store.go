@@ -16,6 +16,7 @@ import (
 
 const (
 	postMeetingKey        = "post_meeting_"
+	meetingChannelKey     = "meeting_channel_"
 	zoomStateKeyPrefix    = "zoomuserstate"
 	zoomUserByMMID        = "zoomtoken_"
 	zoomUserByZoomID      = "zoomtokenbyzoomid_"
@@ -134,14 +135,14 @@ func (p *Plugin) deleteUserState(userID string) *model.AppError {
 	return p.API.KVDelete(key)
 }
 
-func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppError {
-	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
+func (p *Plugin) storeMeetingPostID(meetingUUID string, postID string) *model.AppError {
+	key := fmt.Sprintf("%v%v", postMeetingKey, meetingUUID)
 	bytes := []byte(postID)
 	return p.API.KVSetWithExpiry(key, bytes, meetingPostIDTTL)
 }
 
-func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) {
-	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
+func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, *model.AppError) {
+	key := fmt.Sprintf("%v%v", postMeetingKey, meetingUUID)
 	postID, appErr := p.API.KVGet(key)
 	if appErr != nil {
 		p.API.LogDebug("Could not get meeting post from KVStore", "error", appErr.Error())
@@ -158,6 +159,33 @@ func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) 
 
 func (p *Plugin) deleteMeetingPostID(postID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", postMeetingKey, postID)
+	return p.API.KVDelete(key)
+}
+
+func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) *model.AppError {
+	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
+	bytes := []byte(channelID)
+	return p.API.KVSet(key, bytes)
+}
+
+func (p *Plugin) fetchChannelForMeeting(meetingID int) (string, *model.AppError) {
+	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
+	channelID, appErr := p.API.KVGet(key)
+	if appErr != nil {
+		p.API.LogDebug("Could not get channel meeting from KVStore", "error", appErr.Error())
+		return "", appErr
+	}
+
+	if channelID == nil {
+		p.API.LogWarn("Stored channel meeting not found")
+		return "", appErr
+	}
+
+	return string(channelID), nil
+}
+
+func (p *Plugin) deleteChannelForMeeting(meetingID int) *model.AppError {
+	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
 	return p.API.KVDelete(key)
 }
 
