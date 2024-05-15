@@ -14,7 +14,7 @@ The Mattermost Zoom integration allows team members to initiate a Zoom meeting w
 
 ![image](https://github.com/mattermost/mattermost-plugin-zoom/assets/55234496/a109df21-f3c4-4432-b42d-7ef3ae493a50)
 
-See the [Mattermost Product Documentation](https://docs.mattermost.com/integrate/integrate/zoom-interoperability.html) for details on installing, configuring, enabling, and using this Mattermost integration.
+See the [Mattermost Product Documentation](https://docs.mattermost.com/integrate/zoom-interoperability.html) for details on installing, configuring, enabling, and using this Mattermost integration.
 
 ## Development
 
