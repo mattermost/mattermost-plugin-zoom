@@ -1,8 +1,11 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {FormattedMessage} from 'react-intl';
 import {useSelector} from 'react-redux';
-import IconAI from 'src/components/ai_icon';
+
 import styled from 'styled-components';
+
+import IconAI from 'src/components/ai_icon';
 
 const useAIAvailable = () => {
     //@ts-ignore plugins state is a thing
@@ -54,7 +57,7 @@ export const PostTypeChat = (props) => {
         callsPostButtonClicked?.(props.post);
     };
 
-    const msg = props.post.message;
+    const markdownMessage = props.post.message;
 
     const renderPostWithMarkdown = (msg) => {
         const {formatText, messageHtmlToComponent} = window.PostUtils;
@@ -63,19 +66,26 @@ export const PostTypeChat = (props) => {
             formatText(msg, {}),
             false,
         );
-    }
+    };
 
     return (
         <div data-testid={'zoom-post-transcription-body'}>
-            {renderPostWithMarkdown(msg)}
+            {renderPostWithMarkdown(markdownMessage)}
             {aiAvailable && callsPostButtonClicked &&
             <CreateMeetingSummaryButton
                 onClick={createMeetingSummary}
             >
                 <IconAI/>
-                <FormattedMessage id='summarize-chat-history' defaultMessage={'Summarize chat history'}/>
+                <FormattedMessage
+                    id='summarize-chat-history'
+                    defaultMessage={'Summarize chat history'}
+                />
             </CreateMeetingSummaryButton>
             }
         </div>
     );
+};
+
+PostTypeChat.propTypes = {
+    post: PropTypes.object.isRequired,
 };
