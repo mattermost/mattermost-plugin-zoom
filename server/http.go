@@ -440,7 +440,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID str
 		return appErr
 	}
 
-	p.API.LogWarn("MEETING UUID ID", "uuid", meetingUUID)
 	if appErr = p.storeMeetingPostID(meetingUUID, createdPost.Id); appErr != nil {
 		p.API.LogDebug("failed to store post id", "error", appErr)
 	}

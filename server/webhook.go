@@ -57,7 +57,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	p.API.LogWarn("New event received", "even_type", webhook.Event, "payload", string(b))
 	switch webhook.Event {
 	case zoom.EventTypeMeetingStarted:
 		p.handleMeetingStarted(w, r, b)
@@ -99,8 +98,6 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 		return
 	}
 
-	p.API.LogError("RUNNING THIS ON CHANNEL", "channel", channelID)
-
 	botUser, appErr := p.API.GetUser(p.botUserID)
 	if appErr != nil {
 		p.API.LogError("Failed to get bot user", "err", appErr.Error())
@@ -108,15 +105,11 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 		return
 	}
 
-	p.API.LogError("POSTING MEETING TO CHANNEL", "channel", channelID, "meetingID", meetingID)
-
 	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.ID); postMeetingErr != nil {
 		p.API.LogError("Failed to post the zoom message in the channel", "err", postMeetingErr.Error())
 		http.Error(w, postMeetingErr.Error(), http.StatusBadRequest)
 		return
 	}
-
-	p.API.LogError("POSTED MEETING TO CHANNEL", "channel", channelID, "meetingID", meetingID)
 
 	p.trackMeetingStart(p.botUserID, telemetryStartSourceCommand)
 	p.trackMeetingType(p.botUserID, false)
@@ -131,7 +124,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	}
 
 	meetingPostID := webhook.Payload.Object.UUID
-	p.API.LogWarn("MEETING ID", "uuid", meetingPostID)
 	postID, appErr := p.fetchMeetingPostID(meetingPostID)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
@@ -179,12 +171,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
-
-	// TODO: Delete the meeting post if is no longer needed
-	// if appErr = p.deleteMeetingPostID(meetingPostID); appErr != nil {
-	// 	p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
-	// 	return
-	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(post); err != nil {
@@ -294,12 +280,6 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	// TODO: Delete the meeting post if is no longer needed
-	// if appErr = p.deleteMeetingPostID(meetingPostID); appErr != nil {
-	// 	p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
-	// 	return
-	// }
-
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(post); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
@@ -397,12 +377,6 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 			}
 		}
 	}
-
-	// TODO: Delete the meeting post if is no longer needed
-	// if appErr = p.deleteMeetingPostID(meetingPostID); appErr != nil {
-	// 	p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
-	// 	return
-	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(post); err != nil {
