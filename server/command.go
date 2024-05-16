@@ -241,18 +241,36 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 }
 
 func (p *Plugin) runSubscribeCommand(user *model.User, extra *model.CommandArgs, meetingID int) (string, error) {
+	if !p.API.HasPermissionToChannel(user.Id, extra.ChannelId, model.PermissionCreatePost) {
+		return "You do not have permission to subscribe to this channel", nil
+	}
+
+	_, err := p.getMeeting(user, meetingID)
+	if err != nil {
+		return "Can not subscribe to meeting: meeting not found", errors.Wrap(err, "meeting not found")
+	}
+
 	if appErr := p.storeChannelForMeeting(meetingID, extra.ChannelId); appErr != nil {
-		return "", errors.Wrap(appErr, "cannot subscribing to meeting")
+		return "", errors.Wrap(appErr, "cannot subscribe to meeting")
 	}
 	return "Channel subscribed to meeting", nil
 }
 
 func (p *Plugin) runUnsubscribeCommand(user *model.User, extra *model.CommandArgs, meetingID int) (string, error) {
+	if !p.API.HasPermissionToChannel(user.Id, extra.ChannelId, model.PermissionCreatePost) {
+		return "You do not have permission to unsubscribe from this channel", nil
+	}
+
+	_, err := p.getMeeting(user, meetingID)
+	if err != nil {
+		return "Can not unsubscribe from meeting: meeting not found", errors.Wrap(err, "meeting not found")
+	}
+
 	if channelID, appErr := p.fetchChannelForMeeting(meetingID); appErr != nil || channelID == "" {
 		return "Can not unsubscribe from meeting: meeting not found", errors.New("meeting not found")
 	}
 	if appErr := p.deleteChannelForMeeting(meetingID); appErr != nil {
-		return "Can not unsubscribe from meeting: unable to delete the meeting subscription", errors.Wrap(appErr, "cannot unsubscribing from meeting")
+		return "Can not unsubscribe from meeting: unable to delete the meeting subscription", errors.Wrap(appErr, "cannot unsubscribe from meeting")
 	}
 	return "Channel unsubscribed from meeting", nil
 }

@@ -90,7 +90,6 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 
 	channelID, appErr := p.fetchChannelForMeeting(meetingID)
 	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
@@ -101,13 +100,11 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 	botUser, appErr := p.API.GetUser(p.botUserID)
 	if appErr != nil {
 		p.API.LogError("Failed to get bot user", "err", appErr.Error())
-		http.Error(w, appErr.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.ID); postMeetingErr != nil {
 		p.API.LogError("Failed to post the zoom message in the channel", "err", postMeetingErr.Error())
-		http.Error(w, postMeetingErr.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -126,14 +123,12 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	meetingPostID := webhook.Payload.Object.UUID
 	postID, appErr := p.fetchMeetingPostID(meetingPostID)
 	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
 		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
@@ -168,7 +163,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	_, appErr = p.API.UpdatePost(post)
 	if appErr != nil {
 		p.API.LogWarn("Could not update the post", "err", appErr)
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
@@ -213,14 +207,14 @@ func (p *Plugin) handleTranscript(recording zoom.RecordingFile, postID, channelI
 	}
 
 	defer response.Body.Close()
-	transcription, err := io.ReadAll(response.Body)
+	transcriptionBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		p.API.LogWarn("Unable to get the transcription", "err", err)
 		return err
 	}
-	fileInfo, appErr := p.API.UploadFile(transcription, channelID, "transcription.txt")
+	fileInfo, appErr := p.API.UploadFile(transcriptionBytes, channelID, "transcription.txt")
 	if appErr != nil {
-		p.API.LogWarn("Unable to get the transcription", "err", appErr)
+		p.API.LogWarn("Unable to save transcription file to the channel", "err", appErr)
 		return appErr
 	}
 	newPost := &model.Post{
@@ -255,14 +249,12 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 	meetingPostID := webhook.Payload.Object.UUID
 	postID, appErr := p.fetchMeetingPostID(meetingPostID)
 	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
 		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
@@ -276,7 +268,6 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 	if lastTranscriptionIdx != -1 {
 		err := p.handleTranscript(webhook.Payload.Object.RecordingFiles[lastTranscriptionIdx], post.Id, post.ChannelId, webhook.DownloadToken)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -298,14 +289,12 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 	meetingPostID := webhook.Payload.Object.UUID
 	postID, appErr := p.fetchMeetingPostID(meetingPostID)
 	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
 	post, appErr := p.API.GetPost(postID)
 	if appErr != nil {
 		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
@@ -334,36 +323,29 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 				request, err := http.NewRequest(http.MethodGet, recording.DownloadURL, nil)
 				if err != nil {
 					p.API.LogWarn("Unable to get the chat", "err", err)
-					http.Error(w, err.Error(), http.StatusBadRequest)
 					return
 				}
 				request.Header.Set("Authorization", "Bearer "+webhook.DownloadToken)
 				response, err := http.DefaultClient.Do(request)
 				if err != nil {
 					p.API.LogWarn("Unable to get the chat", "err", err)
-					http.Error(w, err.Error(), http.StatusBadRequest)
 					return
 				}
 				defer response.Body.Close()
 				chat, err := io.ReadAll(response.Body)
 				if err != nil {
 					p.API.LogWarn("Unable to get the chat", "err", err)
-					http.Error(w, err.Error(), http.StatusBadRequest)
 					return
 				}
 				fileInfo, appErr2 := p.API.UploadFile(chat, post.ChannelId, "Chat-history.txt")
 				if appErr2 != nil {
 					p.API.LogWarn("Unable to get the chat", "err", appErr2)
-					http.Error(w, appErr2.Error(), http.StatusBadRequest)
 					return
 				}
 
 				newPost.FileIds = append(newPost.FileIds, fileInfo.Id)
 				newPost.AddProp("captions", []any{map[string]any{"file_id": fileInfo.Id}})
 				newPost.Type = "custom_zoom_chat"
-				if newPost.Message == "" {
-					newPost.Message = " "
-				}
 			}
 			if recording.RecordingType == zoom.RecordingTypeVideo {
 				newPost.Message = "Here's the zoom meeting recording:\n**Link:** [Meeting Recording](" + recording.PlayURL + ")\n**Password:** " + webhook.Payload.Object.Password
@@ -373,7 +355,6 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 			_, appErr = p.API.CreatePost(newPost)
 			if appErr != nil {
 				p.API.LogWarn("Could not update the post", "err", appErr)
-				http.Error(w, appErr.Error(), appErr.StatusCode)
 				return
 			}
 		}
