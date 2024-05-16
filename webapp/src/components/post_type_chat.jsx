@@ -71,17 +71,17 @@ export const PostTypeChat = (props) => {
     return (
         <div data-testid={'zoom-post-transcription-body'}>
             {renderPostWithMarkdown(markdownMessage)}
-            {aiAvailable && callsPostButtonClicked &&
-            <CreateMeetingSummaryButton
-                onClick={createMeetingSummary}
-            >
-                <IconAI/>
-                <FormattedMessage
-                    id='summarize-chat-history'
-                    defaultMessage={'Summarize chat history'}
-                />
-            </CreateMeetingSummaryButton>
-            }
+            {aiAvailable && callsPostButtonClicked && (
+                <CreateMeetingSummaryButton
+                    onClick={createMeetingSummary}
+                >
+                    <IconAI/>
+                    <FormattedMessage
+                        id='summarize-chat-history'
+                        defaultMessage={'Summarize chat history'}
+                    />
+                </CreateMeetingSummaryButton>
+            )}
         </div>
     );
 };

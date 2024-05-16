@@ -62,17 +62,17 @@ export const PostTypeTranscription = (props) => {
     return (
         <div data-testid={'zoom-post-transcription-body'}>
             {msg}
-            {aiAvailable && callsPostButtonClicked &&
-            <CreateMeetingSummaryButton
-                onClick={createMeetingSummary}
-            >
-                <IconAI/>
-                <FormattedMessage
-                    id='create-meeting-summary'
-                    defaultMessage={'Create meeting summary?'}
-                />
-            </CreateMeetingSummaryButton>
-            }
+            {aiAvailable && callsPostButtonClicked && (
+                <CreateMeetingSummaryButton
+                    onClick={createMeetingSummary}
+                >
+                    <IconAI/>
+                    <FormattedMessage
+                        id='create-meeting-summary'
+                        defaultMessage={'Create meeting summary?'}
+                    />
+                </CreateMeetingSummaryButton>
+            )}
         </div>
     );
 };
