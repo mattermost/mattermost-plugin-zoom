@@ -1,23 +1,28 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {FormattedMessage} from 'react-intl';
 import {useSelector} from 'react-redux';
+
+import type {Post} from 'mattermost-redux/types/posts';
+import type {GlobalState} from 'mattermost-redux/types/store';
 
 import styled from 'styled-components';
 
 import IconAI from 'src/components/ai_icon';
 
-const useAIAvailable = () => {
-    //@ts-ignore plugins state is a thing
-    return useSelector((state) => Boolean(state.plugins?.plugins?.[aiPluginID]));
-};
-
 const aiPluginID = 'mattermost-ai';
 
+const useAIAvailable = () => {
+    return useSelector((state: any) => Boolean(state.plugins?.plugins?.[aiPluginID]));
+};
+
 const useCallsPostButtonClicked = () => {
-    return useSelector((state) => {
-        //@ts-ignore plugins state is a thing
-        return state['plugins-' + aiPluginID]?.callsPostButtonClickedTranscription;
+    return useSelector((state: GlobalState) => {
+        type StateWithAiPluginState = {
+            'plugins-mattermost-ai'?: {callsPostButtonClickedTranscription: (post: Post) => void};
+        }
+        const stateTyped: StateWithAiPluginState = state as StateWithAiPluginState;
+        const aiPluginState = stateTyped['plugins-mattermost-ai'];
+        return aiPluginState?.callsPostButtonClickedTranscription;
     });
 };
 
@@ -49,7 +54,11 @@ const CreateMeetingSummaryButton = styled.button`
 	}
 `;
 
-export const PostTypeChat = (props) => {
+type Props = {
+    post: Post;
+};
+
+export const PostTypeChat = (props: Props) => {
     const aiAvailable = useAIAvailable();
     const callsPostButtonClicked = useCallsPostButtonClicked();
 
@@ -59,8 +68,9 @@ export const PostTypeChat = (props) => {
 
     const markdownMessage = props.post.message;
 
-    const renderPostWithMarkdown = (msg) => {
-        const {formatText, messageHtmlToComponent} = window.PostUtils;
+    const renderPostWithMarkdown = (msg: string) => {
+        const windowAny: any = window;
+        const {formatText, messageHtmlToComponent} = windowAny.PostUtils;
 
         return messageHtmlToComponent(
             formatText(msg, {}),
@@ -84,8 +94,4 @@ export const PostTypeChat = (props) => {
             )}
         </div>
     );
-};
-
-PostTypeChat.propTypes = {
-    post: PropTypes.object.isRequired,
 };
