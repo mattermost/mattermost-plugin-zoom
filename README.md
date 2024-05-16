@@ -173,7 +173,7 @@ When a Zoom meeting ends, the original link shared in the channel can be changed
 
 ![mattermost_webhook_secret](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/58b9ac74-ecf9-4e3e-986e-94fd4c39bfb0)
 
-Select **Add events** and select the **End Meeting** event.
+Select **Add events** and select the **Start Meeting**, **End Meeting**, **All Recordings have completed** and **Recording Transcript files have completed** events.
 
 ![event_types](https://github.com/mattermost/mattermost-plugin-zoom/assets/74422101/a2f04fe9-e4fa-4e78-b198-1f493e53cf93)
 
