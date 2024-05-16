@@ -245,9 +245,13 @@ func (p *Plugin) runSubscribeCommand(user *model.User, extra *model.CommandArgs,
 		return "You do not have permission to subscribe to this channel", nil
 	}
 
-	_, err := p.getMeeting(user, meetingID)
+	meeting, err := p.getMeeting(user, meetingID)
 	if err != nil {
 		return "Can not subscribe to meeting: meeting not found", errors.Wrap(err, "meeting not found")
+	}
+
+	if meeting.Type == zoom.MeetingTypePersonal {
+		return "Can not subscribe to personal meeting", nil
 	}
 
 	if appErr := p.storeChannelForMeeting(meetingID, extra.ChannelId); appErr != nil {
