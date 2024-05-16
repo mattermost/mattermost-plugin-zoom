@@ -3,7 +3,6 @@ import {FormattedMessage} from 'react-intl';
 import {useSelector} from 'react-redux';
 
 import type {Post} from 'mattermost-redux/types/posts';
-import type {GlobalState} from 'mattermost-redux/types/store';
 
 import styled from 'styled-components';
 
@@ -16,12 +15,8 @@ const useAIAvailable = () => {
 };
 
 const useCallsPostButtonClicked = () => {
-    return useSelector((state: GlobalState) => {
-        type StateWithAiPluginState = {
-            'plugins-mattermost-ai'?: {callsPostButtonClickedTranscription: (post: Post) => void};
-        }
-        const stateTyped: StateWithAiPluginState = state as StateWithAiPluginState;
-        const aiPluginState = stateTyped['plugins-mattermost-ai'];
+    return useSelector((state: any) => {
+        const aiPluginState = state['plugins-'+aiPluginID];
         return aiPluginState?.callsPostButtonClickedTranscription;
     });
 };
