@@ -16,7 +16,7 @@ const useAIAvailable = () => {
 
 const useCallsPostButtonClicked = () => {
     return useSelector((state: any) => {
-        const aiPluginState = state['plugins-'+aiPluginID];
+        const aiPluginState = state['plugins-' + aiPluginID];
         return aiPluginState?.callsPostButtonClickedTranscription;
     });
 };
