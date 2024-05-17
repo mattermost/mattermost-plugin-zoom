@@ -267,7 +267,7 @@ func (p *Plugin) runUnsubscribeCommand(user *model.User, extra *model.CommandArg
 
 	_, err := p.getMeeting(user, meetingID)
 	if err != nil {
-		return "Can not unsubscribe from meeting: meeting not found", errors.Wrap(err, "meeting not found")
+		return "Can not unsubscribe from meeting: meeting not accesible in zoom", errors.Wrap(err, "meeting not accesible in zoom")
 	}
 
 	if channelID, appErr := p.fetchChannelForMeeting(meetingID); appErr != nil || channelID == "" {
