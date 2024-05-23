@@ -108,7 +108,7 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 		return
 	}
 
-	p.trackMeetingStart(p.botUserID, telemetryStartSourceCommand)
+	p.trackMeetingStart(p.botUserID, telemetryStartSourceSubscribeWebhook)
 	p.trackMeetingType(p.botUserID, false)
 }
 

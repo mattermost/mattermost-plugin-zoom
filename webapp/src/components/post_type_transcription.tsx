@@ -17,7 +17,7 @@ const useAIAvailable = () => {
 const useCallsPostButtonClicked = () => {
     return useSelector((state: any) => {
         const aiPluginState = state['plugins-' + aiPluginID];
-        return aiPluginState?.callsPostButtonClickedTranscription;
+        return aiPluginState?.callsPostButtonClickedTranscription as ((post: Post) => void) | undefined;
     });
 };
 
@@ -73,7 +73,7 @@ export const PostTypeTranscription = (props: Props) => {
                     <IconAI/>
                     <FormattedMessage
                         id='create-meeting-summary'
-                        defaultMessage={'Create meeting summary?'}
+                        defaultMessage={'Create meeting summary'}
                     />
                 </CreateMeetingSummaryButton>
             )}
