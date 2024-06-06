@@ -43,7 +43,7 @@ function dispatchError(dispatch, channelId, rootId, userId, message) {
         edit_at: 0,
         delete_at: 0,
         is_pinned: false,
-        user_id: 'uhaerstmibrb3rgcj9yb6zyt5r',
+        user_id: userId,
         channel_id: channelId,
         root_id: rootId,
         parent_id: '',

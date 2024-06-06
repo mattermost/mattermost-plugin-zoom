@@ -27,8 +27,7 @@ const (
 )
 
 type ZoomChannelSettingsMapValue struct {
-	ChannelName string
-	Preference  string
+	Preference string
 }
 
 type ZoomChannelSettingsMap map[string]ZoomChannelSettingsMapValue
@@ -144,8 +143,8 @@ func (p *Plugin) deleteUserState(userID string) *model.AppError {
 
 func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
-	bytes := []byte(postID)
-	return p.API.KVSetWithExpiry(key, bytes, meetingPostIDTTL)
+	b := []byte(postID)
+	return p.API.KVSetWithExpiry(key, b, meetingPostIDTTL)
 }
 
 func (p *Plugin) fetchMeetingPostID(meetingID string) (string, *model.AppError) {
@@ -216,14 +215,14 @@ func (p *Plugin) removeSuperUserToken() error {
 }
 
 func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsMapValue ZoomChannelSettingsMapValue) error {
-	bytes, appErr := p.API.KVGet(zoomChannelSettings)
+	b, appErr := p.API.KVGet(zoomChannelSettings)
 	if appErr != nil {
 		return errors.New(appErr.Message)
 	}
 
 	var zoomChannelSettingsMap ZoomChannelSettingsMap
-	if len(bytes) != 0 {
-		if err := json.Unmarshal(bytes, &zoomChannelSettingsMap); err != nil {
+	if len(b) != 0 {
+		if err := json.Unmarshal(b, &zoomChannelSettingsMap); err != nil {
 			return err
 		}
 	} else {
@@ -231,12 +230,12 @@ func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsM
 	}
 
 	zoomChannelSettingsMap[channelID] = zoomChannelSettingsMapValue
-	bytes, err := json.Marshal(zoomChannelSettingsMap)
+	b, err := json.Marshal(zoomChannelSettingsMap)
 	if err != nil {
 		return err
 	}
 
-	if appErr := p.API.KVSet(zoomChannelSettings, bytes); appErr != nil {
+	if appErr := p.API.KVSet(zoomChannelSettings, b); appErr != nil {
 		return errors.New(appErr.Message)
 	}
 
@@ -244,17 +243,17 @@ func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsM
 }
 
 func (p *Plugin) listZoomChannelSettings() (ZoomChannelSettingsMap, error) {
-	bytes, appErr := p.API.KVGet(zoomChannelSettings)
+	b, appErr := p.API.KVGet(zoomChannelSettings)
 	if appErr != nil {
 		return nil, errors.New(appErr.Message)
 	}
 
-	if len(bytes) == 0 {
+	if len(b) == 0 {
 		return ZoomChannelSettingsMap{}, nil
 	}
 
 	var zoomChannelSettingsMap ZoomChannelSettingsMap
-	if err := json.Unmarshal(bytes, &zoomChannelSettingsMap); err != nil {
+	if err := json.Unmarshal(b, &zoomChannelSettingsMap); err != nil {
 		return nil, err
 	}
 

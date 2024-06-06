@@ -43,9 +43,9 @@ const (
 	useAUniqueMeetingID      = "USE A UNIQUE MEETING ID"
 	MattermostUserIDHeader   = "Mattermost-User-ID"
 
-	EnablePreference  = "Enable"
-	DisablePreference = "Disable"
-	DefaultPreference = "Default"
+	EnablePreference                    = "Enable"
+	DisablePreference                   = "Disable"
+	DefaultChannelRestrictionPreference = "Default"
 
 	zoomSettingsCommandMessage   = "You can set a default value for this in your user settings via `/zoom settings` command."
 	askForMeetingType            = "Which meeting ID would you like to use for creating this meeting?"
@@ -53,9 +53,9 @@ const (
 )
 
 var ZoomChannelPreferences = map[string]string{
-	EnablePreference:  "enable",
-	DisablePreference: "disable",
-	DefaultPreference: "default",
+	EnablePreference:                    "enable",
+	DisablePreference:                   "disable",
+	DefaultChannelRestrictionPreference: "default",
 }
 
 type startMeetingRequest struct {
@@ -63,6 +63,14 @@ type startMeetingRequest struct {
 	RootID    string `json:"root_id"`
 	Topic     string `json:"topic"`
 	UsePMI    string `json:"use_pmi"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+type MeetingURLResponse struct {
+	MeetingURL string `json:"meeting_url"`
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -548,7 +556,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restrict, statusCode, err := p.checkChannelPreference(req.ChannelID)
+	restrict, statusCode, err := p.isChannelRestrictedForMeetings(req.ChannelID)
 	if err != nil {
 		p.API.LogError("Unable to check channel preference", "ChannelID", req.ChannelID, "Error", err.Error())
 		http.Error(w, err.Error(), statusCode)
@@ -556,7 +564,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if restrict {
-		if _, err = w.Write([]byte(`{"error": "Creating zoom meeting is disabled for this channel."}`)); err != nil {
+		if err = json.NewEncoder(w).Encode(ErrorResponse{"Creating zoom meeting is disabled for this channel."}); err != nil {
 			p.API.LogWarn("failed to write the response", "error", err.Error())
 		}
 		return
@@ -575,7 +583,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+		if err = json.NewEncoder(w).Encode(MeetingURLResponse{MeetingURL: ""}); err != nil {
 			p.API.LogWarn("failed to write the response", "error", err.Error())
 		}
 
@@ -596,7 +604,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if recentMeeting {
-			if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			if err = json.NewEncoder(w).Encode(MeetingURLResponse{MeetingURL: ""}); err != nil {
 				p.API.LogWarn("failed to write the response", "error", err.Error())
 			}
 			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, req.RootID, creatorName, provider)
@@ -623,7 +631,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	case "", zoomPMISettingValueAsk:
 		p.askPreferenceForMeeting(user.Id, req.ChannelID, req.RootID)
 
-		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+		if err = json.NewEncoder(w).Encode(MeetingURLResponse{MeetingURL: ""}); err != nil {
 			p.API.LogWarn("failed to write the response", "Error", err.Error())
 		}
 		return
@@ -689,8 +697,7 @@ func (p *Plugin) handleChannelPreference(w http.ResponseWriter, r *http.Request)
 	}
 
 	zoomChannelSettingsMapValue := ZoomChannelSettingsMapValue{
-		ChannelName: submitRequest.CallbackId,
-		Preference:  fmt.Sprint(submitRequest.Submission["preference"]),
+		Preference: fmt.Sprint(submitRequest.Submission["preference"]),
 	}
 
 	if err := zoomChannelSettingsMapValue.IsValid(); err != nil {
@@ -985,7 +992,7 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	return &slackAttachment
 }
 
-func (p *Plugin) checkChannelPreference(channelID string) (bool, int, error) {
+func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, int, error) {
 	channel, appErr := p.API.GetChannel(channelID)
 	if appErr != nil {
 		return false, http.StatusInternalServerError, errors.New(appErr.Message)
@@ -1003,7 +1010,7 @@ func (p *Plugin) checkChannelPreference(channelID string) (bool, int, error) {
 		Check if creating meeting is disabled in the plugin configuration.
 	*/
 	if exist {
-		if val.Preference == ZoomChannelPreferences[DefaultPreference] {
+		if val.Preference == ZoomChannelPreferences[DefaultChannelRestrictionPreference] {
 			preference = p.configuration.RestrictMeetingCreation
 		} else if val.Preference == ZoomChannelPreferences[EnablePreference] {
 			preference = true
@@ -1016,12 +1023,19 @@ func (p *Plugin) checkChannelPreference(channelID string) (bool, int, error) {
 }
 
 func (mv ZoomChannelSettingsMapValue) IsValid() error {
-	if mv.ChannelName == "" {
-		return errors.New("channel name should not be empty")
-	}
-
 	if mv.Preference == "" {
 		return errors.New("preference should not be empty")
+	}
+
+	found := false
+	for _, value := range ZoomChannelPreferences {
+		if value == mv.Preference {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errors.New("invalid preference")
 	}
 
 	return nil

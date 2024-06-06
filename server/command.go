@@ -38,6 +38,8 @@ const (
 	actionUnkown = "Unknown Action"
 )
 
+const channelPreferenceListErr = "Unable to list channel preferences"
+
 func (p *Plugin) getCommand() (*model.Command, error) {
 	iconData, err := command.GetIconData(p.API, "assets/profile.svg")
 	if err != nil {
@@ -134,9 +136,9 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 // runStartCommand runs command to start a Zoom meeting.
 func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topic string) (string, error) {
-	restrict, _, err := p.checkChannelPreference(args.ChannelId)
+	restrict, _, err := p.isChannelRestrictedForMeetings(args.ChannelId)
 	if err != nil {
-		p.API.LogError("Unable to check channel preference", "ChannelID", args.ChannelId, "Error", err.Error())
+		p.client.Log.Error("Unable to check channel preference", "ChannelID", args.ChannelId, "Error", err.Error())
 		return "Error occurred while starting meeting", nil
 	}
 
@@ -284,16 +286,6 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
-		restrict, _, err := p.checkChannelPreference(args.ChannelId)
-		if err != nil {
-			p.API.LogError("Unable to check channel preference", "ChannelID", args.ChannelId, "Error", err.Error())
-			return "Error occurred while viewing zoom settings", nil
-		}
-
-		if restrict {
-			return "Updating zoom settings is disabled for this current channel.", nil
-		}
-
 		if err := p.sendUserSettingForm(user.Id, args.ChannelId, args.RootId); err != nil {
 			return "", err
 		}
@@ -303,92 +295,109 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 }
 
 func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
-	if !p.API.HasPermissionTo(args.UserId, model.PermissionManageSystem) {
-		return "Unable to execute the command, only system admins have access to execute this command.", nil
+	if len(params) == 0 {
+		return p.runEditChannelSettingsCommand(args, user)
+	} else if params[0] == channelSettingsAction {
+		return p.runChannelSettingsListCommand(args)
 	}
 
-	if len(params) == 0 {
-		channel, appErr := p.API.GetChannel(args.ChannelId)
-		if appErr != nil {
-			p.API.LogError("Unable to get channel", "ChannelID", args.ChannelId, "Error", appErr.Error())
-			return "Error occurred while fetching channel information", nil
-		}
+	return actionUnkown, nil
+}
 
-		if channel.Type == model.ChannelTypeDirect || channel.Type == model.ChannelTypeGroup {
-			return "Preference not allowed to set for DM/GM.", nil
-		}
+func (p *Plugin) runEditChannelSettingsCommand(args *model.CommandArgs, user *model.User) (string, error) {
+	if !p.client.User.HasPermissionTo(args.UserId, model.PermissionManageChannelRoles) {
+		return "Unable to execute the command, only channel admins have access to execute this command.", nil
+	}
 
-		requestBody := model.OpenDialogRequest{
-			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s%s", p.siteURL, manifest.Id, pathChannelPreference),
-			Dialog: model.Dialog{
-				Title:       "Set Channel Preference",
-				SubmitLabel: "Submit",
-				CallbackId:  channel.DisplayName,
-				Elements: []model.DialogElement{
-					{
-						DisplayName: fmt.Sprintf("Select your channel preference for ~%s", channel.DisplayName),
-						HelpText:    "Enable to restrict creating meetings in this channel.",
-						Name:        "preference",
-						Type:        "radio",
-						Options: []*model.PostActionOptions{
-							{
-								Text:  "Enable Zoom Meetings in this channel",
-								Value: "enable",
-							},
-							{
-								Text:  "Disable Zoom Meetings in this channel",
-								Value: "disable",
-							},
-							{
-								Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictMeetingCreation),
-								Value: "default",
-							},
+	channel, appErr := p.client.Channel.Get(args.ChannelId)
+	if appErr != nil {
+		p.client.Log.Error("Unable to get channel", "ChannelID", args.ChannelId, "Error", appErr.Error())
+		return "Error occurred while fetching channel information", nil
+	}
+
+	if channel.Type == model.ChannelTypeDirect || channel.Type == model.ChannelTypeGroup {
+		return "Preference not allowed to set for DM/GM.", nil
+	}
+
+	requestBody := model.OpenDialogRequest{
+		TriggerId: args.TriggerId,
+		URL:       fmt.Sprintf("%s/plugins/%s%s", p.siteURL, manifest.Id, pathChannelPreference),
+		Dialog: model.Dialog{
+			Title:       "Set Channel Preference",
+			SubmitLabel: "Submit",
+			CallbackId:  channel.DisplayName,
+			Elements: []model.DialogElement{
+				{
+					DisplayName: fmt.Sprintf("Select your channel preference for ~%s", channel.DisplayName),
+					HelpText:    "Enable to restrict creating meetings in this channel.",
+					Name:        "preference",
+					Type:        "radio",
+					Options: []*model.PostActionOptions{
+						{
+							Text:  "Enable Zoom Meetings in this channel",
+							Value: "enable",
+						},
+						{
+							Text:  "Disable Zoom Meetings in this channel",
+							Value: "disable",
+						},
+						{
+							Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictMeetingCreation),
+							Value: "default",
 						},
 					},
 				},
 			},
-		}
-
-		client, _, err := p.getActiveClient(user)
-		if err != nil {
-			p.API.LogError("Unable to get the client", "Error", err.Error())
-			return "Unable to send request to open preference dialog", nil
-		}
-
-		if err := client.OpenDialogRequest(&requestBody); err != nil {
-			p.API.LogError("Failed to fulfill the request to open preference dialog", "Error", err.Error())
-			return "Unable to open the dialog for setting preference", nil
-		}
-
-		return "", nil
-	} else if params[0] == channelSettingsAction {
-		zoomChannelSettingsMap, err := p.listZoomChannelSettings()
-		if err != nil {
-			p.API.LogError("Unable to list channel preferences", "Error", err.Error())
-			return "Unable to list channel preferences", nil
-		}
-
-		if len(zoomChannelSettingsMap) == 0 {
-			return "No channel preference present", nil
-		}
-
-		var sb strings.Builder
-		sb.WriteString("#### Channel preferences\n")
-		sb.WriteString("| Channel ID | Channel Name | Preference |\n| :----|:--------|:--------|")
-		for key, value := range zoomChannelSettingsMap {
-			preference := value.Preference
-			if value.Preference == ZoomChannelPreferences[DefaultPreference] {
-				preference = fmt.Sprintf("%s (%t)", preference, p.getConfiguration().RestrictMeetingCreation)
-			}
-
-			sb.WriteString(fmt.Sprintf("\n|%s|%s|%s|", key, value.ChannelName, preference))
-		}
-
-		return sb.String(), nil
+		},
 	}
 
-	return actionUnkown, nil
+	client, _, err := p.getActiveClient(user)
+	if err != nil {
+		p.client.Log.Error("Unable to get the client", "Error", err.Error())
+		return "Unable to send request to open preference dialog", nil
+	}
+
+	if err := client.OpenDialogRequest(&requestBody); err != nil {
+		p.client.Log.Error("Failed to fulfill the request to open preference dialog", "Error", err.Error())
+		return "Unable to open the dialog for setting preference", nil
+	}
+
+	return "", nil
+}
+
+func (p *Plugin) runChannelSettingsListCommand(args *model.CommandArgs) (string, error) {
+	if !p.client.User.HasPermissionTo(args.UserId, model.PermissionManageSystem) {
+		return "Unable to execute the command, only system admins have access to execute this command.", nil
+	}
+
+	zoomChannelSettingsMap, err := p.listZoomChannelSettings()
+	if err != nil {
+		p.client.Log.Error(channelPreferenceListErr, "Error", err.Error())
+		return channelPreferenceListErr, nil
+	}
+
+	if len(zoomChannelSettingsMap) == 0 {
+		return "No channel preference present", nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString("#### Channel preferences\n")
+	sb.WriteString("| Channel ID | Channel Name | Preference |\n| :----|:--------|:--------|")
+	for key, value := range zoomChannelSettingsMap {
+		preference := value.Preference
+		channel, err := p.client.Channel.Get(key)
+		if err != nil {
+			p.client.Log.Error(channelPreferenceListErr, "Error", err.Error())
+			return channelPreferenceListErr, nil
+		}
+		if value.Preference == ZoomChannelPreferences[DefaultChannelRestrictionPreference] {
+			preference = fmt.Sprintf("%s (%t)", preference, p.getConfiguration().RestrictMeetingCreation)
+		}
+
+		sb.WriteString(fmt.Sprintf("\n|%s|%s|%s|", key, channel.DisplayName, preference))
+	}
+
+	return sb.String(), nil
 }
 
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {

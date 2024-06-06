@@ -436,7 +436,7 @@ func TestCheckChannelPreference(t *testing.T) {
 
 			test.SetupAPI(api)
 
-			preference, statusCode, err := p.checkChannelPreference("mockChannelID")
+			preference, statusCode, err := p.isChannelRestrictedForMeetings("mockChannelID")
 			assert.Equal(test.ExpectedPreference, preference)
 			assert.Equal(test.ExpectedStatusCode, statusCode)
 			if err != nil {
