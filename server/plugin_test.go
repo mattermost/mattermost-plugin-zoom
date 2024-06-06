@@ -266,42 +266,20 @@ func TestHandleChannelPreference(t *testing.T) {
 			ExpectedResult:     "Insufficient permissions\n",
 		},
 		{
-			Name: "HandleChannelPreference: invalid reqest body",
+			Name: "HandleChannelPreference: invalid preference",
 			SetupAPI: func(api *plugintest.API) {
-				api.On("LogError", "Invalid request body", "Error", "channel name should not be empty").Once()
 				api.On("HasPermissionTo", "mockUserID", model.PermissionManageSystem).Return(true).Once()
+				api.On("LogError", "Invalid request body", "Error", "invalid preference").Once()
 			},
 			RequestBody: `{
 				"user_id": "mockUserID",
-				"callback_id": "",
 				"channel_id": "mockChannelID",
 				"submission": {
-					  "preference": "Enabled"
+					  "preference": "Dynamic"
 				}
 			}`,
 			ExpectedStatusCode: http.StatusBadRequest,
-			ExpectedResult:     "channel name should not be empty\n",
-		},
-		{
-			Name: "HandleChannelPreference: unable to set preference",
-			SetupAPI: func(api *plugintest.API) {
-				api.On("LogError", "Error setting channel preference", "Error", "unable to set preference").Once()
-				api.On("HasPermissionTo", "mockUserID", model.PermissionManageSystem).Return(true).Once()
-				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
-				api.On("KVSet", zoomChannelSettings, mock.Anything).Return(&model.AppError{
-					Message: "unable to set preference",
-				}).Once()
-			},
-			RequestBody: `{
-				"user_id": "mockUserID",
-				"callback_id": "mockCallbackID",
-				"channel_id": "mockChannelID",
-				"submission": {
-					  "preference": "Enabled"
-				}
-			}`,
-			ExpectedStatusCode: http.StatusInternalServerError,
-			ExpectedResult:     "unable to set preference\n",
+			ExpectedResult:     "invalid preference\n",
 		},
 		{
 			Name: "HandleChannelPreference: success",
@@ -312,10 +290,9 @@ func TestHandleChannelPreference(t *testing.T) {
 			},
 			RequestBody: `{
 				"user_id": "mockUserID",
-				"callback_id": "mockCallbackID",
 				"channel_id": "mockChannelID",
 				"submission": {
-					  "preference": "Enabled"
+					  "preference": "enable"
 				}
 			}`,
 			ExpectedStatusCode: http.StatusOK,
