@@ -15,11 +15,12 @@ const (
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 	RecentlyCreated              = "RECENTLY_CREATED"
 
-	EventTypeMeetingStarted           EventType = "meeting.started"
-	EventTypeMeetingEnded             EventType = "meeting.ended"
-	EventTypeValidateWebhook          EventType = "endpoint.url_validation"
-	EventTypeParticipantJoined        EventType = "meeting.participant_joined"
-	EventTypeParticipantJoinedWaiting EventType = "meeting.participant_jbh_waiting"
+	EventTypeMeetingStarted              EventType = "meeting.started"
+	EventTypeMeetingEnded                EventType = "meeting.ended"
+	EventTypeValidateWebhook             EventType = "endpoint.url_validation"
+	EventTypeParticipantJoined           EventType = "meeting.participant_joined"
+	EventTypeParticipantJoinedWaiting    EventType = "meeting.participant_jbh_waiting"
+	EventTypeParticipantJoinedBeforeHost EventType = "meeting.participant_jbh_joined"
 )
 
 type MeetingWebhookObject struct {

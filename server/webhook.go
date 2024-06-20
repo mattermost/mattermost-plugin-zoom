@@ -61,8 +61,8 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		p.handleMeetingEnded(w, r, b)
 	case zoom.EventTypeValidateWebhook:
 		p.handleValidateZoomWebhook(w, r, b)
-	case zoom.EventTypeParticipantJoined, zoom.EventTypeParticipantJoinedWaiting:
-		p.handleParticipantJoined(w, r, b)
+	case zoom.EventTypeParticipantJoined, zoom.EventTypeParticipantJoinedWaiting, zoom.EventTypeParticipantJoinedBeforeHost:
+		p.handleParticipantJoined(w, b)
 	default:
 		w.WriteHeader(http.StatusOK)
 	}
@@ -136,7 +136,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	}
 }
 
-func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, r *http.Request, body []byte) {
+func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, body []byte) {
 	var webhook zoom.MeetingWebhook
 	if err := json.Unmarshal(body, &webhook); err != nil {
 		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
