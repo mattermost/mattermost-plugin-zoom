@@ -182,14 +182,14 @@ export default class PostTypeZoom extends React.PureComponent {
             subtitle = 'What do you want to do?';
             content = (
                 <div>
-                    <a
+                    <button
                         className='btn btn-lg btn-primary'
                         style={style.button}
                         rel='noopener noreferrer'
                         onClick={() => this.props.actions.startMeeting(post.channel_id, post.root_id, true, props.meeting_topic)}
                     >
                         {'CREATE NEW MEETING'}
-                    </a>
+                    </button>
                     <a
                         className='btn btn-lg btn-primary'
                         style={style.button}
