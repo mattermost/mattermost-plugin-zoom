@@ -18,7 +18,7 @@ const (
 	oAuthHelpText = `* |/zoom connect| - Connect to Zoom
 * |/zoom disconnect| - Disconnect from Zoom`
 	settingHelpText               = `* |/zoom settings| - Update your preferences`
-	dmNotificationSettingHelpText = `* |/zoom notification_preference| - Update your preferences to get a DM notification when a user has joined the meeting before you(i.e. host)`
+	dmNotificationSettingHelpText = `* |/zoom notification_preference| - Update your preferences to get a DM notification when you have hosted a scheduled meeting, and a user has joined the meeting before you've joined`
 	alreadyConnectedText          = "Already connected"
 	zoomPreferenceCategory        = "plugin:zoom"
 	zoomPMISettingName            = "use-pmi"
@@ -306,7 +306,7 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting with a topic (optional)")
 	zoom.AddCommand(start)
 
-	dmNotification := model.NewAutocompleteData(dmNotificationPreference, "", "Enable to get a DM notfication whenever a user joins the meeting before you (i.e. host).")
+	dmNotification := model.NewAutocompleteData(dmNotificationPreference, "", "Enable to get a DM notification whenever a user joins your own hosted meeting before you join")
 	zoom.AddCommand(dmNotification)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled

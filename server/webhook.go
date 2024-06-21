@@ -147,7 +147,6 @@ func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, body []byte) {
 	meetingID := webhook.Payload.Object.ID
 	postID, appErr := p.fetchMeetingPostID(meetingID)
 	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
 		return
 	}
 
@@ -168,7 +167,7 @@ func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, body []byte) {
 		return
 	}
 
-	waitingCount, ok := post.Props["meeting_waiting_count"].(float64)
+	waitingCount, ok := post.Props["meeting_waiting_count"].(int64)
 	if !ok {
 		waitingCount = 0
 	}
@@ -202,8 +201,6 @@ func (p *Plugin) handleParticipantJoined(w http.ResponseWriter, body []byte) {
 			})
 			if appErr != nil {
 				p.API.LogWarn("Error occurred while sending DM to meeting host", "err", appErr)
-				http.Error(w, appErr.Error(), appErr.StatusCode)
-				return
 			}
 		}
 	}
