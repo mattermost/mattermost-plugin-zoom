@@ -69,22 +69,21 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body []byte) {
 	var webhook zoom.MeetingWebhook
 	if err := json.Unmarshal(body, &webhook); err != nil {
-		p.API.LogError("Error unmarshaling meeting webhook", "err", err.Error())
+		p.client.Log.Error("Error unmarshaling meeting webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	meetingPostID := webhook.Payload.Object.ID
-	postID, appErr := p.fetchMeetingPostID(meetingPostID)
-	if appErr != nil {
-		http.Error(w, appErr.Error(), appErr.StatusCode)
+	postID, err := p.fetchMeetingPostID(meetingPostID)
+	if err != nil {
 		return
 	}
 
-	post, appErr := p.API.GetPost(postID)
-	if appErr != nil {
-		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
-		http.Error(w, appErr.Error(), appErr.StatusCode)
+	post, err := p.client.Post.GetPost(postID)
+	if err != nil {
+		p.client.Log.Warn("Could not get meeting post by id", "err", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -116,21 +115,20 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
 	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
-	_, appErr = p.API.UpdatePost(post)
-	if appErr != nil {
-		p.API.LogWarn("Could not update the post", "err", appErr)
-		http.Error(w, appErr.Error(), appErr.StatusCode)
+	if err = p.client.Post.UpdatePost(post); err != nil {
+		p.client.Log.Warn("Could not update the post", "post_id", postID, "err", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if appErr = p.deleteMeetingPostID(meetingPostID); appErr != nil {
-		p.API.LogWarn("failed to delete db entry", "error", appErr.Error())
+	if err = p.deleteMeetingPostID(meetingPostID); err != nil {
+		p.client.Log.Warn("failed to delete db entry", "err", err.Error())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(post); err != nil {
-		p.API.LogWarn("failed to write response", "error", err.Error())
+		p.client.Log.Warn("failed to write response", "error", err.Error())
 	}
 }
 
