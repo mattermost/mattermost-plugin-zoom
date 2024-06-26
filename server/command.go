@@ -17,19 +17,21 @@ const (
 	helpText      = `* |/zoom start| - Start a zoom meeting`
 	oAuthHelpText = `* |/zoom connect| - Connect to Zoom
 * |/zoom disconnect| - Disconnect from Zoom`
-	settingHelpText        = `* |/zoom settings| - Update your preferences`
-	alreadyConnectedText   = "Already connected"
-	zoomPreferenceCategory = "plugin:zoom"
-	zoomPMISettingName     = "use-pmi"
-	zoomPMISettingValueAsk = "ask"
+	settingHelpText               = `* |/zoom settings| - Update your preferences`
+	dmNotificationSettingHelpText = `* |/zoom notification_preference| - Update your preferences to get a DM notification when you have hosted a scheduled meeting, and a user has joined the meeting before you've joined`
+	alreadyConnectedText          = "Already connected"
+	zoomPreferenceCategory        = "plugin:zoom"
+	zoomPMISettingName            = "use-pmi"
+	zoomPMISettingValueAsk        = "ask"
 )
 
 const (
-	actionConnect    = "connect"
-	actionStart      = "start"
-	actionDisconnect = "disconnect"
-	actionHelp       = "help"
-	settings         = "settings"
+	actionConnect            = "connect"
+	actionStart              = "start"
+	actionDisconnect         = "disconnect"
+	actionHelp               = "help"
+	settings                 = "settings"
+	dmNotificationPreference = "notification_preference"
 )
 
 func (p *Plugin) getCommand() (*model.Command, error) {
@@ -104,6 +106,8 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 		return p.runHelpCommand(user)
 	case settings:
 		return p.runSettingCommand(args, strings.Fields(args.Command)[2:], user)
+	case dmNotificationPreference:
+		return p.runDMPreferenceCommand(args)
 	default:
 		return fmt.Sprintf("Unknown action %v", action), nil
 	}
@@ -252,7 +256,7 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 
 // runHelpCommand runs command to display help text.
 func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
-	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText, "|", "`")
+	text := starterText + strings.ReplaceAll(helpText+"\n"+settingHelpText+"\n"+dmNotificationSettingHelpText, "|", "`")
 	if p.canConnect(user) {
 		text += "\n" + strings.ReplaceAll(oAuthHelpText, "|", "`")
 	}
@@ -268,6 +272,14 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 		return "", nil
 	}
 	return fmt.Sprintf("Unknown Action %v", ""), nil
+}
+
+func (p *Plugin) runDMPreferenceCommand(args *model.CommandArgs) (string, error) {
+	if err := p.sendUserDMNotificationForm(args.UserId, args.ChannelId, args.RootId); err != nil {
+		return "", err
+	}
+
+	return "", nil
 }
 
 func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
@@ -293,6 +305,9 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
 	start := model.NewAutocompleteData("start", "[meeting topic]", "Starts a Zoom meeting with a topic (optional)")
 	zoom.AddCommand(start)
+
+	dmNotification := model.NewAutocompleteData(dmNotificationPreference, "", "Enable to get a DM notification whenever a user joins your own hosted meeting before you join")
+	zoom.AddCommand(dmNotification)
 
 	// no point in showing the 'disconnect' option if OAuth is not enabled
 	if canConnect {
