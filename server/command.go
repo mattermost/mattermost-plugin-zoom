@@ -27,13 +27,13 @@ const (
 )
 
 const (
-	actionConnect         = "connect"
-	actionStart           = "start"
-	actionDisconnect      = "disconnect"
-	actionHelp            = "help"
-	settings              = "settings"
-	actionChannelSettings = "channel-settings"
-	channelSettingsAction = "list"
+	actionConnect             = "connect"
+	actionStart               = "start"
+	actionDisconnect          = "disconnect"
+	actionHelp                = "help"
+	settings                  = "settings"
+	actionChannelSettings     = "channel-settings"
+	channelSettingsActionList = "list"
 
 	actionUnkown = "Unknown Action"
 )
@@ -136,7 +136,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 // runStartCommand runs command to start a Zoom meeting.
 func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topic string) (string, error) {
-	restrict, _, err := p.isChannelRestrictedForMeetings(args.ChannelId)
+	restrict, err := p.isChannelRestrictedForMeetings(args.ChannelId)
 	if err != nil {
 		p.client.Log.Error("Unable to check channel preference", "ChannelID", args.ChannelId, "Error", err.Error())
 		return "Error occurred while starting meeting", nil
@@ -187,14 +187,14 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 			if createMeetingErr != nil {
 				return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
 		}
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 		if createMeetingErr != nil {
 			return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 		}
@@ -297,7 +297,7 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
 		return p.runEditChannelSettingsCommand(args, user)
-	} else if params[0] == channelSettingsAction {
+	} else if params[0] == channelSettingsActionList {
 		return p.runChannelSettingsListCommand(args)
 	}
 

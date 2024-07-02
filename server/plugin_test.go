@@ -342,7 +342,7 @@ func TestHandleChannelPreference(t *testing.T) {
 	}
 }
 
-func TestCheckChannelPreference(t *testing.T) {
+func TestIsChannelRestrictedForMeetings(t *testing.T) {
 	for _, test := range []struct {
 		Name               string
 		SetupAPI           func(*plugintest.API)
@@ -351,18 +351,17 @@ func TestCheckChannelPreference(t *testing.T) {
 		ExpectedError      string
 	}{
 		{
-			Name: "CheckChannelPreference: unable to get channel",
+			Name: "IsChannelRestrictedForMeetings: unable to get channel",
 			SetupAPI: func(api *plugintest.API) {
 				api.On("GetChannel", "mockChannelID").Return(nil, &model.AppError{
 					Message: "unable to get channel",
 				}).Once()
 			},
 			ExpectedPreference: false,
-			ExpectedStatusCode: http.StatusInternalServerError,
 			ExpectedError:      "unable to get channel",
 		},
 		{
-			Name: "CheckChannelPreference: unable to get preference",
+			Name: "IsChannelRestrictedForMeetings: unable to get preference",
 			SetupAPI: func(api *plugintest.API) {
 				api.On("GetChannel", "mockChannelID").Return(&model.Channel{
 					Id:   "mockChannelID",
@@ -373,11 +372,10 @@ func TestCheckChannelPreference(t *testing.T) {
 				}).Once()
 			},
 			ExpectedPreference: false,
-			ExpectedStatusCode: http.StatusInternalServerError,
 			ExpectedError:      "unable to get preference",
 		},
 		{
-			Name: "CheckChannelPreference: preference not set and channel is public",
+			Name: "IsChannelRestrictedForMeetings: preference not set and channel is public",
 			SetupAPI: func(api *plugintest.API) {
 				api.On("GetChannel", "mockChannelID").Return(&model.Channel{
 					Id:   "mockChannelID",
@@ -386,10 +384,9 @@ func TestCheckChannelPreference(t *testing.T) {
 				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
 			},
 			ExpectedPreference: true,
-			ExpectedStatusCode: http.StatusOK,
 		},
 		{
-			Name: "CheckChannelPreference: preference not set and channel is private",
+			Name: "IsChannelRestrictedForMeetings: preference not set and channel is private",
 			SetupAPI: func(api *plugintest.API) {
 				api.On("GetChannel", "mockChannelID").Return(&model.Channel{
 					Id:   "mockChannelID",
@@ -398,7 +395,6 @@ func TestCheckChannelPreference(t *testing.T) {
 				api.On("KVGet", zoomChannelSettings).Return([]byte{}, nil).Once()
 			},
 			ExpectedPreference: false,
-			ExpectedStatusCode: http.StatusOK,
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
@@ -413,9 +409,8 @@ func TestCheckChannelPreference(t *testing.T) {
 
 			test.SetupAPI(api)
 
-			preference, statusCode, err := p.isChannelRestrictedForMeetings("mockChannelID")
+			preference, err := p.isChannelRestrictedForMeetings("mockChannelID")
 			assert.Equal(test.ExpectedPreference, preference)
-			assert.Equal(test.ExpectedStatusCode, statusCode)
 			if err != nil {
 				assert.Equal(test.ExpectedError, err.Error())
 			} else {

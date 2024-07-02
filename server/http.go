@@ -187,7 +187,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, defaultMeetingTopic)
 			if createMeetingErr != nil {
 				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 				return
@@ -195,7 +195,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
 		}
 	} else {
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, defaultMeetingTopic)
 		if createMeetingErr != nil {
 			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 			return
@@ -236,7 +236,7 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		p.API.LogWarn("failed to get the bot's DM channel", "Error", err.Error())
 		return
 	}
-	slackAttachment := p.slackAttachmentToUpdatePMI(action, channel.Id)
+	slackAttachment := p.slackAttachmentToUpdatePMI(action)
 	slackAttachment.Actions = nil // Remove action buttons once responded
 
 	val := ""
@@ -556,10 +556,10 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restrict, statusCode, err := p.isChannelRestrictedForMeetings(req.ChannelID)
+	restrict, err := p.isChannelRestrictedForMeetings(req.ChannelID)
 	if err != nil {
 		p.API.LogError("Unable to check channel preference", "ChannelID", req.ChannelID, "Error", err.Error())
-		http.Error(w, err.Error(), statusCode)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -640,7 +640,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 			if createMeetingErr != nil {
 				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 				http.Error(w, createMeetingErr.Error(), http.StatusInternalServerError)
@@ -649,7 +649,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 			p.sendEnableZoomPMISettingMessage(userID, req.ChannelID, req.RootID)
 		}
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 		if createMeetingErr != nil {
 			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 			http.Error(w, createMeetingErr.Error(), http.StatusInternalServerError)
@@ -715,7 +715,7 @@ func (p *Plugin) handleChannelPreference(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, channelID, topic string) (int, error) {
+func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, topic string) (int, error) {
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
 		p.API.LogWarn("Error getting the client", "Error", err.Error())
@@ -930,7 +930,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 		currentValue = no
 	}
 
-	slackAttachment := p.slackAttachmentToUpdatePMI(currentValue, channelID)
+	slackAttachment := p.slackAttachmentToUpdatePMI(currentValue)
 	post := &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
@@ -942,7 +942,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	return nil
 }
 
-func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
+func (p *Plugin) slackAttachmentToUpdatePMI(currentValue string) *model.SlackAttachment {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
@@ -992,15 +992,15 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	return &slackAttachment
 }
 
-func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, int, error) {
+func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, error) {
 	channel, appErr := p.API.GetChannel(channelID)
 	if appErr != nil {
-		return false, http.StatusInternalServerError, errors.New(appErr.Message)
+		return false, errors.New(appErr.Message)
 	}
 
 	zoomChannelSettingsMap, err := p.listZoomChannelSettings()
 	if err != nil {
-		return false, http.StatusInternalServerError, err
+		return false, err
 	}
 
 	val, exist := zoomChannelSettingsMap[channelID]
@@ -1019,7 +1019,7 @@ func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, int, er
 		preference = p.configuration.RestrictMeetingCreation
 	}
 
-	return preference, http.StatusOK, nil
+	return preference, nil
 }
 
 func (mv ZoomChannelSettingsMapValue) IsValid() error {
