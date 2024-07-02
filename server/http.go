@@ -358,18 +358,49 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if justConnect {
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
-		meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
+		var meetingID int
+		var createMeetingErr error
+		userPMISettingPref, err := p.getPMISettingData(user.Id)
 		if err != nil {
-			p.API.LogWarn("Error creating the meeting", "error", err.Error())
+			p.API.LogWarn("Error fetching PMI setting data", "Error", err.Error())
 			return
 		}
 
-		meetingID := meeting.ID
-		if err = p.postMeeting(user, meetingID, channelID, "", ""); err != nil {
-			p.API.LogWarn("Failed to post the meeting", "error", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		createMeetingWithPMI := false
+		createMeetingWithPref := false
+		switch userPMISettingPref {
+		case "", zoomPMISettingValueAsk:
+			p.askPreferenceForMeeting(user.Id, channelID, "")
+			createMeetingWithPref = true
+		case trueString:
+			createMeetingWithPMI = true
+			meetingID = zoomUser.Pmi
+
+			if meetingID <= 0 {
+				meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+				if createMeetingErr != nil {
+					p.API.LogWarn("Error creating the meeting", "Error", createMeetingErr.Error())
+					return
+				}
+				p.sendEnableZoomPMISettingMessage(user.Id, channelID, "")
+			}
+		default:
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+			if createMeetingErr != nil {
+				p.API.LogWarn("Error creating the meeting", "Error", createMeetingErr.Error())
+				return
+			}
 		}
+
+		if !createMeetingWithPref {
+			if postMeetingErr := p.postMeeting(user, meetingID, channelID, "", defaultMeetingTopic); postMeetingErr != nil {
+				p.API.LogWarn("Error posting the meeting", "Error", postMeetingErr.Error())
+				return
+			}
+		}
+
+		p.trackMeetingStart(userID, telemetryStartSourceCommand)
+		p.trackMeetingType(userID, createMeetingWithPMI)
 	}
 
 	html := `
