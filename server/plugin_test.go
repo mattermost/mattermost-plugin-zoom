@@ -292,7 +292,7 @@ func TestHandleChannelPreference(t *testing.T) {
 				"user_id": "mockUserID",
 				"channel_id": "mockChannelID",
 				"submission": {
-					  "preference": "enable"
+					  "preference": "restrict"
 				}
 			}`,
 			ExpectedStatusCode: http.StatusOK,

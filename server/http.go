@@ -43,8 +43,8 @@ const (
 	useAUniqueMeetingID      = "USE A UNIQUE MEETING ID"
 	MattermostUserIDHeader   = "Mattermost-User-ID"
 
-	EnablePreference                    = "Enable"
-	DisablePreference                   = "Disable"
+	RestrictPreference                  = "Restrict"
+	AllowPreference                     = "Allow"
 	DefaultChannelRestrictionPreference = "Default"
 
 	zoomSettingsCommandMessage   = "You can set a default value for this in your user settings via `/zoom settings` command."
@@ -53,8 +53,8 @@ const (
 )
 
 var ZoomChannelPreferences = map[string]string{
-	EnablePreference:                    "enable",
-	DisablePreference:                   "disable",
+	RestrictPreference:                  "restrict",
+	AllowPreference:                     "allow",
 	DefaultChannelRestrictionPreference: "default",
 }
 
@@ -1012,7 +1012,7 @@ func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, error) 
 	if exist {
 		if val.Preference == ZoomChannelPreferences[DefaultChannelRestrictionPreference] {
 			preference = p.configuration.RestrictMeetingCreation
-		} else if val.Preference == ZoomChannelPreferences[EnablePreference] {
+		} else if val.Preference == ZoomChannelPreferences[RestrictPreference] {
 			preference = true
 		}
 	} else if channel.Type == model.ChannelTypeOpen {

@@ -329,17 +329,17 @@ func (p *Plugin) runEditChannelSettingsCommand(args *model.CommandArgs, user *mo
 			Elements: []model.DialogElement{
 				{
 					DisplayName: fmt.Sprintf("Select your channel preference for ~%s", channel.DisplayName),
-					HelpText:    "Enable to restrict creating meetings in this channel.",
+					HelpText:    "Disable to restrict creating meetings in this channel.",
 					Name:        "preference",
 					Type:        "radio",
 					Options: []*model.PostActionOptions{
 						{
 							Text:  "Enable Zoom Meetings in this channel",
-							Value: "enable",
+							Value: "allow",
 						},
 						{
 							Text:  "Disable Zoom Meetings in this channel",
-							Value: "disable",
+							Value: "restrict",
 						},
 						{
 							Text:  fmt.Sprintf("Default to plugin-wide settings (%t)", p.getConfiguration().RestrictMeetingCreation),
