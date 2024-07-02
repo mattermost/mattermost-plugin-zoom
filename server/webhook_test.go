@@ -17,6 +17,7 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
+	"github.com/mattermost/mattermost/server/public/pluginapi"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -67,6 +68,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
 	api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
 	p.SetAPI(api)
+	p.client = pluginapi.NewClient(p.API, p.Driver)
 
 	requestBody := `{"payload":{"object": {"id": "123", "uuid": "123"}},"event":"meeting.ended"}`
 
