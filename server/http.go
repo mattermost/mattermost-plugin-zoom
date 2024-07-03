@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -357,7 +358,9 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if justConnect {
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
-		p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser, nil)
+		// Ignoring the returned error here as we are already logging it in the function.
+		// Returning error might not be true as the main logic for this API to connect users.
+		_, _ = p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser, nil)
 	}
 
 	html := `
@@ -865,7 +868,7 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	return &slackAttachment
 }
 
-func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User, w http.ResponseWriter) (int, error) {
+func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User, w io.Writer) (int, error) {
 	var meetingID int
 	var createMeetingErr error
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
