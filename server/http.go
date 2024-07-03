@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -360,7 +359,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	} else {
 		// Ignoring the returned error here as we are already logging it in the function.
 		// Returning error might not be true here as the main logic for this API is to connect users.
-		_, _ = p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser, nil)
+		_, _ = p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser)
 	}
 
 	html := `
@@ -572,20 +571,15 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		topic = defaultMeetingTopic
 	}
 
-	meetingID, err := p.handleMeetingCreation(req.ChannelID, req.RootID, topic, user, zoomUser, w)
+	meetingURL, err := p.handleMeetingCreation(req.ChannelID, req.RootID, topic, user, zoomUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if meetingID == 0 {
-		return
 	}
 
 	if r.URL.Query().Get("force") != "" {
 		p.trackMeetingForced(userID)
 	}
 
-	meetingURL := p.getMeetingURL(user, meetingID)
 	if _, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
 		p.API.LogWarn("failed to write the response", "Error", err.Error())
 	}
@@ -868,27 +862,20 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	return &slackAttachment
 }
 
-func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User, w io.Writer) (int, error) {
+func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User) (string, error) {
 	var meetingID int
 	var createMeetingErr error
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
 		p.API.LogWarn("Error fetching PMI setting data", "Error", err.Error())
-		return 0, err
+		return "", err
 	}
 
 	createMeetingWithPMI := false
-	createMeetingWithPref := false
 	switch userPMISettingPref {
 	case "", zoomPMISettingValueAsk:
 		p.askPreferenceForMeeting(user.Id, channelID, rootID)
-		createMeetingWithPref = true
-		if w != nil {
-			if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
-				p.API.LogWarn("failed to write the response", "Error", err.Error())
-			}
-			return 0, nil
-		}
+		return "", nil
 	case trueString:
 		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
@@ -897,7 +884,7 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
 			if createMeetingErr != nil {
 				p.API.LogWarn("Error creating the meeting", "Error", createMeetingErr.Error())
-				return 0, createMeetingErr
+				return "", createMeetingErr
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, channelID, rootID)
 		}
@@ -905,19 +892,18 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
 		if createMeetingErr != nil {
 			p.API.LogWarn("Error creating the meeting", "Error", createMeetingErr.Error())
-			return 0, createMeetingErr
+			return "", createMeetingErr
 		}
 	}
 
-	if !createMeetingWithPref {
-		if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, topic); postMeetingErr != nil {
-			p.API.LogWarn("Error posting the meeting", "Error", postMeetingErr.Error())
-			return 0, createMeetingErr
-		}
-
-		p.trackMeetingStart(user.Id, telemetryStartSourceCommand)
-		p.trackMeetingType(user.Id, createMeetingWithPMI)
+	if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, topic); postMeetingErr != nil {
+		p.API.LogWarn("Error posting the meeting", "Error", postMeetingErr.Error())
+		return "", createMeetingErr
 	}
 
-	return meetingID, nil
+	p.trackMeetingStart(user.Id, telemetryStartSourceCommand)
+	p.trackMeetingType(user.Id, createMeetingWithPMI)
+
+	meetingURL := p.getMeetingURL(user, meetingID)
+	return meetingURL, nil
 }
