@@ -359,7 +359,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
 		// Ignoring the returned error here as we are already logging it in the function.
-		// Returning error might not be true as the main logic for this API to connect users.
+		// Returning error might not be true here as the main logic for this API is to connect users.
 		_, _ = p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser, nil)
 	}
 
