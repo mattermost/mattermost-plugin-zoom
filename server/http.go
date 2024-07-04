@@ -357,9 +357,10 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if justConnect {
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
-		// Ignoring the returned error here as we are already logging it in the function.
 		// Returning error might not be true here as the main logic for this API is to connect users.
-		_, _ = p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser)
+		if _, err := p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser); err != nil {
+			p.API.LogWarn("Error in creating meeting", "Error", err.Error())
+		}
 	}
 
 	html := `
@@ -573,6 +574,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	meetingURL, err := p.handleMeetingCreation(req.ChannelID, req.RootID, topic, user, zoomUser)
 	if err != nil {
+		p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
@@ -867,7 +869,6 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 	var createMeetingErr error
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
-		p.API.LogWarn("Error fetching PMI setting data", "Error", err.Error())
 		return "", err
 	}
 
@@ -883,7 +884,6 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 		if meetingID <= 0 {
 			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
 			if createMeetingErr != nil {
-				p.API.LogWarn("Error creating the meeting", "Error", createMeetingErr.Error())
 				return "", createMeetingErr
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, channelID, rootID)
@@ -891,13 +891,11 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 	default:
 		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
 		if createMeetingErr != nil {
-			p.API.LogWarn("Error creating the meeting", "Error", createMeetingErr.Error())
 			return "", createMeetingErr
 		}
 	}
 
 	if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, topic); postMeetingErr != nil {
-		p.API.LogWarn("Error posting the meeting", "Error", postMeetingErr.Error())
 		return "", createMeetingErr
 	}
 
