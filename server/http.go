@@ -357,7 +357,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	if justConnect {
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
-		// Returning error might not be true here as the main logic for this API is to connect users.
+		// Returning error might not be appropriate here as the main logic for this API is to connect users.
 		if _, err := p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser); err != nil {
 			p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		}
@@ -869,7 +869,7 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 	var createMeetingErr error
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "Error fetching PMI setting data")
 	}
 
 	createMeetingWithPMI := false
