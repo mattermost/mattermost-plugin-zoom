@@ -208,12 +208,7 @@ func (p *Plugin) removeSuperUserToken() error {
 }
 
 func (p *Plugin) storeUserPreference(userID, value string) error {
-	encoded, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-
-	if _, err := p.client.KV.Set(fmt.Sprintf(zoomUserPreferenceKey, userID), encoded); err != nil {
+	if _, err := p.client.KV.Set(fmt.Sprintf(zoomUserPreferenceKey, userID), value); err != nil {
 		return err
 	}
 
@@ -221,12 +216,12 @@ func (p *Plugin) storeUserPreference(userID, value string) error {
 }
 
 func (p *Plugin) getUserPreference(userID string) (string, error) {
-	var encoded []byte
-	if err := p.client.KV.Get(fmt.Sprintf(zoomUserPreferenceKey, userID), &encoded); err != nil {
+	var value string
+	if err := p.client.KV.Get(fmt.Sprintf(zoomUserPreferenceKey, userID), &value); err != nil {
 		return "", err
 	}
 
-	if len(encoded) == 0 {
+	if value == "" {
 		/*
 			If preference is not stored in kv store, check in the preferences table for user preference
 		*/
@@ -241,18 +236,18 @@ func (p *Plugin) getUserPreference(userID string) (string, error) {
 					If found return the value, and remove user preference from preferences table and store in kv store
 				*/
 				if err := p.storeUserPreference(userID, preference.Value); err != nil {
-					p.client.Log.Error("Unable to store user prefernce", "UserID", userID, "Error", err.Error())
+					p.client.Log.Error("Unable to store user preference", "UserID", userID, "Error", err.Error())
 					return preference.Value, nil
 				}
 
-				// Delete the prefernce from preferences table as we have already stored it in kv store
+				// Delete the preference from preferences table as we have already stored it in kv store
 				if err := p.API.DeletePreferencesForUser(userID, []model.Preference{{
 					UserId:   userID,
 					Category: zoomPreferenceCategory,
 					Name:     zoomPMISettingName,
 					Value:    preference.Value,
 				}}); err != nil {
-					p.client.Log.Error("Unable to delete user prefernce from db", "UserID", userID, "Error", err.Error())
+					p.client.Log.Error("Unable to delete user preference from db", "UserID", userID, "Error", err.Error())
 				}
 
 				return preference.Value, nil
@@ -262,10 +257,5 @@ func (p *Plugin) getUserPreference(userID string) (string, error) {
 		return "", nil
 	}
 
-	var val string
-	if err := json.Unmarshal(encoded, &val); err != nil {
-		return "", err
-	}
-
-	return val, nil
+	return value, nil
 }
