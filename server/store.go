@@ -208,7 +208,7 @@ func (p *Plugin) removeSuperUserToken() error {
 }
 
 func (p *Plugin) storeUserPreference(userID, value string) error {
-	if _, err := p.client.KV.Set(fmt.Sprintf(zoomUserPreferenceKey, userID), value); err != nil {
+	if _, err := p.client.KV.Set(fmt.Sprintf(zoomUserPreferenceKey, userID), &value); err != nil {
 		return err
 	}
 
