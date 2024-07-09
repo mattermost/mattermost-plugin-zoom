@@ -213,7 +213,7 @@ func (p *Plugin) storeUserPreference(userID, value string) error {
 		return err
 	}
 
-	if err := p.API.KVSet(fmt.Sprintf(zoomUserPreferenceKey, userID), encoded); err != nil {
+	if _, err := p.client.KV.Set(fmt.Sprintf(zoomUserPreferenceKey, userID), encoded); err != nil {
 		return err
 	}
 
@@ -221,8 +221,8 @@ func (p *Plugin) storeUserPreference(userID, value string) error {
 }
 
 func (p *Plugin) getUserPreference(userID string) (string, error) {
-	encoded, err := p.API.KVGet(fmt.Sprintf(zoomUserPreferenceKey, userID))
-	if err != nil {
+	var encoded []byte
+	if err := p.client.KV.Get(fmt.Sprintf(zoomUserPreferenceKey, userID), &encoded); err != nil {
 		return "", err
 	}
 
@@ -241,7 +241,7 @@ func (p *Plugin) getUserPreference(userID string) (string, error) {
 					If found return the value, and remove user preference from preferences table and store in kv store
 				*/
 				if err := p.storeUserPreference(userID, preference.Value); err != nil {
-					p.API.LogError("Unable to store user prefernce", "UserID", userID, "Error", err.Error())
+					p.client.Log.Error("Unable to store user prefernce", "UserID", userID, "Error", err.Error())
 					return preference.Value, nil
 				}
 
@@ -252,7 +252,7 @@ func (p *Plugin) getUserPreference(userID string) (string, error) {
 					Name:     zoomPMISettingName,
 					Value:    preference.Value,
 				}}); err != nil {
-					p.API.LogError("Unable to delete user prefernce from db", "UserID", userID, "Error", err.Error())
+					p.client.Log.Error("Unable to delete user prefernce from db", "UserID", userID, "Error", err.Error())
 				}
 
 				return preference.Value, nil
