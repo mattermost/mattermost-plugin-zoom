@@ -869,7 +869,7 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 	var createMeetingErr error
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
-		return "", errors.Wrap(err, "Error fetching PMI setting data")
+		return "", errors.Wrap(err, "error fetching PMI setting data")
 	}
 
 	createMeetingWithPMI := false
