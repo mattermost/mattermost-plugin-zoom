@@ -743,6 +743,11 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 			continue
 		}
 
+		meetingStatus := getString("meeting_status", post.Props)
+		if meetingStatus == zoom.WebhookStatusEnded {
+			continue
+		}
+
 		creator := getString("meeting_creator_username", post.Props)
 
 		return true, meetingLink, creator, meetingProvider, nil
