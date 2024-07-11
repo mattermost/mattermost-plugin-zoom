@@ -354,21 +354,12 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 
 	p.trackConnect(userID)
-
 	if justConnect {
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
-		meeting, err := client.CreateMeeting(zoomUser, defaultMeetingTopic)
-		if err != nil {
-			p.API.LogWarn("Error creating the meeting", "error", err.Error())
-			return
-		}
-
-		meetingID := meeting.ID
-		if err = p.postMeeting(user, meetingID, channelID, "", ""); err != nil {
-			p.API.LogWarn("Failed to post the meeting", "error", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		// Returning error might not be appropriate here as the main logic for this API is to connect users.
+		if _, err := p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser); err != nil {
+			p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		}
 	}
 
@@ -581,59 +572,16 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		topic = defaultMeetingTopic
 	}
 
-	var meetingID int
-	var createMeetingErr error
-	userPMISettingPref, err := p.getPMISettingData(user.Id)
+	meetingURL, err := p.handleMeetingCreation(req.ChannelID, req.RootID, topic, user, zoomUser)
 	if err != nil {
+		p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		p.askPreferenceForMeeting(user.Id, req.ChannelID, req.RootID)
-		return
 	}
-
-	createMeetingWithPMI := false
-	switch userPMISettingPref {
-	case "", zoomPMISettingValueAsk:
-		p.askPreferenceForMeeting(user.Id, req.ChannelID, req.RootID)
-
-		if _, err = w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
-			p.API.LogWarn("failed to write the response", "Error", err.Error())
-		}
-		return
-	case trueString:
-		createMeetingWithPMI = true
-		meetingID = zoomUser.Pmi
-
-		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
-			if createMeetingErr != nil {
-				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
-				http.Error(w, createMeetingErr.Error(), http.StatusInternalServerError)
-				return
-			}
-			p.sendEnableZoomPMISettingMessage(userID, req.ChannelID, req.RootID)
-		}
-	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, req.ChannelID, topic)
-		if createMeetingErr != nil {
-			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
-			http.Error(w, createMeetingErr.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	if err = p.postMeeting(user, meetingID, req.ChannelID, req.RootID, topic); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	p.trackMeetingStart(userID, telemetryStartSourceWebapp)
-	p.trackMeetingType(userID, createMeetingWithPMI)
 
 	if r.URL.Query().Get("force") != "" {
 		p.trackMeetingForced(userID)
 	}
 
-	meetingURL := p.getMeetingURL(user, meetingID)
 	if _, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
 		p.API.LogWarn("failed to write the response", "Error", err.Error())
 	}
@@ -914,4 +862,46 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	}
 
 	return &slackAttachment
+}
+
+func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User) (string, error) {
+	var meetingID int
+	var createMeetingErr error
+	userPMISettingPref, err := p.getPMISettingData(user.Id)
+	if err != nil {
+		return "", errors.Wrap(err, "error fetching PMI setting data")
+	}
+
+	createMeetingWithPMI := false
+	switch userPMISettingPref {
+	case "", zoomPMISettingValueAsk:
+		p.askPreferenceForMeeting(user.Id, channelID, rootID)
+		return "", nil
+	case trueString:
+		createMeetingWithPMI = true
+		meetingID = zoomUser.Pmi
+
+		if meetingID <= 0 {
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
+			if createMeetingErr != nil {
+				return "", createMeetingErr
+			}
+			p.sendEnableZoomPMISettingMessage(user.Id, channelID, rootID)
+		}
+	default:
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
+		if createMeetingErr != nil {
+			return "", createMeetingErr
+		}
+	}
+
+	if postMeetingErr := p.postMeeting(user, meetingID, channelID, rootID, topic); postMeetingErr != nil {
+		return "", createMeetingErr
+	}
+
+	p.trackMeetingStart(user.Id, telemetryStartSourceCommand)
+	p.trackMeetingType(user.Id, createMeetingWithPMI)
+
+	meetingURL := p.getMeetingURL(user, meetingID)
+	return meetingURL, nil
 }
