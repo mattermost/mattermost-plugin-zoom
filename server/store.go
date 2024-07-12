@@ -159,7 +159,7 @@ func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, error) {
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {
 	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
 	bytes := []byte(channelID)
-	_, err := p.client.KV.Set(key, bytes, nil)
+	_, err := p.client.KV.Set(key, bytes)
 	return err
 }
 
