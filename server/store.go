@@ -143,17 +143,17 @@ func (p *Plugin) storeMeetingPostID(meetingUUID string, postID string) *model.Ap
 
 func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, error) {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingUUID)
-	var postID string
+	var postID []byte
 	if err := p.client.KV.Get(key, &postID); err != nil {
 		p.client.Log.Debug("Could not get meeting post from KVStore", "error", err.Error())
 		return "", err
 	}
 
-	if postID == "" {
+	if string(postID) == "" {
 		return "", errors.New("stored meeting post ID not found")
 	}
 
-	return postID, nil
+	return string(postID), nil
 }
 
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {

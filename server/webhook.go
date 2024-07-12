@@ -248,14 +248,14 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 	}
 
 	meetingPostID := webhook.Payload.Object.UUID
-	postID, appErr := p.fetchMeetingPostID(meetingPostID)
-	if appErr != nil {
+	postID, err := p.fetchMeetingPostID(meetingPostID)
+	if err != nil {
 		return
 	}
 
-	post, appErr := p.API.GetPost(postID)
-	if appErr != nil {
-		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
+	post, err := p.client.Post.GetPost(postID)
+	if err != nil {
+		p.API.LogWarn("Could not get meeting post by id", "err", err)
 		return
 	}
 
@@ -288,14 +288,14 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 	}
 
 	meetingPostID := webhook.Payload.Object.UUID
-	postID, appErr := p.fetchMeetingPostID(meetingPostID)
-	if appErr != nil {
+	postID, err := p.fetchMeetingPostID(meetingPostID)
+	if err != nil {
 		return
 	}
 
-	post, appErr := p.API.GetPost(postID)
-	if appErr != nil {
-		p.API.LogWarn("Could not get meeting post by id", "err", appErr)
+	post, err := p.client.Post.GetPost(postID)
+	if err != nil {
+		p.API.LogWarn("Could not get meeting post by id", "err", err)
 		return
 	}
 
@@ -353,7 +353,7 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 			}
 		}
 		if newPost.Message != "" {
-			_, appErr = p.API.CreatePost(newPost)
+			_, appErr := p.API.CreatePost(newPost)
 			if appErr != nil {
 				p.API.LogWarn("Could not update the post", "err", appErr)
 				return
