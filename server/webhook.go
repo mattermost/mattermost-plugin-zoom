@@ -134,6 +134,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 	}
 
 	start := time.Unix(0, post.CreateAt*int64(time.Millisecond))
+	end := model.GetMillis()
 	length := int(math.Ceil(float64((model.GetMillis()-post.CreateAt)/1000) / 60))
 	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
 	topic, ok := post.Props["meeting_topic"].(string)
@@ -159,6 +160,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 
 	post.Message = "The meeting has ended."
 	post.Props["meeting_status"] = zoom.WebhookStatusEnded
+	post.Props["meeting_end_time"] = end
 	post.Props["attachments"] = []*model.SlackAttachment{&slackAttachment}
 
 	if err = p.client.Post.UpdatePost(post); err != nil {
