@@ -158,6 +158,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 	}
 
 	var meetingID int
+	var meetingUUID string
 	var createMeetingErr error
 	createMeetingWithPMI := false
 	if action == usePersonalMeetingID {
@@ -165,7 +166,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+			meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
 			if createMeetingErr != nil {
 				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 				return
@@ -173,20 +174,14 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
 		}
 	} else {
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+		meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
 		if createMeetingErr != nil {
 			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 			return
 		}
 	}
 
-	meeting, err := p.getMeeting(user, meetingID)
-	if err != nil {
-		p.API.LogWarn("failed to get the meeting", "Error", err.Error())
-		return
-	}
-
-	if postMeetingErr := p.postMeeting(user, meetingID, meeting.UUID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
 		p.API.LogWarn("failed to post the meeting", "Error", postMeetingErr.Error())
 		return
 	}
@@ -594,20 +589,20 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, channelID, topic string) (int, error) {
+func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, channelID, topic string) (int, string, error) {
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
 		p.API.LogWarn("Error getting the client", "Error", err.Error())
-		return -1, err
+		return -1, "", err
 	}
 
 	meeting, err := client.CreateMeeting(zoomUser, topic)
 	if err != nil {
 		p.API.LogWarn("Error creating the meeting", "Error", err.Error())
-		return -1, err
+		return -1, "", err
 	}
 
-	return meeting.ID, nil
+	return meeting.ID, meeting.UUID, nil
 }
 
 func (p *Plugin) getMeeting(user *model.User, meetingID int) (*zoom.Meeting, error) {
@@ -888,6 +883,7 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 
 func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User) (string, error) {
 	var meetingID int
+	var meetingUUID string
 	var createMeetingErr error
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
 	if err != nil {
@@ -904,27 +900,20 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
+			meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
 			if createMeetingErr != nil {
 				return "", createMeetingErr
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, channelID, rootID)
 		}
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
+		meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
 		if createMeetingErr != nil {
 			return "", createMeetingErr
 		}
 	}
 
-	meeting, err := p.getMeeting(user, meetingID)
-	if err != nil {
-		p.API.LogWarn("failed to get the meeting", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if postMeetingErr := p.postMeeting(user, meetingID, meeting.UUID, channelID, rootID, topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, topic); postMeetingErr != nil {
 		return "", createMeetingErr
 	}
 

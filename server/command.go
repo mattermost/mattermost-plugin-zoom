@@ -160,6 +160,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	}
 
 	var meetingID int
+	var meetingUUID string
 	var createMeetingErr error
 
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
@@ -177,25 +178,20 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+			meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
 			if createMeetingErr != nil {
 				return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
 		}
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
+		meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, args.ChannelId, topic)
 		if createMeetingErr != nil {
 			return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 		}
 	}
 
-	meeting, err := p.getMeeting(user, meetingID)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get the meeting")
-	}
-
-	if postMeetingErr := p.postMeeting(user, meetingID, meeting.UUID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
 
