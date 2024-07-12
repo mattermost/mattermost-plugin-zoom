@@ -4,7 +4,6 @@ const (
 	telemetryOauthModeOauth             = "Oauth"
 	telemetryOauthModeOauthAccountLevel = "Oauth Account Level"
 
-	telemetryStartSourceWebapp           = "webapp"
 	telemetryStartSourceCommand          = "command"
 	telemetryStartSourceSubscribeWebhook = "subscribe-webhook"
 )

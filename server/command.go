@@ -315,6 +315,14 @@ func (p *Plugin) runHelpCommand(user *model.User) (string, error) {
 }
 
 func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
+	if _, authErr := p.authenticateAndFetchZoomUser(user); authErr != nil {
+		// the user state will be needed later while connecting the user to Zoom via OAuth
+		if appErr := p.storeOAuthUserState(user.Id, args.ChannelId, false); appErr != nil {
+			p.API.LogWarn("failed to store user state")
+		}
+		return authErr.Message, authErr.Err
+	}
+
 	if len(params) == 0 {
 		if err := p.sendUserSettingForm(user.Id, args.ChannelId, args.RootId); err != nil {
 			return "", err
