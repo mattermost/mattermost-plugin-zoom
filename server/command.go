@@ -388,7 +388,8 @@ func (p *Plugin) runChannelSettingsListCommand(args *model.CommandArgs) (string,
 	} else {
 		sb.WriteString("Default: Allow meetings in public channels, private channels, and DMs/GMs\n\n")
 	}
-	sb.WriteString("| Channel ID | Channel Name | Preference |\n| :---- | :-------- | :-------- |")
+
+	listChannelHeading := true
 	for key, value := range zoomChannelSettingsMap {
 		preference := value.Preference
 		channel, err := p.client.Channel.Get(key)
@@ -398,6 +399,11 @@ func (p *Plugin) runChannelSettingsListCommand(args *model.CommandArgs) (string,
 		}
 		if value.Preference == ZoomChannelPreferences[DefaultChannelRestrictionPreference] {
 			continue
+		}
+
+		if listChannelHeading {
+			sb.WriteString("| Channel ID | Channel Name | Preference |\n| :---- | :-------- | :-------- |")
+			listChannelHeading = false
 		}
 
 		sb.WriteString(fmt.Sprintf("\n|%s|%s|%s|", key, channel.DisplayName, preference))
