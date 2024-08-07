@@ -210,3 +210,20 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 
 	return &zoomUser, nil
 }
+
+func (c *OAuthClient) OpenDialogRequest(body *model.OpenDialogRequest) error {
+	postURL := fmt.Sprintf("%s%s", c.siteURL, "/api/v4/actions/dialogs/open")
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	client := c.config.Client(context.Background(), c.token)
+	res, err := client.Post(postURL, "application/json", bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	return nil
+}

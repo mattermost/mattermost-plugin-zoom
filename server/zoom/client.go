@@ -36,6 +36,7 @@ type Client interface {
 	GetMeeting(meetingID int) (*Meeting, error)
 	GetUser(user *model.User, firstConnect bool) (*User, *AuthError)
 	CreateMeeting(user *User, topic string) (*Meeting, error)
+	OpenDialogRequest(body *model.OpenDialogRequest) error
 }
 
 type PluginAPI interface {
