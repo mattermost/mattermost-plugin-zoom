@@ -15,9 +15,15 @@ const (
 	RecordingWebhookTypeComplete = "RECORDING_MEETING_COMPLETED"
 	RecentlyCreated              = "RECENTLY_CREATED"
 
-	EventTypeMeetingStarted  EventType = "meeting.started"
-	EventTypeMeetingEnded    EventType = "meeting.ended"
-	EventTypeValidateWebhook EventType = "endpoint.url_validation"
+	EventTypeMeetingStarted      EventType = "meeting.started"
+	EventTypeMeetingEnded        EventType = "meeting.ended"
+	EventTypeTranscriptCompleted EventType = "recording.transcript_completed"
+	EventTypeRecordingCompleted  EventType = "recording.completed"
+	EventTypeValidateWebhook     EventType = "endpoint.url_validation"
+
+	RecordingTypeAudioTranscript = "audio_transcript"
+	RecordingTypeChat            = "chat_file"
+	RecordingTypeVideo           = "shared_screen_with_speaker_view"
 )
 
 type MeetingWebhookObject struct {
@@ -63,32 +69,45 @@ type Webhook struct {
 }
 
 type RecordingWebhook struct {
-	Type    string `schema:"type"`
-	Content string `schema:"content"`
+	Type          string                  `schema:"type"`
+	DownloadToken string                  `json:"download_token"`
+	Payload       RecordingWebhookPayload `schema:"content"`
 }
 
-type RecordingWebhookContent struct {
-	UUID           string    `json:"uuid"`
-	MeetingNumber  int       `json:"meeting_number"`
-	AccountID      string    `json:"account_id"`
-	HostID         string    `json:"host_id"`
-	Topic          string    `json:"topic"`
-	StartTime      time.Time `json:"start_time"`
-	Timezone       string    `json:"timezone"`
-	HostEmail      string    `json:"host_email"`
-	Duration       int       `json:"duration"`
-	TotalSize      int       `json:"total_size"`
-	RecordingCount int       `json:"recording_count"`
-	RecordingFiles []struct {
-		ID             string    `json:"id"`
-		MeetingID      string    `json:"meeting_id"`
-		RecordingStart time.Time `json:"recording_start"`
-		RecordingEnd   time.Time `json:"recording_end"`
-		FileType       string    `json:"file_type"`
-		FileSize       int       `json:"file_size"`
-		FilePath       string    `json:"file_path"`
-		Status         string    `json:"status"`
-	} `json:"recording_files"`
+type RecordingWebhookPayload struct {
+	AccountID string                 `json:"account_id"`
+	Object    RecordingWebhookObject `json:"object"`
+}
+
+type RecordingFile struct {
+	ID             string    `json:"id"`
+	MeetingID      string    `json:"meeting_id"`
+	RecordingStart time.Time `json:"recording_start"`
+	RecordingEnd   time.Time `json:"recording_end"`
+	FileType       string    `json:"file_type"`
+	FileSize       int       `json:"file_size"`
+	FilePath       string    `json:"file_path"`
+	Status         string    `json:"status"`
+	DownloadURL    string    `json:"download_url"`
+	PlayURL        string    `json:"play_url"`
+	RecordingType  string    `json:"recording_type"`
+}
+
+type RecordingWebhookObject struct {
+	UUID           string          `json:"uuid"`
+	MeetingNumber  int             `json:"meeting_number"`
+	ID             int             `json:"id"`
+	AccountID      string          `json:"account_id"`
+	HostID         string          `json:"host_id"`
+	Topic          string          `json:"topic"`
+	StartTime      time.Time       `json:"start_time"`
+	Timezone       string          `json:"timezone"`
+	HostEmail      string          `json:"host_email"`
+	Duration       int             `json:"duration"`
+	TotalSize      int             `json:"total_size"`
+	RecordingCount int             `json:"recording_count"`
+	Password       string          `json:"password"`
+	RecordingFiles []RecordingFile `json:"recording_files"`
 }
 
 type DeauthorizationEvent struct {
