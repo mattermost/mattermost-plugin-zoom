@@ -20,6 +20,7 @@ const (
 	zoomUserByMMID        = "zoomtoken_"
 	zoomUserByZoomID      = "zoomtokenbyzoomid_"
 	zoomSuperUserTokenKey = "zoomSuperUserToken_"
+	zoomUserPreferenceKey = "zoomUserPreference_%s"
 
 	meetingPostIDTTL  = 60 * 60 * 24 // One day
 	oAuthUserStateTTL = 60 * 5       // 5 minutes
@@ -204,4 +205,57 @@ func (p *Plugin) removeSuperUserToken() error {
 	}
 
 	return nil
+}
+
+func (p *Plugin) storeUserPreference(userID, value string) error {
+	if _, err := p.client.KV.Set(fmt.Sprintf(zoomUserPreferenceKey, userID), &value); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *Plugin) getUserPreference(userID string) (string, error) {
+	var value string
+	if err := p.client.KV.Get(fmt.Sprintf(zoomUserPreferenceKey, userID), &value); err != nil {
+		return "", err
+	}
+
+	if value == "" {
+		/*
+			If preference is not stored in kv store, check in the preferences table for user preference
+		*/
+		preferences, reqErr := p.API.GetPreferencesForUser(userID)
+		if reqErr != nil {
+			return "", errors.New(settingDataError)
+		}
+
+		for _, preference := range preferences {
+			if preference.UserId == userID && preference.Category == zoomPreferenceCategory && preference.Name == zoomPMISettingName {
+				/*
+					If found return the value, and remove user preference from preferences table and store in kv store
+				*/
+				if err := p.storeUserPreference(userID, preference.Value); err != nil {
+					p.client.Log.Error("Unable to store user preference", "UserID", userID, "Error", err.Error())
+					return preference.Value, nil
+				}
+
+				// Delete the preference from preferences table as we have already stored it in kv store
+				if err := p.API.DeletePreferencesForUser(userID, []model.Preference{{
+					UserId:   userID,
+					Category: zoomPreferenceCategory,
+					Name:     zoomPMISettingName,
+					Value:    preference.Value,
+				}}); err != nil {
+					p.client.Log.Error("Unable to delete user preference from db", "UserID", userID, "Error", err.Error())
+				}
+
+				return preference.Value, nil
+			}
+		}
+
+		return "", nil
+	}
+
+	return value, nil
 }
