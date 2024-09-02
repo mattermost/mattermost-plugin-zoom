@@ -138,7 +138,7 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 			meetingIDType = "unique"
 		}
 
-		if err := p.updateUserPersonalSettings(val, userID); err != nil {
+		if err := p.storeUserPreference(userID, val); err != nil {
 			p.API.LogWarn("failed to update preferences for the user", "Error", err.Error())
 			return
 		}
@@ -249,7 +249,7 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		val = trueString
 	}
 
-	if err = p.updateUserPersonalSettings(val, mattermostUserID); err != nil {
+	if err := p.storeUserPreference(mattermostUserID, val); err != nil {
 		p.API.LogWarn("failed to update preferences for the user", "Error", err.Error())
 		return
 	}
@@ -521,17 +521,12 @@ func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 }
 
 func (p *Plugin) getPMISettingData(userID string) (string, error) {
-	preferences, reqErr := p.API.GetPreferencesForUser(userID)
+	preference, reqErr := p.getUserPreference(userID)
 	if reqErr != nil {
 		return "", errors.New(settingDataError)
 	}
 
-	for _, preference := range preferences {
-		if preference.UserId == userID && preference.Category == zoomPreferenceCategory && preference.Name == zoomPMISettingName {
-			return preference.Value, nil
-		}
-	}
-	return "", nil
+	return preference, nil
 }
 
 func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
@@ -764,6 +759,11 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 
 		meetingLink := getString("meeting_link", post.Props)
 		if meetingLink == "" {
+			continue
+		}
+
+		meetingStatus := getString("meeting_status", post.Props)
+		if meetingStatus == zoom.WebhookStatusEnded {
 			continue
 		}
 

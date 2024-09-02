@@ -190,15 +190,6 @@ func TestPlugin(t *testing.T) {
 					SiteURL: &siteURL,
 				},
 			})
-			api.On("GetPreferencesForUser", mock.AnythingOfType("string")).Return([]model.Preference{
-				{
-					UserId:   "test-userid",
-					Category: zoomPreferenceCategory,
-					Name:     zoomPMISettingName,
-					Value:    trueString,
-				},
-			}, nil)
-
 			p := Plugin{}
 			p.setConfiguration(&configuration{
 				ZoomAPIURL:              ts.URL,

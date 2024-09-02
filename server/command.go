@@ -420,17 +420,6 @@ func (p *Plugin) runChannelSettingsListCommand(args *model.CommandArgs) (string,
 	return sb.String(), nil
 }
 
-func (p *Plugin) updateUserPersonalSettings(usePMIValue, userID string) *model.AppError {
-	return p.API.UpdatePreferencesForUser(userID, []model.Preference{
-		{
-			UserId:   userID,
-			Category: zoomPreferenceCategory,
-			Name:     zoomPMISettingName,
-			Value:    usePMIValue,
-		},
-	})
-}
-
 // getAutocompleteData retrieves auto-complete data for the "/zoom" command
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	canConnect := !p.configuration.AccountLevelApp
