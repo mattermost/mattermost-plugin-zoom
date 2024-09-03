@@ -143,7 +143,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	}
 
 	if restrict {
-		return "Creating zoom meeting is disabled for this channel.", nil
+		return "Creating Zoom meeting is disabled for this channel.", nil
 	}
 
 	if _, appErr := p.API.GetChannelMember(args.ChannelId, user.Id); appErr != nil {
