@@ -27,7 +27,7 @@ import (
 )
 
 func TestPlugin(t *testing.T) {
-	// Mock zoom server
+	// Mock Zoom server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/users/theuseremail" {
 			user := &zoom.User{

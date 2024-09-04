@@ -32,7 +32,7 @@ export default class ChannelHeaderIcon extends React.PureComponent {
         return (
             <FormattedMessage
                 id='zoom.camera.ariaLabel'
-                defaultMessage='zoom camera icon'
+                defaultMessage='Zoom camera icon'
             >
                 {(ariaLabel) => icon(ariaLabel)}
             </FormattedMessage>

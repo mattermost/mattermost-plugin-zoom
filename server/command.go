@@ -14,7 +14,7 @@ import (
 
 const (
 	starterText   = "###### Mattermost Zoom Plugin - Slash Command Help\n"
-	helpText      = `* |/zoom start| - Start a zoom meeting`
+	helpText      = `* |/zoom start| - Start a Zoom meeting`
 	oAuthHelpText = `* |/zoom connect| - Connect to Zoom
 * |/zoom disconnect| - Disconnect from Zoom`
 	settingHelpText               = `* |/zoom settings| - Update your preferences`
@@ -262,7 +262,7 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	err := p.disconnectOAuthUser(user.Id)
 
 	if err != nil {
-		return "Could not disconnect OAuth from zoom, " + err.Error(), nil
+		return "Could not disconnect OAuth from Zoom, " + err.Error(), nil
 	}
 
 	p.trackDisconnect(user.Id)

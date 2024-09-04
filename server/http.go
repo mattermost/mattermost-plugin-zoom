@@ -175,7 +175,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		p.API.LogWarn("failed to authenticate and fetch the zoom user", "Error", appErr.Error())
+		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", appErr.Error())
 		return
 	}
 
@@ -550,7 +550,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if restrict {
-		if err = json.NewEncoder(w).Encode(ErrorResponse{"Creating zoom meeting is disabled for this channel."}); err != nil {
+		if err = json.NewEncoder(w).Encode(ErrorResponse{"Creating Zoom meeting is disabled for this channel."}); err != nil {
 			p.API.LogWarn("failed to write the response", "error", err.Error())
 		}
 		return
@@ -678,7 +678,7 @@ func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
-		p.API.LogWarn("could not get the active zoom client", "error", err.Error())
+		p.API.LogWarn("could not get the active Zoom client", "error", err.Error())
 		return defaultURL
 	}
 
@@ -729,7 +729,7 @@ func (p *Plugin) postAuthenticationMessage(channelID string, userID string, mess
 }
 
 func (p *Plugin) sendEnableZoomPMISettingMessage(userID, channelID, rootID string) {
-	p.postEphemeral(userID, channelID, rootID, "The meeting below is created with an unique meeting ID, to use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
+	p.postEphemeral(userID, channelID, rootID, "The meeting below is created with an unique meeting ID, to use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [Zoom settings](https://zoom.us/profile/setting).")
 }
 
 func (p *Plugin) postEphemeral(userID, channelID, rootID, message string) *model.Post {
@@ -954,7 +954,7 @@ func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, error) 
 	val, exist := zoomChannelSettingsMap[channelID]
 	preference := false
 	/*
-		Check if zoom settings for current channel exist.
+		Check if Zoom settings for current channel exist.
 		Check if creating meeting is disabled in the plugin configuration.
 	*/
 	if exist {
