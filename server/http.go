@@ -21,36 +21,56 @@ import (
 )
 
 const (
-	defaultMeetingTopic          = "Zoom Meeting"
-	zoomOAuthUserStateLength     = 4
-	settingDataError             = "something went wrong while getting settings data"
+	defaultMeetingTopic      = "Zoom Meeting"
+	zoomOAuthUserStateLength = 4
+	settingDataError         = "something went wrong while getting settings data"
+	pathWebhook              = "/webhook"
+	pathStartMeeting         = "/api/v1/meetings"
+	pathConnectUser          = "/oauth2/connect"
+	pathCompleteUserOAuth    = "/oauth2/complete"
+	pathDeauthorizeUser      = "/deauthorization"
+	pathUpdatePMI            = "/api/v1/updatePMI"
+	pathAskPMI               = "/api/v1/askPMI"
+	pathChannelPreference    = "/api/v1/channel-preference"
+	yes                      = "Yes"
+	no                       = "No"
+	ask                      = "Ask"
+	actionForContext         = "action"
+	userIDForContext         = "userID"
+	channelIDForContext      = "channelID"
+	rootIDForContext         = "rootID"
+	usePersonalMeetingID     = "USE PERSONAL MEETING ID"
+	useAUniqueMeetingID      = "USE A UNIQUE MEETING ID"
+	MattermostUserIDHeader   = "Mattermost-User-ID"
+
+	RestrictPreference                  = "Restrict"
+	AllowPreference                     = "Allow"
+	DefaultChannelRestrictionPreference = "Default"
+
 	zoomSettingsCommandMessage   = "You can set a default value for this in your user settings via `/zoom settings` command."
 	askForMeetingType            = "Which meeting ID would you like to use for creating this meeting?"
-	pathWebhook                  = "/webhook"
-	pathStartMeeting             = "/api/v1/meetings"
-	pathConnectUser              = "/oauth2/connect"
-	pathCompleteUserOAuth        = "/oauth2/complete"
-	pathDeauthorizeUser          = "/deauthorization"
-	pathUpdatePMI                = "/api/v1/updatePMI"
-	pathAskPMI                   = "/api/v1/askPMI"
-	yes                          = "Yes"
-	no                           = "No"
-	ask                          = "Ask"
-	actionForContext             = "action"
-	userIDForContext             = "userID"
-	channelIDForContext          = "channelID"
-	rootIDForContext             = "rootID"
-	usePersonalMeetingID         = "Use Personal Meeting ID"
-	useAUniqueMeetingID          = "Use a Unique Meeting ID"
-	MattermostUserIDHeader       = "Mattermost-User-ID"
 	WebsocketEventMeetingStarted = "meeting_started"
 )
+
+var ZoomChannelPreferences = map[string]string{
+	RestrictPreference:                  "restrict",
+	AllowPreference:                     "allow",
+	DefaultChannelRestrictionPreference: "default",
+}
 
 type startMeetingRequest struct {
 	ChannelID string `json:"channel_id"`
 	RootID    string `json:"root_id"`
 	Topic     string `json:"topic"`
 	UsePMI    string `json:"use_pmi"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+type MeetingURLResponse struct {
+	MeetingURL string `json:"meeting_url"`
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
@@ -75,6 +95,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		p.submitFormPMIForPreference(w, r)
 	case pathAskPMI:
 		p.submitFormPMIForMeeting(w, r)
+	case pathChannelPreference:
+		p.handleChannelPreference(w, r)
 	default:
 		http.NotFound(w, r)
 	}
@@ -153,7 +175,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		p.API.LogWarn("failed to authenticate and fetch the zoom user", "Error", appErr.Error())
+		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", appErr.Error())
 		return
 	}
 
@@ -165,7 +187,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, defaultMeetingTopic)
 			if createMeetingErr != nil {
 				p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 				return
@@ -173,7 +195,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 			p.sendEnableZoomPMISettingMessage(userID, channelID, rootID)
 		}
 	} else {
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, defaultMeetingTopic)
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, defaultMeetingTopic)
 		if createMeetingErr != nil {
 			p.API.LogWarn("failed to create the meeting", "Error", createMeetingErr.Error())
 			return
@@ -214,7 +236,7 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		p.API.LogWarn("failed to get the bot's DM channel", "Error", err.Error())
 		return
 	}
-	slackAttachment := p.slackAttachmentToUpdatePMI(action, channel.Id)
+	slackAttachment := p.slackAttachmentToUpdatePMI(action)
 	slackAttachment.Actions = nil // Remove action buttons once responded
 
 	val := ""
@@ -520,6 +542,20 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	restrict, err := p.isChannelRestrictedForMeetings(req.ChannelID)
+	if err != nil {
+		p.API.LogError("Unable to check channel preference", "ChannelID", req.ChannelID, "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if restrict {
+		if err = json.NewEncoder(w).Encode(ErrorResponse{"Creating Zoom meeting is disabled for this channel."}); err != nil {
+			p.API.LogWarn("failed to write the response", "error", err.Error())
+		}
+		return
+	}
+
 	user, appErr := p.API.GetUser(userID)
 	if appErr != nil {
 		http.Error(w, appErr.Error(), appErr.StatusCode)
@@ -533,7 +569,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+		if err = json.NewEncoder(w).Encode(MeetingURLResponse{MeetingURL: ""}); err != nil {
 			p.API.LogWarn("failed to write the response", "error", err.Error())
 		}
 
@@ -554,7 +590,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if recentMeeting {
-			if _, err := w.Write([]byte(`{"meeting_url": ""}`)); err != nil {
+			if err = json.NewEncoder(w).Encode(MeetingURLResponse{MeetingURL: ""}); err != nil {
 				p.API.LogWarn("failed to write the response", "error", err.Error())
 			}
 			p.postConfirm(recentMeetingLink, req.ChannelID, req.Topic, userID, req.RootID, creatorName, provider)
@@ -582,7 +618,47 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, channelID, topic string) (int, error) {
+func (p *Plugin) handleChannelPreference(w http.ResponseWriter, r *http.Request) {
+	submitRequest := &model.SubmitDialogRequest{}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&submitRequest); err != nil {
+		p.API.LogError("Error decoding dialog request", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if submitRequest.UserId == "" {
+		p.API.LogError("Invalid user ID", "UserID", submitRequest.UserId)
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !p.API.HasPermissionTo(submitRequest.UserId, model.PermissionManageSystem) {
+		p.API.LogError("Unable to resolve request due to insufficient permissions", "UserID", submitRequest.UserId)
+		http.Error(w, "Insufficient permissions", http.StatusForbidden)
+		return
+	}
+
+	zoomChannelSettingsMapValue := ZoomChannelSettingsMapValue{
+		Preference: fmt.Sprint(submitRequest.Submission["preference"]),
+	}
+
+	if err := zoomChannelSettingsMapValue.IsValid(); err != nil {
+		p.API.LogError("Invalid request body", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := p.storeZoomChannelSettings(submitRequest.ChannelId, zoomChannelSettingsMapValue); err != nil {
+		p.API.LogError("Error setting channel preference", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Plugin) createMeetingWithoutPMI(user *model.User, zoomUser *zoom.User, topic string) (int, error) {
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
 		p.API.LogWarn("Error getting the client", "Error", err.Error())
@@ -602,7 +678,7 @@ func (p *Plugin) getMeetingURL(user *model.User, meetingID int) string {
 	defaultURL := fmt.Sprintf("%s/j/%v", p.getZoomURL(), meetingID)
 	client, _, err := p.getActiveClient(user)
 	if err != nil {
-		p.API.LogWarn("could not get the active zoom client", "error", err.Error())
+		p.API.LogWarn("could not get the active Zoom client", "error", err.Error())
 		return defaultURL
 	}
 
@@ -653,7 +729,7 @@ func (p *Plugin) postAuthenticationMessage(channelID string, userID string, mess
 }
 
 func (p *Plugin) sendEnableZoomPMISettingMessage(userID, channelID, rootID string) {
-	p.postEphemeral(userID, channelID, rootID, "The meeting below is created with an unique meeting ID, to use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [zoom settings](https://zoom.us/profile/setting).")
+	p.postEphemeral(userID, channelID, rootID, "The meeting below is created with an unique meeting ID, to use Personal Meeting ID (PMI) for creating the meeting, you need to `Enable Personal Meeting ID` from your [Zoom settings](https://zoom.us/profile/setting).")
 }
 
 func (p *Plugin) postEphemeral(userID, channelID, rootID, message string) *model.Post {
@@ -802,7 +878,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 		currentValue = no
 	}
 
-	slackAttachment := p.slackAttachmentToUpdatePMI(currentValue, channelID)
+	slackAttachment := p.slackAttachmentToUpdatePMI(currentValue)
 	post := &model.Post{
 		ChannelId: channelID,
 		UserId:    p.botUserID,
@@ -814,7 +890,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 	return nil
 }
 
-func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *model.SlackAttachment {
+func (p *Plugin) slackAttachmentToUpdatePMI(currentValue string) *model.SlackAttachment {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
@@ -864,6 +940,55 @@ func (p *Plugin) slackAttachmentToUpdatePMI(currentValue, channelID string) *mod
 	return &slackAttachment
 }
 
+func (p *Plugin) isChannelRestrictedForMeetings(channelID string) (bool, error) {
+	channel, appErr := p.API.GetChannel(channelID)
+	if appErr != nil {
+		return false, errors.New(appErr.Message)
+	}
+
+	zoomChannelSettingsMap, err := p.listZoomChannelSettings()
+	if err != nil {
+		return false, err
+	}
+
+	val, exist := zoomChannelSettingsMap[channelID]
+	preference := false
+	/*
+		Check if Zoom settings for current channel exist.
+		Check if creating meeting is disabled in the plugin configuration.
+	*/
+	if exist {
+		if val.Preference == ZoomChannelPreferences[DefaultChannelRestrictionPreference] {
+			preference = p.configuration.RestrictMeetingCreation
+		} else if val.Preference == ZoomChannelPreferences[RestrictPreference] {
+			preference = true
+		}
+	} else if channel.Type == model.ChannelTypeOpen {
+		preference = p.configuration.RestrictMeetingCreation
+	}
+
+	return preference, nil
+}
+
+func (mv ZoomChannelSettingsMapValue) IsValid() error {
+	if mv.Preference == "" {
+		return errors.New("preference should not be empty")
+	}
+
+	found := false
+	for _, value := range ZoomChannelPreferences {
+		if value == mv.Preference {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errors.New("invalid preference")
+	}
+
+	return nil
+}
+
 func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User) (string, error) {
 	var meetingID int
 	var createMeetingErr error
@@ -882,14 +1007,14 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
+			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 			if createMeetingErr != nil {
 				return "", createMeetingErr
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, channelID, rootID)
 		}
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, channelID, topic)
+		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 		if createMeetingErr != nil {
 			return "", createMeetingErr
 		}

@@ -41,6 +41,10 @@ type configuration struct {
 
 	// ZoomWebhookSecret is the `Secret Token` taken from Zoom's webhook configuration page
 	ZoomWebhookSecret string
+
+	// RestrictMeetingCreation allows the admin to by default restrict Zoom meetings to only private channels.
+	// The admin can also edit each channel's behavior with the `/zoom channel-settings` command
+	RestrictMeetingCreation bool
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if

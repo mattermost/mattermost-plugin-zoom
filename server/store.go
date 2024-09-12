@@ -20,11 +20,18 @@ const (
 	zoomUserByMMID        = "zoomtoken_"
 	zoomUserByZoomID      = "zoomtokenbyzoomid_"
 	zoomSuperUserTokenKey = "zoomSuperUserToken_"
+	zoomChannelSettings   = "zoomChannelSettings"
 	zoomUserPreferenceKey = "zoomUserPreference_%s"
 
 	meetingPostIDTTL  = 60 * 60 * 24 // One day
 	oAuthUserStateTTL = 60 * 5       // 5 minutes
 )
+
+type ZoomChannelSettingsMapValue struct {
+	Preference string
+}
+
+type ZoomChannelSettingsMap map[string]ZoomChannelSettingsMapValue
 
 func (p *Plugin) storeOAuthUserInfo(info *zoom.OAuthUserInfo) error {
 	config := p.getConfiguration()
@@ -137,8 +144,8 @@ func (p *Plugin) deleteUserState(userID string) *model.AppError {
 
 func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppError {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
-	bytes := []byte(postID)
-	return p.API.KVSetWithExpiry(key, bytes, meetingPostIDTTL)
+	b := []byte(postID)
+	return p.API.KVSetWithExpiry(key, b, meetingPostIDTTL)
 }
 
 func (p *Plugin) fetchMeetingPostID(meetingID string) (string, error) {
@@ -205,6 +212,52 @@ func (p *Plugin) removeSuperUserToken() error {
 	}
 
 	return nil
+}
+
+func (p *Plugin) storeZoomChannelSettings(channelID string, zoomChannelSettingsMapValue ZoomChannelSettingsMapValue) error {
+	b, appErr := p.API.KVGet(zoomChannelSettings)
+	if appErr != nil {
+		return errors.New(appErr.Message)
+	}
+
+	var zoomChannelSettingsMap ZoomChannelSettingsMap
+	if len(b) != 0 {
+		if err := json.Unmarshal(b, &zoomChannelSettingsMap); err != nil {
+			return err
+		}
+	} else {
+		zoomChannelSettingsMap = ZoomChannelSettingsMap{}
+	}
+
+	zoomChannelSettingsMap[channelID] = zoomChannelSettingsMapValue
+	b, err := json.Marshal(zoomChannelSettingsMap)
+	if err != nil {
+		return err
+	}
+
+	if appErr := p.API.KVSet(zoomChannelSettings, b); appErr != nil {
+		return errors.New(appErr.Message)
+	}
+
+	return nil
+}
+
+func (p *Plugin) listZoomChannelSettings() (ZoomChannelSettingsMap, error) {
+	b, appErr := p.API.KVGet(zoomChannelSettings)
+	if appErr != nil {
+		return nil, errors.New(appErr.Message)
+	}
+
+	if len(b) == 0 {
+		return ZoomChannelSettingsMap{}, nil
+	}
+
+	var zoomChannelSettingsMap ZoomChannelSettingsMap
+	if err := json.Unmarshal(b, &zoomChannelSettingsMap); err != nil {
+		return nil, err
+	}
+
+	return zoomChannelSettingsMap, nil
 }
 
 func (p *Plugin) storeUserPreference(userID, value string) error {

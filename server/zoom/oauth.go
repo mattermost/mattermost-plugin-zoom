@@ -73,25 +73,25 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	client := c.config.Client(ctx, c.token)
 	res, err := client.Get(fmt.Sprintf("%s/meetings/%v", c.apiURL, meetingID))
 	if err != nil {
-		return nil, errors.Wrap(err, "could not fetch zoom meeting")
+		return nil, errors.Wrap(err, "could not fetch Zoom meeting")
 	}
 	if res == nil {
-		return nil, errors.New("error fetching zoom meeting, empty result returned")
+		return nil, errors.New("error fetching Zoom meeting, empty result returned")
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("%d error returned while fetching zoom meeting", res.StatusCode))
+		return nil, errors.New(fmt.Sprintf("%d error returned while fetching Zoom meeting", res.StatusCode))
 	}
 
 	buf, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not read response body for zoom meeting")
+		return nil, errors.Wrap(err, "could not read response body for Zoom meeting")
 	}
 
 	var meeting Meeting
 	if err := json.Unmarshal(buf, &meeting); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal zoom meeting data")
+		return nil, errors.Wrap(err, "could not unmarshal Zoom meeting data")
 	}
 
 	return &meeting, nil
@@ -138,7 +138,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 		if c.isAccountLevel {
 			currentToken, err := c.api.GetZoomSuperUserToken()
 			if err != nil {
-				return nil, errors.Wrap(err, "error getting zoom super user token")
+				return nil, errors.Wrap(err, "error getting Zoom super user token")
 			}
 
 			tokenSource := c.config.TokenSource(context.Background(), currentToken)
@@ -158,7 +158,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 		} else {
 			info, err := c.api.GetZoomOAuthUserInfo(user.Id)
 			if err != nil {
-				return nil, errors.Wrap(err, "error getting zoom user token")
+				return nil, errors.Wrap(err, "error getting Zoom user token")
 			}
 
 			currentToken := info.OAuthToken
@@ -185,7 +185,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 
 	res, err := client.Get(url)
 	if err != nil {
-		return nil, errors.Wrap(err, "error fetching zoom user")
+		return nil, errors.Wrap(err, "error fetching Zoom user")
 	}
 
 	defer res.Body.Close()
@@ -195,18 +195,35 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("%d error returned while fetching zoom user", res.StatusCode))
+		return nil, errors.New(fmt.Sprintf("%d error returned while fetching Zoom user", res.StatusCode))
 	}
 
 	buf := new(bytes.Buffer)
 	if _, err = buf.ReadFrom(res.Body); err != nil {
-		return nil, errors.Wrap(err, "could not read response body for zoom user")
+		return nil, errors.Wrap(err, "could not read response body for Zoom user")
 	}
 
 	var zoomUser User
 	if err := json.Unmarshal(buf.Bytes(), &zoomUser); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal zoom user data")
+		return nil, errors.Wrap(err, "could not unmarshal Zoom user data")
 	}
 
 	return &zoomUser, nil
+}
+
+func (c *OAuthClient) OpenDialogRequest(body *model.OpenDialogRequest) error {
+	postURL := fmt.Sprintf("%s%s", c.siteURL, "/api/v4/actions/dialogs/open")
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	client := c.config.Client(context.Background(), c.token)
+	res, err := client.Post(postURL, "application/json", bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	return nil
 }
