@@ -61,7 +61,8 @@
                 "type": "text",
                 "help_text": "The client secret for the OAuth app registered with Zoom. Leave blank if not using OAuth.",
                 "placeholder": "",
-                "default": null
+                "default": null,
+                "secret": true
             },
             {
                 "key": "EncryptionKey",
@@ -70,7 +71,8 @@
                 "help_text": "The AES encryption key used to encrypt stored access tokens.",
                 "regenerate_help_text": "Regenerates the encryption key for Zoom OAuth token. Regenerating the key invalidates your existing Zoom OAuth.",
                 "placeholder": "",
-                "default": null
+                "default": null,
+                "secret": true
             },
             {
                 "key": "WebhookSecret",
@@ -79,7 +81,8 @@
                 "help_text": "The secret used to authenticate the webhook to Mattermost.",
                 "regenerate_help_text": "Regenerates the secret for the webhook URL endpoint. Regenerating the secret invalidates your existing Zoom plugin.",
                 "placeholder": "",
-                "default": null
+                "default": null,
+                "secret": true
             },
             {
                 "key": "ZoomWebhookSecret",
@@ -88,7 +91,8 @@
                 "help_text": "Secret Token taken from Zoom's webhook configuration page",
                 "regenerate_help_text": "",
                 "placeholder": "",
-                "default": null
+                "default": null,
+                "secret": true
             },
             {
                 "key": "RestrictMeetingCreation",
