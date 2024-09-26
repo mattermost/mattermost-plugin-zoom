@@ -5,7 +5,7 @@
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-zoom",
     "support_url": "https://github.com/mattermost/mattermost-plugin-zoom/issues",
     "icon_path": "assets/profile.svg",
-    "min_server_version": "5.37.0",
+    "min_server_version": "8.1.0",
     "server": {
         "executables": {
             "linux-amd64": "server/dist/plugin-linux-amd64",
@@ -89,6 +89,15 @@
                 "regenerate_help_text": "",
                 "placeholder": "",
                 "default": null
+            },
+            {
+                "key": "RestrictMeetingCreation",
+                "display_name": "Restrict Meeting Creation:",
+                "type": "bool",
+                "help_text": "Restrict user from creating meetings in public channels.",
+                "regenerate_help_text": "",
+                "placeholder": "",
+                "default": false
             }
         ]
     }

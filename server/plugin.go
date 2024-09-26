@@ -144,7 +144,7 @@ func (p *Plugin) getActiveClient(user *model.User) (zoom.Client, string, error) 
 			return nil, message, errors.Wrap(err, "could not get token")
 		}
 		if token == nil {
-			return nil, message, errors.New("zoom app not connected")
+			return nil, message, errors.New("the Zoom app not connected")
 		}
 		return zoom.NewOAuthClient(token, p.getOAuthConfig(), p.siteURL, p.getZoomAPIURL(), true, p), "", nil
 	}
@@ -214,7 +214,7 @@ func (p *Plugin) GetZoomSuperUserToken() (*oauth2.Token, error) {
 		return nil, errors.Wrap(err, "could not get token")
 	}
 	if token == nil {
-		return nil, errors.New("zoom app not connected")
+		return nil, errors.New("the Zoom app is not connected")
 	}
 	return token, nil
 }
@@ -233,7 +233,7 @@ func (p *Plugin) GetZoomOAuthUserInfo(userID string) (*zoom.OAuthUserInfo, error
 		return nil, errors.Wrap(err, "could not get token")
 	}
 	if info == nil {
-		return nil, errors.New("zoom app not connected")
+		return nil, errors.New("the Zoom app is not connected")
 	}
 
 	return info, nil
