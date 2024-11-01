@@ -65,10 +65,10 @@ func TestPlugin(t *testing.T) {
 	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
+	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234", "uuid": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started", "payload": {"object": {"id": "234"}}}`))
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
