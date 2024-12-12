@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
@@ -35,7 +36,7 @@ const (
 	actionChannelSettings     = "channel-settings"
 	channelSettingsActionList = "list"
 
-	actionUnkown = "Unknown Action"
+	actionUnknown = "Unknown Action"
 )
 
 const channelPreferenceListErr = "Unable to list channel preferences"
@@ -115,7 +116,7 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	case actionChannelSettings:
 		return p.runChannelSettingsCommand(args, strings.Fields(args.Command)[2:], user)
 	default:
-		return fmt.Sprintf("%s %v", actionUnkown, action), nil
+		return fmt.Sprintf("%s %v", actionUnknown, action), nil
 	}
 }
 
@@ -211,7 +212,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 
 func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (string, error) {
 	if !p.canConnect(user) {
-		return fmt.Sprintf("%s `%s`", actionUnkown, actionConnect), nil
+		return fmt.Sprintf("%s `%s`", actionUnknown, actionConnect), nil
 	}
 
 	oauthMsg := fmt.Sprintf(
@@ -248,7 +249,7 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 // runDisconnectCommand runs command to disconnect from Zoom. Will fail if user cannot connect.
 func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	if !p.canConnect(user) {
-		return fmt.Sprintf("%s `%s`", actionUnkown, actionDisconnect), nil
+		return fmt.Sprintf("%s `%s`", actionUnknown, actionDisconnect), nil
 	}
 
 	if p.configuration.AccountLevelApp {
@@ -299,7 +300,7 @@ func (p *Plugin) runSettingCommand(args *model.CommandArgs, params []string, use
 		}
 		return "", nil
 	}
-	return actionUnkown, nil
+	return actionUnknown, nil
 }
 
 func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
@@ -309,7 +310,7 @@ func (p *Plugin) runChannelSettingsCommand(args *model.CommandArgs, params []str
 		return p.runChannelSettingsListCommand(args)
 	}
 
-	return actionUnkown, nil
+	return actionUnknown, nil
 }
 
 func (p *Plugin) runEditChannelSettingsCommand(args *model.CommandArgs, user *model.User) (string, error) {
@@ -327,9 +328,11 @@ func (p *Plugin) runEditChannelSettingsCommand(args *model.CommandArgs, user *mo
 		return "Preference not allowed to set for DM/GM.", nil
 	}
 
+	urlStr := fmt.Sprintf("%s/plugins/%s%s", p.siteURL, url.PathEscape(manifest.Id), pathChannelPreference)
+
 	requestBody := model.OpenDialogRequest{
 		TriggerId: args.TriggerId,
-		URL:       fmt.Sprintf("%s/plugins/%s%s", p.siteURL, manifest.Id, pathChannelPreference),
+		URL:       urlStr,
 		Dialog: model.Dialog{
 			Title:       "Set Channel Preference",
 			SubmitLabel: "Submit",

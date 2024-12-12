@@ -42,7 +42,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	var webhook zoom.Webhook
 	if err = json.Unmarshal(b, &webhook); err != nil {
-		p.API.LogError("Error unmarshaling webhook", "err", err.Error())
+		p.API.LogError("Error unmarshalling webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -69,7 +69,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body []byte) {
 	var webhook zoom.MeetingWebhook
 	if err := json.Unmarshal(body, &webhook); err != nil {
-		p.client.Log.Error("Error unmarshaling meeting webhook", "err", err.Error())
+		p.client.Log.Error("Error unmarshalling meeting webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -146,7 +146,7 @@ func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error 
 	var webhook zoom.Webhook
 	err := json.Unmarshal(body, &webhook)
 	if err != nil {
-		return errors.Wrap(err, "error unmarshaling webhook payload")
+		return errors.Wrap(err, "error unmarshalling webhook payload")
 	}
 
 	ts := r.Header.Get("x-zm-request-timestamp")
