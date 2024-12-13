@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -607,6 +608,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if r.URL.Query().Get("force") != "" {
@@ -891,7 +893,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue string) *model.SlackAttachment {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", url.PathEscape(manifest.Id), pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: "Failed to set your preference",
