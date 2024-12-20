@@ -176,7 +176,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", appErr.Error())
+		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", authErr.Error())
 		return
 	}
 
@@ -285,8 +285,8 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := p.getOAuthConfig()
-	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusFound)
+	urlStr := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	http.Redirect(w, r, urlStr, http.StatusFound)
 }
 
 func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
