@@ -138,6 +138,7 @@ func TestPlugin(t *testing.T) {
 			}, nil)
 			api.On("KVSetWithExpiry", "post_meeting_234", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 			api.On("KVSetWithExpiry", "post_meeting_", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
+			api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/234"}, &model.WebsocketBroadcast{UserId: botUserID}).Return()
 
 			api.On("SendEphemeralPost", "theuserid", mock.AnythingOfType("*model.Post")).Return(nil)
 
