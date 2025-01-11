@@ -152,7 +152,7 @@ export default class PostTypeZoom extends React.PureComponent {
 
             const startDate = new Date(post.create_at);
             const start = formatDate(startDate);
-            const end = props.meeting_end_time || post.update_at
+            const end = props.meeting_end_time || post.update_at;
             const length = Math.ceil((new Date(end) - startDate) / 1000 / 60);
 
             content = (
