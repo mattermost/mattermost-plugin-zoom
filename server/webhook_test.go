@@ -218,6 +218,7 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	api.On("GetPost", "post-id").Return(&model.Post{Id: "post-id", ChannelId: "channel-id"}, nil)
 	api.On("KVGet", "post_meeting_321").Return([]byte("post-id"), nil)
 	api.On("UploadFile", []byte("/chat_file"), "channel-id", "Chat-history.txt").Return(&model.FileInfo{Id: "file-id"}, nil)
+	p.client = pluginapi.NewClient(api, nil)
 	api.On("CreatePost", &model.Post{
 		ChannelId: "channel-id",
 		RootId:    "post-id",
