@@ -20,6 +20,8 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
+const bearerString = "Bearer "
+
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyMattermostWebhookSecret(r) {
 		p.API.LogWarn("Could not verify Mattermost webhook secret")
@@ -181,7 +183,7 @@ func (p *Plugin) handleTranscript(recording zoom.RecordingFile, postID, channelI
 		p.API.LogWarn("Unable to get the transcription", "err", err)
 		return err
 	}
-	request.Header.Set("Authorization", "Bearer "+downloadToken)
+	request.Header.Set("Authorization", bearerString+downloadToken)
 
 	retries := 5
 	var response *http.Response
@@ -328,7 +330,7 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 					p.API.LogWarn("Unable to get the chat", "err", err)
 					return
 				}
-				request.Header.Set("Authorization", "Bearer "+webhook.DownloadToken)
+				request.Header.Set("Authorization", bearerString+webhook.DownloadToken)
 				response, err := http.DefaultClient.Do(request)
 				if err != nil {
 					p.API.LogWarn("Unable to get the chat", "err", err)
