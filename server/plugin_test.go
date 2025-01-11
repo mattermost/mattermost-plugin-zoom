@@ -132,6 +132,7 @@ func TestPlugin(t *testing.T) {
 			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
 			api.On("KVGet", "zoomtoken_theuserid").Return(userInfo, nil)
 			api.On("KVGet", "meeting_channel_234").Return([]byte("thechannelid"), nil)
+			api.On("KVGet", "zoomtoken_"+botUserID).Return(userInfo, nil)
 			api.On("GetUser", botUserID).Return(&model.User{
 				Id: botUserID,
 			}, nil)
