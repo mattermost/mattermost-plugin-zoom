@@ -12,12 +12,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
 	"github.com/mattermost/mattermost/server/public/pluginapi"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -57,6 +59,95 @@ func TestWebhookValidate(t *testing.T) {
 
 	require.Equal(t, "Kn5a3Wv7SP6YP5b4BWfZpg", out.PlainToken)
 	require.Equal(t, "2a41c3138d2187a756c51428f78d192e9b88dcf44dd62d1b081ace4ec2241e0a", out.EncryptedToken)
+}
+
+func TestHandleMeetingStarted(t *testing.T) {
+	p := Plugin{}
+	p.setConfiguration(testConfig)
+
+	t.Run("successful meeting start", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetLicense").Return(nil)
+		api.On("KVGet", "meeting_channel_123").Return([]byte("channel-id"), nil)
+		api.On("GetUser", "").Return(&model.User{Id: "user-id"}, nil)
+		api.On("KVGet", "zoomtoken_user-id").Return(nil, &model.AppError{})
+		api.On("LogWarn", "could not get the active Zoom client", "error", "could not fetch Zoom OAuth info: must connect user account to Zoom first").Return()
+		api.On("HasPermissionToChannel", "user-id", "channel-id", mock.AnythingOfType("*model.Permission")).Return(true)
+		api.On("KVSetWithExpiry", "post_meeting_abc", []byte{}, int64(86400)).Return(nil)
+		api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/123"}, mock.AnythingOfType("*model.WebsocketBroadcast")).Return()
+		api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
+		p.SetAPI(api)
+		p.client = pluginapi.NewClient(api, nil)
+		p.botUserID = ""
+		p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", telemetry.NewTrackerConfig(nil), nil)
+
+		requestBody := `{"payload":{"object": {"id": "123", "uuid": "abc", "topic": "test meeting"}},"event":"meeting.started"}`
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+
+		ts := "1660149894817"
+		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
+		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
+		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+		require.Equal(t, http.StatusOK, w.Result().StatusCode)
+	})
+
+	t.Run("invalid meeting ID", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetLicense").Return(nil)
+		api.On("LogError", "Failed to get meeting ID", "err", "strconv.Atoi: parsing \"invalid\": invalid syntax").Return()
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "invalid", "uuid": "123-abc"}},"event":"meeting.started"}`
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+
+		ts := "1660149894817"
+		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
+		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
+		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+		require.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+	})
+
+	t.Run("channel not found", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetLicense").Return(nil)
+		api.On("KVGet", "meeting_channel_123").Return(nil, &model.AppError{})
+		api.On("LogDebug", "Could not get channel meeting from KVStore", "error", "").Return()
+		api.On("KVSetWithExpiry", "post_meeting_123-abc", []byte{}, int64(86400)).Return(nil)
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "123", "uuid": "123-abc"}},"event":"meeting.started"}`
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+
+		ts := "1660149894817"
+		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
+		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
+		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+		require.Equal(t, http.StatusOK, w.Result().StatusCode)
+	})
 }
 
 func TestWebhookVerifySignature(t *testing.T) {
