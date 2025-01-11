@@ -137,6 +137,7 @@ func TestPlugin(t *testing.T) {
 				Id: botUserID,
 			}, nil)
 			api.On("KVSetWithExpiry", "post_meeting_234", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
+			api.On("KVSetWithExpiry", "post_meeting_", mock.AnythingOfType("[]uint8"), mock.AnythingOfType("int64")).Return(nil)
 
 			api.On("SendEphemeralPost", "theuserid", mock.AnythingOfType("*model.Post")).Return(nil)
 
