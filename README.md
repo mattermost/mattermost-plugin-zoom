@@ -5,9 +5,6 @@
 [![Release](https://img.shields.io/github/v/release/mattermost/mattermost-plugin-zoom)](https://github.com/mattermost/mattermost-plugin-zoom/releases/latest)
 [![HW](https://img.shields.io/github/issues/mattermost/mattermost-plugin-zoom/Up%20For%20Grabs?color=dark%20green&label=Help%20Wanted)](https://github.com/mattermost/mattermost-plugin-zoom/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22Up+For+Grabs%22+label%3A%22Help+Wanted%22)
 
-**Maintainer:** [@wiggin77](https://github.com/wiggin77)
-**Co-Maintainer:** [@trilopin](https://github.com/trilopin)
-
 The Mattermost Zoom integration allows team members to initiate a Zoom meeting with a single click. All participants in a channel can easily join the Zoom meeting and the shared link is updated when the meeting is over.
 
 **Important**: Only Zoom users associated with the Zoom Account that created the Zoom App will be able to use the plugin. You can add these users from the **Manage Users** section in the Zoom Account settings.
