@@ -4,7 +4,8 @@ const (
 	telemetryOauthModeOauth             = "Oauth"
 	telemetryOauthModeOauthAccountLevel = "Oauth Account Level"
 
-	telemetryStartSourceCommand = "command"
+	telemetryStartSourceCommand          = "command"
+	telemetryStartSourceSubscribeWebhook = "subscribe-webhook"
 )
 
 func (p *Plugin) TrackEvent(event string, properties map[string]interface{}) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
@@ -31,6 +32,8 @@ const (
 	actionStart               = "start"
 	actionDisconnect          = "disconnect"
 	actionHelp                = "help"
+	actionSubscribe           = "subscribe"
+	actionUnsubscribe         = "unsubscribe"
 	settings                  = "settings"
 	actionChannelSettings     = "channel-settings"
 	channelSettingsActionList = "list"
@@ -72,7 +75,7 @@ func (p *Plugin) postCommandResponse(args *model.CommandArgs, text string) {
 	_ = p.API.SendEphemeralPost(args.UserId, post)
 }
 
-func (p *Plugin) parseCommand(rawCommand string) (cmd, action, topic string) {
+func (p *Plugin) parseCommand(rawCommand string) (cmd, action, topic string, meetingID int) {
 	split := strings.Fields(rawCommand)
 	cmd = split[0]
 	if len(split) > 1 {
@@ -81,11 +84,14 @@ func (p *Plugin) parseCommand(rawCommand string) (cmd, action, topic string) {
 	if action == actionStart {
 		topic = strings.Join(split[2:], " ")
 	}
-	return cmd, action, topic
+	if len(split) > 2 && (action == actionSubscribe || action == actionUnsubscribe) {
+		meetingID, _ = strconv.Atoi(split[2])
+	}
+	return cmd, action, topic, meetingID
 }
 
 func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (string, error) {
-	command, action, topic := p.parseCommand(args.Command)
+	command, action, topic, meetingID := p.parseCommand(args.Command)
 
 	if command != "/zoom" {
 		return fmt.Sprintf("Command '%s' is not /zoom. Please try again.", command), nil
@@ -104,6 +110,10 @@ func (p *Plugin) executeCommand(c *plugin.Context, args *model.CommandArgs) (str
 	switch action {
 	case actionConnect:
 		return p.runConnectCommand(user, args)
+	case actionSubscribe:
+		return p.runSubscribeCommand(user, args, meetingID)
+	case actionUnsubscribe:
+		return p.runUnsubscribeCommand(user, args, meetingID)
 	case actionStart:
 		return p.runStartCommand(args, user, topic)
 	case actionDisconnect:
@@ -170,6 +180,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 	}
 
 	var meetingID int
+	var meetingUUID string
 	var createMeetingErr error
 
 	userPMISettingPref, err := p.getPMISettingData(user.Id)
@@ -187,20 +198,20 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
-			meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
+			meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 			if createMeetingErr != nil {
 				return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 			}
 			p.sendEnableZoomPMISettingMessage(user.Id, args.ChannelId, args.RootId)
 		}
 	default:
-		meetingID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
+		meetingID, meetingUUID, createMeetingErr = p.createMeetingWithoutPMI(user, zoomUser, topic)
 		if createMeetingErr != nil {
 			return "", errors.Wrap(createMeetingErr, "failed to create the meeting")
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
 
@@ -245,6 +256,45 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 	return oauthMsg, nil
 }
 
+func (p *Plugin) runSubscribeCommand(user *model.User, extra *model.CommandArgs, meetingID int) (string, error) {
+	if !p.API.HasPermissionToChannel(user.Id, extra.ChannelId, model.PermissionCreatePost) {
+		return "You do not have permission to subscribe to this channel", nil
+	}
+
+	meeting, err := p.getMeeting(user, meetingID)
+	if err != nil {
+		return "Can not subscribe to meeting: meeting not found", errors.Wrap(err, "meeting not found")
+	}
+
+	if meeting.Type == zoom.MeetingTypePersonal {
+		return "Can not subscribe to personal meeting", nil
+	}
+
+	if appErr := p.storeChannelForMeeting(meetingID, extra.ChannelId); appErr != nil {
+		return "", errors.Wrap(appErr, "cannot subscribe to meeting")
+	}
+	return "Channel subscribed to meeting", nil
+}
+
+func (p *Plugin) runUnsubscribeCommand(user *model.User, extra *model.CommandArgs, meetingID int) (string, error) {
+	if !p.API.HasPermissionToChannel(user.Id, extra.ChannelId, model.PermissionCreatePost) {
+		return "You do not have permission to unsubscribe from this channel", nil
+	}
+
+	_, err := p.getMeeting(user, meetingID)
+	if err != nil {
+		return "Can not unsubscribe from meeting: meeting not accesible in zoom", errors.Wrap(err, "meeting not accesible in zoom")
+	}
+
+	if channelID, appErr := p.fetchChannelForMeeting(meetingID); appErr != nil || channelID == "" {
+		return "Can not unsubscribe from meeting: meeting not found", errors.New("meeting not found")
+	}
+	if appErr := p.deleteChannelForMeeting(meetingID); appErr != nil {
+		return "Can not unsubscribe from meeting: unable to delete the meeting subscription", errors.Wrap(appErr, "cannot unsubscribe from meeting")
+	}
+	return "Channel unsubscribed from meeting", nil
+}
+
 // runDisconnectCommand runs command to disconnect from Zoom. Will fail if user cannot connect.
 func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	if !p.canConnect(user) {
@@ -260,7 +310,6 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	}
 
 	err := p.disconnectOAuthUser(user.Id)
-
 	if err != nil {
 		return "Could not disconnect OAuth from Zoom, " + err.Error(), nil
 	}
@@ -424,9 +473,9 @@ func (p *Plugin) runChannelSettingsListCommand(args *model.CommandArgs) (string,
 func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	canConnect := !p.configuration.AccountLevelApp
 
-	available := "start, help, settings, channel-settings"
+	available := "start, help, subscribe, unsubscribe, settings, channel-settings"
 	if canConnect {
-		available = "start, connect, disconnect, help, settings, channel-settings"
+		available = "start, connect, disconnect, help, subscribe, unsubscribe, settings, channel-settings"
 	}
 
 	zoom := model.NewAutocompleteData("zoom", "[command]", fmt.Sprintf("Available commands: %s", available))
@@ -444,6 +493,12 @@ func (p *Plugin) getAutocompleteData() *model.AutocompleteData {
 	// setting to allow the user to decide whether to use PMI for instant meetings
 	setting := model.NewAutocompleteData("settings", "", "Update your meeting ID preferences")
 	zoom.AddCommand(setting)
+
+	subscribe := model.NewAutocompleteData("subscribe", "[meeting id]", "Subscribe this channel to a Zoom meeting")
+	zoom.AddCommand(subscribe)
+
+	unsubscribe := model.NewAutocompleteData("unsubscribe", "[meeting id]", "Unsubscribe this channel from a Zoom meeting")
+	zoom.AddCommand(unsubscribe)
 
 	// channel-settings to update channel preferences
 	channelSettings := model.NewAutocompleteData("channel-settings", "", "Update current channel preference")

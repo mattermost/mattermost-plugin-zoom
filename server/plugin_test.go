@@ -65,10 +65,10 @@ func TestPlugin(t *testing.T) {
 	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
+	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234", "uuid": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started", "payload": {"object": {"id": "234", "uuid": "234"}}}`))
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
@@ -131,6 +131,12 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
 			api.On("KVGet", "zoomtoken_theuserid").Return(userInfo, nil)
+			api.On("KVGet", "meeting_channel_234").Return([]byte("thechannelid"), nil)
+			api.On("KVGet", "zoomtoken_"+botUserID).Return(userInfo, nil)
+			api.On("GetUser", botUserID).Return(&model.User{
+				Id: botUserID,
+			}, nil)
+			api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/234"}, &model.WebsocketBroadcast{UserId: botUserID}).Return()
 
 			api.On("SendEphemeralPost", "theuserid", mock.AnythingOfType("*model.Post")).Return(nil)
 
