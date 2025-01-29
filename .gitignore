@@ -32,3 +32,6 @@ server/manifest.go
 #IDEs
 /.idea
 /.vscode
+
+# notice
+.notice-work
