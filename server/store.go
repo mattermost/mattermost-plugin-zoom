@@ -150,17 +150,17 @@ func (p *Plugin) storeMeetingPostID(meetingID int, postID string) *model.AppErro
 
 func (p *Plugin) fetchMeetingPostID(meetingID string) (string, error) {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingID)
-	var postID string
-	if err := p.client.KV.Get(key, &postID); err != nil {
+	var postIDData []byte
+	if err := p.client.KV.Get(key, &postIDData); err != nil {
 		p.client.Log.Debug("Could not get meeting post from KVStore", "error", err.Error())
 		return "", err
 	}
 
-	if postID == "" {
+	if postIDData == nil {
 		return "", errors.New("stored meeting post ID not found")
 	}
 
-	return postID, nil
+	return string(postIDData), nil
 }
 
 func (p *Plugin) deleteMeetingPostID(postID string) error {
