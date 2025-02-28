@@ -752,6 +752,10 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 	}
 
 	for _, post := range postList.ToSlice() {
+		if post.DeleteAt != 0 {
+			continue
+		}
+
 		meetingProvider := getString("meeting_provider", post.Props)
 		if meetingProvider == "" {
 			continue
