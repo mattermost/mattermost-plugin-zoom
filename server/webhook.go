@@ -69,7 +69,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body []byte) {
+func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, _ *http.Request, body []byte) {
 	var webhook zoom.MeetingWebhook
 	if err := json.Unmarshal(body, &webhook); err != nil {
 		p.client.Log.Error("Error unmarshaling meeting webhook", "err", err.Error())
@@ -169,7 +169,7 @@ func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error 
 	return nil
 }
 
-func (p *Plugin) handleValidateZoomWebhook(w http.ResponseWriter, r *http.Request, body []byte) {
+func (p *Plugin) handleValidateZoomWebhook(w http.ResponseWriter, _ *http.Request, body []byte) {
 	config := p.getConfiguration()
 	if config.ZoomWebhookSecret == "" {
 		p.API.LogWarn("Failed to validate Zoom webhook: Zoom webhook secret not set")
