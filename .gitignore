@@ -20,6 +20,7 @@ server/vendor
 node_modules
 .npminstall
 webapp/dist
+bin
 
 # Manifest files
 webapp/src/manifest.ts

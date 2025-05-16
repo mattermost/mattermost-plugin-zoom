@@ -81,7 +81,7 @@ func (c *OAuthClient) GetMeeting(meetingID int) (*Meeting, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("%d error returned while fetching Zoom meeting", res.StatusCode))
+		return nil, fmt.Errorf("%d error returned while fetching Zoom meeting", res.StatusCode)
 	}
 
 	buf, err := io.ReadAll(res.Body)
@@ -195,7 +195,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("%d error returned while fetching Zoom user", res.StatusCode))
+		return nil, fmt.Errorf("%d error returned while fetching Zoom user", res.StatusCode)
 	}
 
 	buf := new(bytes.Buffer)
