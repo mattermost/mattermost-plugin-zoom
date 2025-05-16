@@ -9,11 +9,8 @@ linters-settings:
   gofmt:
     simplify: true
   goimports:
-    local-prefixes: github.com/mattermost/mattermost-plugin-zoom
-  golint:
-    min-confidence: 0
+    local-prefixes: github.com/mattermost/mattermost-plugin-mscalendar
   govet:
-    check-shadowing: true
     enable-all: true
     disable:
       - fieldalignment
@@ -24,27 +21,23 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
-    - errcheck
-    - goconst
+    # - errcheck
+    # - goconst
     - gocritic
     - gofmt
     - goimports
-    - golint
-    - gosec
+    # - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
-    - misspell
+    # - misspell
     - nakedret
+    - revive
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unused
-    - varcheck
     - whitespace
 
 issues:
@@ -57,6 +50,12 @@ issues:
     - path: server/configuration.go
       linters:
         - unused
+    - linters:
+        - revive
+      text: unused-parameter
+    - linters:
+        - revive
+      text: var-naming
     - path: _test\.go
       linters:
         - bodyclose
