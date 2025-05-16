@@ -9,7 +9,7 @@ linters-settings:
   gofmt:
     simplify: true
   goimports:
-    local-prefixes: github.com/mattermost/mattermost-plugin-mscalendar
+    local-prefixes: github.com/mattermost/mattermost-plugin-zoom
   govet:
     enable-all: true
     disable:
