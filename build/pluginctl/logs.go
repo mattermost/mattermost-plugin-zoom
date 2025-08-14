@@ -86,8 +86,8 @@ func watchLogs(ctx context.Context, client *model.Client4, pluginID string) erro
 	}
 }
 
-// checkOldestEntry check a if logs contains new log entries.
-// It returns the filtered slice of log entries, the new oldest entry and whether or not all entries were new.
+// checkOldestEntry check if logs contains new log entries.
+// It returns the filtered slice of log entries, the new oldest entry and whether all entries were new.
 func checkOldestEntry(logs []string, oldest string) ([]string, string, bool) {
 	if len(logs) == 0 {
 		return nil, oldest, false
@@ -126,7 +126,7 @@ func fetchLogs(ctx context.Context, client *model.Client4, page, perPage int, pl
 }
 
 // filterLogEntries filters a given slice of log entries by pluginID.
-// It also filters out any entries which timestamps are older then since.
+// It also filters out any entries which timestamps are older than since.
 func filterLogEntries(logs []string, pluginID string, since time.Time) ([]string, error) {
 	type logEntry struct {
 		PluginID  string `json:"plugin_id"`
