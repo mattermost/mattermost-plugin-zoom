@@ -20,13 +20,13 @@
   },
   "dependencies": {
     "core-js": "3.7.0",
-    "mattermost-redux": "5.33.1",
+    "mattermost-redux": "10.8.0",
     "prop-types": "15.7.2",
     "react": "17.0.1",
     "react-intl": "5.20.13",
     "react-redux": "7.2.2",
     "redux": "4.0.5",
-    "typescript": "4.6.4"
+    "typescript": "4.9.5"
   },
   "devDependencies": {
     "@babel/cli": "7.24.7",
@@ -41,6 +41,9 @@
     "@babel/runtime": "7.27.1",
     "@emotion/babel-preset-css-prop": "11.2.0",
     "@emotion/react": "11.11.0",
+    "@mattermost/client": "10.8.0",
+    "@mattermost/types": "10.8.0",
+    "@types/node": "24.0.13",
     "@typescript-eslint/eslint-plugin": "5.10.1",
     "@typescript-eslint/parser": "5.10.1",
     "babel-eslint": "10.1.0",
@@ -53,5 +56,8 @@
     "eslint-plugin-react": "7.21.5",
     "webpack": "5.94.0",
     "webpack-cli": "5.1.4"
+  },
+  "overrides": {
+    "@mattermost/types": "$@mattermost/types"
   }
 }
