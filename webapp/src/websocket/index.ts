@@ -2,5 +2,5 @@
 // See LICENSE.txt for license information.
 
 export function handleMeetingStarted(msg: { data: { meeting_url: string } }) {
-  window.open(msg.data.meeting_url, "_blank");
+    window.open(msg.data.meeting_url, '_blank');
 }
