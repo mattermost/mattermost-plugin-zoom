@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -22,9 +21,10 @@ const (
 	httpTimeout = time.Second * 10
 	// OAuthPrompt stores the template to show the users to connect to Zoom
 	OAuthPrompt       = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
-	ErrFetchingUser   = "error returned while fetching Zoom user"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
+
+var ErrFetchingUser = errors.New("error returned while fetching Zoom user")
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
 type OAuthUserInfo struct {
@@ -61,7 +61,7 @@ func (c *OAuthClient) GetUser(user *model.User, firstConnect bool) (*User, *Auth
 			return nil, &AuthError{fmt.Sprintf("Error fetching user: %s", err), err}
 		}
 
-		if strings.Contains(err.Error(), ErrFetchingUser) {
+		if errors.Is(err, ErrFetchingUser) {
 			return nil, &AuthError{"Error fetching user from Zoom", err}
 		}
 
@@ -201,7 +201,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%d %s", res.StatusCode, ErrFetchingUser)
+		return nil, fmt.Errorf("%d %w", res.StatusCode, ErrFetchingUser)
 	}
 
 	buf := new(bytes.Buffer)
