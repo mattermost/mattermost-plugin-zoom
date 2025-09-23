@@ -24,6 +24,8 @@ const (
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
 
+var ErrFetchingUser = errors.New("error returned while fetching Zoom user")
+
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
 type OAuthUserInfo struct {
 	ZoomEmail  string
@@ -57,6 +59,10 @@ func (c *OAuthClient) GetUser(user *model.User, firstConnect bool) (*User, *Auth
 			}
 
 			return nil, &AuthError{fmt.Sprintf("Error fetching user: %s", err), err}
+		}
+
+		if errors.Is(err, ErrFetchingUser) {
+			return nil, &AuthError{"Error fetching user from Zoom", err}
 		}
 
 		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
@@ -195,7 +201,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%d error returned while fetching Zoom user", res.StatusCode)
+		return nil, fmt.Errorf("%d %w", res.StatusCode, ErrFetchingUser)
 	}
 
 	buf := new(bytes.Buffer)
