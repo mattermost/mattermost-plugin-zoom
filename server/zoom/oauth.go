@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -115,7 +116,8 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 		return nil, err
 	}
 
-	res, err := client.Post(fmt.Sprintf("%s/users/%s/meetings", c.apiURL, user.Email), "application/json", bytes.NewReader(b))
+	urlStr := fmt.Sprintf("%s/users/%s/meetings", c.apiURL, url.PathEscape(user.Email))
+	res, err := client.Post(urlStr, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +137,9 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 }
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*User, error) {
-	url := fmt.Sprintf("%s/users/me", c.apiURL)
+	urlStr := fmt.Sprintf("%s/users/me", c.apiURL)
 	if c.isAccountLevel {
-		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
+		urlStr = fmt.Sprintf("%s/users/%s", c.apiURL, url.PathEscape(user.Email))
 	}
 
 	if !firstConnect {
@@ -189,7 +191,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 
 	client := c.config.Client(context.Background(), c.token)
 
-	res, err := client.Get(url)
+	res, err := client.Get(urlStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching Zoom user")
 	}
