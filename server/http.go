@@ -481,7 +481,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
-	/////////////////
 
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
