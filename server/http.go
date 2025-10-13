@@ -120,6 +120,25 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 	channelID := postActionIntegrationRequest.Context[channelIDForContext].(string)
 	rootID := postActionIntegrationRequest.Context[rootIDForContext].(string)
 
+	userIDFromHeader := r.Header.Get("Mattermost-User-Id")
+	if userIDFromHeader != userID {
+		p.API.LogWarn("User ID mismatch", "header_user_id", userIDFromHeader, "context_user_id", userID)
+		return
+	}
+
+	if action != usePersonalMeetingID && action != useAUniqueMeetingID {
+		p.API.LogWarn("Invalid meeting action", "action", action)
+		return
+	}
+
+	// Attempt to get ephemeral post should return an error.
+	// Validate bot ownership if not an ephemeral post.
+	oldPost, appErr := p.client.Post.GetPost(rootID)
+	if appErr == nil && oldPost.UserId != p.botUserID {
+		p.API.LogWarn("Post not created by bot", "post_id", rootID, "user_id", oldPost.UserId)
+		return
+	}
+
 	slackAttachment := model.SlackAttachment{
 		Text: fmt.Sprintf("You have selected `%s` to start the meeting.", action),
 	}
@@ -462,6 +481,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
 	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
+	/////////////////
 
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
