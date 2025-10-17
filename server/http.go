@@ -110,7 +110,7 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 		p.API.LogWarn("Error decoding PostActionIntegrationRequest params.", "Error", err.Error())
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, "failed to write the response", http.StatusBadRequest)
+			http.Error(w, "failed to write the response", http.StatusInternalServerError)
 		}
 		return
 	}
