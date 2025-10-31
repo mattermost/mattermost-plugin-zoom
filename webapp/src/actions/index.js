@@ -9,10 +9,8 @@ export function startMeeting(channelId, rootId = '', force = false, topic = '') 
     return async (dispatch, getState) => {
         const userId = getState().entities.bots.accounts.user_id;
         try {
-            const {meetingUrl, error} = await Client.startMeeting(channelId, rootId, topic, force);
-            if (meetingUrl) {
-                window.open(meetingUrl);
-            } else if (error) {
+            const {error} = await Client.startMeeting(channelId, rootId, topic, force);
+            if (error) {
                 dispatchError(dispatch, channelId, rootId, userId, error);
                 return error;
             }

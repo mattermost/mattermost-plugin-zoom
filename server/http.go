@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -175,7 +176,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", appErr.Error())
+		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", authErr.Error())
 		return
 	}
 
@@ -284,8 +285,8 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := p.getOAuthConfig()
-	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusFound)
+	urlStr := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	http.Redirect(w, r, urlStr, http.StatusFound)
 }
 
 func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
@@ -461,7 +462,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, channelID strin
 }
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", url.PathEscape(manifest.Id), pathAskPMI)
 
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
@@ -607,6 +608,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if r.URL.Query().Get("force") != "" {
@@ -895,7 +897,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue string) *model.SlackAttachment {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", url.PathEscape(manifest.Id), pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: "Failed to set your preference",

@@ -71,7 +71,7 @@ func (p *Plugin) fetchOAuthUserInfo(tokenKey, userID string) (*zoom.OAuthUserInf
 
 	var info zoom.OAuthUserInfo
 	if err := json.Unmarshal(encoded, &info); err != nil {
-		return nil, errors.New("could not to parse OAauth access token")
+		return nil, errors.New("could not parse OAuth access token")
 	}
 
 	plainToken, err := decrypt([]byte(config.EncryptionKey), info.OAuthToken.AccessToken)

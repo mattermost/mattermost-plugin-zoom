@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -204,7 +205,7 @@ func distManifest(manifest *model.Manifest) error {
 		return err
 	}
 
-	if err := os.WriteFile(fmt.Sprintf("dist/%s/plugin.json", manifest.Id), manifestBytes, 0600); err != nil {
+	if err := os.WriteFile(fmt.Sprintf("dist/%s/plugin.json", url.PathEscape(manifest.Id)), manifestBytes, 0600); err != nil {
 		return errors.Wrap(err, "failed to write plugin.json")
 	}
 

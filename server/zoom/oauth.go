@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -23,6 +24,8 @@ const (
 	OAuthPrompt       = "[Click here to link your Zoom account.](%s/plugins/zoom/oauth2/connect)"
 	zoomEmailMismatch = "We could not verify your Mattermost account in Zoom. Please ensure that your Mattermost email address %s matches your Zoom login email address."
 )
+
+var ErrFetchingUser = errors.New("error returned while fetching Zoom user")
 
 // OAuthUserInfo represents a Zoom user authenticated via OAuth.
 type OAuthUserInfo struct {
@@ -57,6 +60,10 @@ func (c *OAuthClient) GetUser(user *model.User, firstConnect bool) (*User, *Auth
 			}
 
 			return nil, &AuthError{fmt.Sprintf("Error fetching user: %s", err), err}
+		}
+
+		if errors.Is(err, ErrFetchingUser) {
+			return nil, &AuthError{"Error fetching user from Zoom", err}
 		}
 
 		return nil, &AuthError{fmt.Sprintf(OAuthPrompt, c.siteURL), err}
@@ -109,7 +116,8 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 		return nil, err
 	}
 
-	res, err := client.Post(fmt.Sprintf("%s/users/%s/meetings", c.apiURL, user.Email), "application/json", bytes.NewReader(b))
+	urlStr := fmt.Sprintf("%s/users/%s/meetings", c.apiURL, url.PathEscape(user.Email))
+	res, err := client.Post(urlStr, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
@@ -129,9 +137,9 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 }
 
 func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*User, error) {
-	url := fmt.Sprintf("%s/users/me", c.apiURL)
+	urlStr := fmt.Sprintf("%s/users/me", c.apiURL)
 	if c.isAccountLevel {
-		url = fmt.Sprintf("%s/users/%s", c.apiURL, user.Email)
+		urlStr = fmt.Sprintf("%s/users/%s", c.apiURL, url.PathEscape(user.Email))
 	}
 
 	if !firstConnect {
@@ -183,7 +191,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 
 	client := c.config.Client(context.Background(), c.token)
 
-	res, err := client.Get(url)
+	res, err := client.Get(urlStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching Zoom user")
 	}
@@ -195,7 +203,7 @@ func (c *OAuthClient) getUserViaOAuth(user *model.User, firstConnect bool) (*Use
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%d error returned while fetching Zoom user", res.StatusCode)
+		return nil, fmt.Errorf("%d %w", res.StatusCode, ErrFetchingUser)
 	}
 
 	buf := new(bytes.Buffer)
