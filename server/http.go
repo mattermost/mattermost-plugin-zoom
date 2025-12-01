@@ -659,6 +659,21 @@ func (p *Plugin) handleChannelPreference(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	headerUserID := r.Header.Get(MattermostUserIDHeader)
+	if headerUserID == "" {
+		p.API.LogError("Missing Mattermost-User-Id header")
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	if headerUserID != submitRequest.UserId {
+		p.API.LogWarn("User ID mismatch in channel preference request",
+			"header_user_id", headerUserID,
+			"payload_user_id", submitRequest.UserId)
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
 	if !p.API.HasPermissionTo(submitRequest.UserId, model.PermissionManageSystem) {
 		p.API.LogError("Unable to resolve request due to insufficient permissions", "UserID", submitRequest.UserId)
 		http.Error(w, "Insufficient permissions", http.StatusForbidden)
