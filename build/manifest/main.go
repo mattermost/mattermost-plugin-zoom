@@ -136,7 +136,10 @@ func findManifest() (*model.Manifest, error) {
 
 	// If no release notes specified, generate one from the latest tag, if present.
 	if manifest.ReleaseNotesURL == "" && BuildTagLatest != "" {
-		manifest.ReleaseNotesURL = manifest.HomepageURL + "releases/tag/" + BuildTagLatest
+		manifest.ReleaseNotesURL, err = url.JoinPath(manifest.HomepageURL, "releases", "tag", BuildTagLatest)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to generate release notes URL")
+		}
 	}
 
 	return &manifest, nil
