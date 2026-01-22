@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -140,6 +141,8 @@ func (p *Plugin) verifyMattermostWebhookSecret(r *http.Request) bool {
 	return subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) == 1
 }
 
+const webhookTimestampMaxAge = 5 * time.Minute
+
 func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error {
 	config := p.getConfiguration()
 	if config.ZoomWebhookSecret == "" {
@@ -153,6 +156,17 @@ func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error 
 	}
 
 	ts := r.Header.Get("x-zm-request-timestamp")
+
+	// Validate timestamp to prevent replay attacks
+	tsInt, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		return errors.New("invalid timestamp format")
+	}
+
+	requestTime := time.Unix(tsInt, 0)
+	if time.Since(requestTime) > webhookTimestampMaxAge {
+		return errors.New("webhook timestamp is too old")
+	}
 
 	msg := fmt.Sprintf("v0:%s:%s", ts, string(body))
 	hash, err := createWebhookSignatureHash(config.ZoomWebhookSecret, msg)
