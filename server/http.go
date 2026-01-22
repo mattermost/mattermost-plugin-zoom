@@ -116,10 +116,25 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	action := postActionIntegrationRequest.Context[actionForContext].(string)
-	userID := postActionIntegrationRequest.Context[userIDForContext].(string)
-	channelID := postActionIntegrationRequest.Context[channelIDForContext].(string)
-	rootID := postActionIntegrationRequest.Context[rootIDForContext].(string)
+	action, ok := postActionIntegrationRequest.Context[actionForContext].(string)
+	if !ok {
+		p.API.LogWarn("Missing or invalid action in context")
+		http.Error(w, "missing action in request context", http.StatusBadRequest)
+		return
+	}
+	userID, ok := postActionIntegrationRequest.Context[userIDForContext].(string)
+	if !ok {
+		p.API.LogWarn("Missing or invalid userID in context")
+		http.Error(w, "missing userID in request context", http.StatusBadRequest)
+		return
+	}
+	channelID, ok := postActionIntegrationRequest.Context[channelIDForContext].(string)
+	if !ok {
+		p.API.LogWarn("Missing or invalid channelID in context")
+		http.Error(w, "missing channelID in request context", http.StatusBadRequest)
+		return
+	}
+	rootID, _ := postActionIntegrationRequest.Context[rootIDForContext].(string)
 
 	userIDFromHeader := r.Header.Get("Mattermost-User-Id")
 	if userIDFromHeader != userID {
@@ -249,7 +264,18 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	action := postActionIntegrationRequest.Context[actionForContext].(string)
+	actionVal, ok := postActionIntegrationRequest.Context[actionForContext]
+	if !ok {
+		p.API.LogWarn("Missing action in context")
+		http.Error(w, "missing action in request context", http.StatusBadRequest)
+		return
+	}
+	action, ok := actionVal.(string)
+	if !ok {
+		p.API.LogWarn("Invalid action type in context")
+		http.Error(w, "invalid action type in request context", http.StatusBadRequest)
+		return
+	}
 	mattermostUserID := r.Header.Get(MattermostUserIDHeader)
 	if mattermostUserID == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
