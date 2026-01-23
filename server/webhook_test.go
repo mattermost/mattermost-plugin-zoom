@@ -119,6 +119,34 @@ func TestWebhookVerifySignature(t *testing.T) {
 
 		require.Equal(t, 401, w.Result().StatusCode)
 	})
+
+	t.Run("future timestamp is rejected", func(t *testing.T) {
+		api := &plugintest.API{}
+		p := Plugin{}
+		p.setConfiguration(testConfig)
+
+		api.On("GetLicense").Return(nil)
+		api.On("LogWarn", "Could not verify webhook signature: webhook timestamp is too far in the future")
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
+
+		ts := fmt.Sprintf("%d", time.Now().Add(10*time.Minute).Unix())
+		msg := fmt.Sprintf("v0:%s:%s", ts, requestBody)
+		hash, _ := createWebhookSignatureHash("zoomwebhooksecret", msg)
+		signature := fmt.Sprintf("v0=%s", hash)
+
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+
+		require.Equal(t, 401, w.Result().StatusCode)
+	})
 }
 
 func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {

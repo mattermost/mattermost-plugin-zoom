@@ -164,8 +164,12 @@ func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error 
 	}
 
 	requestTime := time.Unix(tsInt, 0)
-	if time.Since(requestTime) > webhookTimestampMaxAge {
+	timeDiff := time.Since(requestTime)
+	if timeDiff > webhookTimestampMaxAge {
 		return errors.New("webhook timestamp is too old")
+	}
+	if timeDiff < -webhookTimestampMaxAge {
+		return errors.New("webhook timestamp is too far in the future")
 	}
 
 	msg := fmt.Sprintf("v0:%s:%s", ts, string(body))
