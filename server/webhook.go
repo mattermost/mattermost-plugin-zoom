@@ -23,6 +23,8 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
+const maxWebhookBodySize = 1 << 20 // 1MB
+
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyMattermostWebhookSecret(r) {
 		p.API.LogWarn("Could not verify Mattermost webhook secret")
@@ -37,10 +39,15 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := io.ReadAll(r.Body)
+	b, err := io.ReadAll(io.LimitReader(r.Body, maxWebhookBodySize+1))
 	if err != nil {
 		p.API.LogWarn("Cannot read body from Webhook")
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if int64(len(b)) > maxWebhookBodySize {
+		p.API.LogWarn("Webhook request body too large")
+		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 
