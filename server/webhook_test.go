@@ -207,3 +207,27 @@ func TestWebhookVerifySignatureInvalid(t *testing.T) {
 
 	require.Equal(t, 401, w.Result().StatusCode)
 }
+
+func TestWebhookBodyTooLarge(t *testing.T) {
+	api := &plugintest.API{}
+	p := Plugin{}
+	p.setConfiguration(testConfig)
+
+	api.On("GetLicense").Return(nil)
+	api.On("LogWarn", "Webhook request body too large")
+	p.SetAPI(api)
+
+	largeBody := make([]byte, maxWebhookBodySize+100)
+	for i := range largeBody {
+		largeBody[i] = 'a'
+	}
+
+	w := httptest.NewRecorder()
+	reqBody := io.NopCloser(bytes.NewReader(largeBody))
+	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+	request.Header.Add("Content-Type", "application/json")
+
+	p.ServeHTTP(&plugin.Context{}, w, request)
+
+	require.Equal(t, 413, w.Result().StatusCode)
+}
