@@ -19,12 +19,12 @@ export default class Client {
         });
 
         return {meetingUrl: res.meeting_url, error: res.error};
-    }
+    };
 
     getChannelIdForThread = async (baseURL, threadId) => {
         const threadDetails = await doGet(`${baseURL}/api/v4/posts/${threadId}/thread`);
         return threadDetails.posts[threadId].channel_id;
-    }
+    };
 }
 
 export const doPost = async (url, body, headers = {}) => {
