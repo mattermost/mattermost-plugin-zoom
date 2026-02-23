@@ -1,3 +1,6 @@
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
 package main
 
 import (
@@ -21,6 +24,7 @@ import (
 )
 
 const bearerString = "Bearer "
+const maxWebhookBodySize = 1 << 20 // 1MB
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyMattermostWebhookSecret(r) {
@@ -36,16 +40,21 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := io.ReadAll(r.Body)
+	b, err := io.ReadAll(io.LimitReader(r.Body, maxWebhookBodySize+1))
 	if err != nil {
 		p.API.LogWarn("Cannot read body from Webhook")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if int64(len(b)) > maxWebhookBodySize {
+		p.API.LogWarn("Webhook request body too large")
+		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	var webhook zoom.Webhook
 	if err = json.Unmarshal(b, &webhook); err != nil {
-		p.API.LogError("Error unmarshaling webhook", "err", err.Error())
+		p.API.LogError("Error unmarshalling webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -117,7 +126,7 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body []byte) {
 	var webhook zoom.MeetingWebhook
 	if err := json.Unmarshal(body, &webhook); err != nil {
-		p.client.Log.Error("Error unmarshaling meeting webhook", "err", err.Error())
+		p.client.Log.Error("Error unmarshalling meeting webhook", "err", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -376,6 +385,8 @@ func (p *Plugin) verifyMattermostWebhookSecret(r *http.Request) bool {
 	return subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("secret")), []byte(config.WebhookSecret)) == 1
 }
 
+const webhookTimestampMaxAge = 5 * time.Minute
+
 func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error {
 	config := p.getConfiguration()
 	if config.ZoomWebhookSecret == "" {
@@ -385,10 +396,25 @@ func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error 
 	var webhook zoom.Webhook
 	err := json.Unmarshal(body, &webhook)
 	if err != nil {
-		return errors.Wrap(err, "error unmarshaling webhook payload")
+		return errors.Wrap(err, "error unmarshalling webhook payload")
 	}
 
 	ts := r.Header.Get("x-zm-request-timestamp")
+
+	// Validate timestamp to prevent replay attacks
+	tsInt, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		return errors.New("invalid timestamp format")
+	}
+
+	requestTime := time.Unix(tsInt, 0)
+	timeDiff := time.Since(requestTime)
+	if timeDiff > webhookTimestampMaxAge {
+		return errors.New("webhook timestamp is too old")
+	}
+	if timeDiff < -webhookTimestampMaxAge {
+		return errors.New("webhook timestamp is too far in the future")
+	}
 
 	msg := fmt.Sprintf("v0:%s:%s", ts, string(body))
 	hash, err := createWebhookSignatureHash(config.ZoomWebhookSecret, msg)
@@ -405,7 +431,7 @@ func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error 
 	return nil
 }
 
-func (p *Plugin) handleValidateZoomWebhook(w http.ResponseWriter, r *http.Request, body []byte) {
+func (p *Plugin) handleValidateZoomWebhook(w http.ResponseWriter, _ *http.Request, body []byte) {
 	config := p.getConfiguration()
 	if config.ZoomWebhookSecret == "" {
 		p.API.LogWarn("Failed to validate Zoom webhook: Zoom webhook secret not set")

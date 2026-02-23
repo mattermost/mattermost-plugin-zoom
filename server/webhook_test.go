@@ -1,3 +1,6 @@
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
 package main
 
 import (
@@ -6,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -151,9 +155,107 @@ func TestHandleMeetingStarted(t *testing.T) {
 }
 
 func TestWebhookVerifySignature(t *testing.T) {
+	t.Run("recent timestamp with valid signature", func(t *testing.T) {
+		api := &plugintest.API{}
+		p := Plugin{}
+		p.setConfiguration(testConfig)
+
+		api.On("GetLicense").Return(nil)
+		api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
+		api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
+		p.SetAPI(api)
+		p.client = pluginapi.NewClient(p.API, p.Driver)
+
+		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
+
+		ts := fmt.Sprintf("%d", time.Now().Unix())
+		msg := fmt.Sprintf("v0:%s:%s", ts, requestBody)
+		hash, _ := createWebhookSignatureHash("zoomwebhooksecret", msg)
+		signature := fmt.Sprintf("v0=%s", hash)
+
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+		body, _ := io.ReadAll(w.Result().Body)
+		t.Log(string(body))
+
+		require.Equal(t, 200, w.Result().StatusCode)
+	})
+
+	t.Run("old timestamp is rejected", func(t *testing.T) {
+		api := &plugintest.API{}
+		p := Plugin{}
+		p.setConfiguration(testConfig)
+
+		api.On("GetLicense").Return(nil)
+		api.On("LogWarn", "Could not verify webhook signature: webhook timestamp is too old")
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
+
+		ts := fmt.Sprintf("%d", time.Now().Add(-10*time.Minute).Unix())
+		msg := fmt.Sprintf("v0:%s:%s", ts, requestBody)
+		hash, _ := createWebhookSignatureHash("zoomwebhooksecret", msg)
+		signature := fmt.Sprintf("v0=%s", hash)
+
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+
+		require.Equal(t, 401, w.Result().StatusCode)
+	})
+
+	t.Run("future timestamp is rejected", func(t *testing.T) {
+		api := &plugintest.API{}
+		p := Plugin{}
+		p.setConfiguration(testConfig)
+
+		api.On("GetLicense").Return(nil)
+		api.On("LogWarn", "Could not verify webhook signature: webhook timestamp is too far in the future")
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
+
+		ts := fmt.Sprintf("%d", time.Now().Add(10*time.Minute).Unix())
+		msg := fmt.Sprintf("v0:%s:%s", ts, requestBody)
+		hash, _ := createWebhookSignatureHash("zoomwebhooksecret", msg)
+		signature := fmt.Sprintf("v0=%s", hash)
+
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+
+		require.Equal(t, 401, w.Result().StatusCode)
+	})
+}
+
+func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {
 	api := &plugintest.API{}
 	p := Plugin{}
-	p.setConfiguration(testConfig)
+
+	configWithoutSecret := &configuration{
+		OAuthClientID:     "clientid",
+		OAuthClientSecret: "clientsecret",
+		EncryptionKey:     "encryptionkey",
+		WebhookSecret:     "webhooksecret",
+		ZoomWebhookSecret: "",
+	}
+	p.setConfiguration(configWithoutSecret)
 
 	api.On("GetLicense").Return(nil)
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
@@ -166,18 +268,13 @@ func TestWebhookVerifySignature(t *testing.T) {
 	ts := "1660149894817"
 	h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
 	_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
-	signature := "v0=" + hex.EncodeToString(h.Sum(nil))
 
 	w := httptest.NewRecorder()
 	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
 	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 	request.Header.Add("Content-Type", "application/json")
-	request.Header.Add("x-zm-signature", signature)
-	request.Header.Add("x-zm-request-timestamp", ts)
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
-	body, _ := io.ReadAll(w.Result().Body)
-	t.Log(string(body))
 
 	require.Equal(t, 200, w.Result().StatusCode)
 }
@@ -193,8 +290,8 @@ func TestWebhookVerifySignatureInvalid(t *testing.T) {
 
 	requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
 
-	ts := "1660149894817"
-	signature := "v0=7fe2f9e66d133961eff4746eda161096cebe8d677319d66546281d88ea147190"
+	ts := fmt.Sprintf("%d", time.Now().Unix())
+	signature := "v0=invalidsignature1234567890abcdef1234567890abcdef1234567890abcd"
 
 	w := httptest.NewRecorder()
 	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
@@ -206,6 +303,32 @@ func TestWebhookVerifySignatureInvalid(t *testing.T) {
 	p.ServeHTTP(&plugin.Context{}, w, request)
 	body, _ := io.ReadAll(w.Result().Body)
 	t.Log(string(body))
+
+	require.Equal(t, 401, w.Result().StatusCode)
+}
+
+func TestWebhookBodyTooLarge(t *testing.T) {
+	api := &plugintest.API{}
+	p := Plugin{}
+	p.setConfiguration(testConfig)
+
+	api.On("GetLicense").Return(nil)
+	api.On("LogWarn", "Webhook request body too large")
+	p.SetAPI(api)
+
+	largeBody := make([]byte, maxWebhookBodySize+100)
+	for i := range largeBody {
+		largeBody[i] = 'a'
+	}
+
+	w := httptest.NewRecorder()
+	reqBody := io.NopCloser(bytes.NewReader(largeBody))
+	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+	request.Header.Add("Content-Type", "application/json")
+
+	p.ServeHTTP(&plugin.Context{}, w, request)
+
+	require.Equal(t, 413, w.Result().StatusCode)
 }
 
 func TestWebhookHandleTranscriptCompleted(t *testing.T) {

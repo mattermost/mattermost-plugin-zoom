@@ -1,19 +1,19 @@
 {
   "extends": "eslint:recommended",
   "parserOptions": {
-    "ecmaVersion": 8,
+    "ecmaVersion": 2022,
     "sourceType": "module",
     "ecmaFeatures": {
       "jsx": true,
       "impliedStrict": true,
-      "modules": true,
-      "experimentalObjectRestSpread": true
+      "modules": true
     }
   },
-  "parser": "babel-eslint",
+  "parser": "@babel/eslint-parser",
   "plugins": [
     "react",
-    "import"
+    "import",
+    "header"
   ],
   "env": {
     "browser": true,
@@ -135,6 +135,12 @@
     ],
     "global-require": 2,
     "guard-for-in": 2,
+    "header/header": [
+      2,
+      "line",
+      " Copyright (c) 2019-present Mattermost, Inc. All Rights Reserved.\n See LICENSE.txt for license information.",
+      2
+    ],
     "id-blacklist": 0,
     "import/no-unresolved": 2,
     "import/order": [

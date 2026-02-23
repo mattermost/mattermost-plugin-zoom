@@ -1,8 +1,8 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License for license information.
+// Copyright (c) 2019-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {Client4} from 'mattermost-redux/client';
-import {ClientError} from 'mattermost-redux/client/client4';
+import {ClientError} from '@mattermost/client';
 
 import manifest from '../manifest';
 
@@ -19,12 +19,12 @@ export default class Client {
         });
 
         return {meetingUrl: res.meeting_url, error: res.error};
-    }
+    };
 
     getChannelIdForThread = async (baseURL, threadId) => {
         const threadDetails = await doGet(`${baseURL}/api/v4/posts/${threadId}/thread`);
         return threadDetails.posts[threadId].channel_id;
-    }
+    };
 }
 
 export const doPost = async (url, body, headers = {}) => {

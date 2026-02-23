@@ -1,5 +1,8 @@
-// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2019-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
+
+// eslint-disable-next-line no-process-env
+const isTest = process.env.NODE_ENV === 'test';
 
 const config = {
     presets: [
@@ -10,14 +13,14 @@ const config = {
                 edge: 42,
                 safari: 12,
             },
-            modules: false,
+            modules: isTest ? 'commonjs' : false,
             corejs: 3,
             debug: false,
             useBuiltIns: 'usage',
             shippedProposals: true,
         }],
         ['@babel/preset-react', {
-            useBuiltIns: true,
+            runtime: 'automatic',
         }],
         ['@babel/typescript', {
             allExtensions: true,
@@ -26,10 +29,10 @@ const config = {
         ['@emotion/babel-preset-css-prop'],
     ],
     plugins: [
-        '@babel/plugin-proposal-class-properties',
+        '@babel/plugin-transform-class-properties',
         '@babel/plugin-syntax-dynamic-import',
-        '@babel/proposal-object-rest-spread',
-        '@babel/plugin-proposal-optional-chaining',
+        '@babel/plugin-transform-object-rest-spread',
+        '@babel/plugin-transform-optional-chaining',
         'babel-plugin-typescript-to-proptypes',
     ],
 };

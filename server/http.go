@@ -1,5 +1,5 @@
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License for license information.
+// See LICENSE.txt for license information.
 
 package main
 
@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -115,10 +116,47 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	action := postActionIntegrationRequest.Context[actionForContext].(string)
-	userID := postActionIntegrationRequest.Context[userIDForContext].(string)
-	channelID := postActionIntegrationRequest.Context[channelIDForContext].(string)
-	rootID := postActionIntegrationRequest.Context[rootIDForContext].(string)
+	action, ok := postActionIntegrationRequest.Context[actionForContext].(string)
+	if !ok {
+		p.API.LogWarn("Missing or invalid action in context")
+		http.Error(w, "missing action in request context", http.StatusBadRequest)
+		return
+	}
+	userID, ok := postActionIntegrationRequest.Context[userIDForContext].(string)
+	if !ok {
+		p.API.LogWarn("Missing or invalid userID in context")
+		http.Error(w, "missing userID in request context", http.StatusBadRequest)
+		return
+	}
+	channelID, ok := postActionIntegrationRequest.Context[channelIDForContext].(string)
+	if !ok {
+		p.API.LogWarn("Missing or invalid channelID in context")
+		http.Error(w, "missing channelID in request context", http.StatusBadRequest)
+		return
+	}
+	rootID, _ := postActionIntegrationRequest.Context[rootIDForContext].(string)
+
+	userIDFromHeader := r.Header.Get("Mattermost-User-Id")
+	if userIDFromHeader != userID {
+		p.API.LogWarn("User ID mismatch", "header_user_id", userIDFromHeader, "context_user_id", userID)
+		http.Error(w, "user ID mismatch", http.StatusBadRequest)
+		return
+	}
+
+	if action != usePersonalMeetingID && action != useAUniqueMeetingID {
+		p.API.LogWarn("Invalid meeting action", "action", action)
+		http.Error(w, "invalid meeting action", http.StatusBadRequest)
+		return
+	}
+
+	// Attempt to get ephemeral post should return an error.
+	// Validate bot ownership if not an ephemeral post.
+	oldPost, appErr := p.client.Post.GetPost(rootID)
+	if appErr == nil && oldPost.UserId != p.botUserID {
+		p.API.LogWarn("Post not created by bot", "post_id", rootID, "user_id", oldPost.UserId)
+		http.Error(w, "cannot update post created by non-bot user", http.StatusForbidden)
+		return
+	}
 
 	slackAttachment := model.SlackAttachment{
 		Text: fmt.Sprintf("You have selected `%s` to start the meeting.", action),
@@ -140,6 +178,7 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 
 		if err := p.storeUserPreference(userID, val); err != nil {
 			p.API.LogWarn("failed to update preferences for the user", "Error", err.Error())
+			http.Error(w, "failed to update preferences for the user", http.StatusInternalServerError)
 			return
 		}
 
@@ -159,6 +198,7 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 	p.API.UpdateEphemeralPost(userID, post)
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(post); err != nil {
 		p.API.LogError("failed to write response", "Error", err.Error())
 	}
@@ -175,7 +215,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 
 	zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
 	if authErr != nil {
-		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", appErr.Error())
+		p.API.LogWarn("failed to authenticate and fetch the Zoom user", "Error", authErr.Error())
 		return
 	}
 
@@ -225,7 +265,18 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	action := postActionIntegrationRequest.Context[actionForContext].(string)
+	actionVal, ok := postActionIntegrationRequest.Context[actionForContext]
+	if !ok {
+		p.API.LogWarn("Missing action in context")
+		http.Error(w, "missing action in request context", http.StatusBadRequest)
+		return
+	}
+	action, ok := actionVal.(string)
+	if !ok {
+		p.API.LogWarn("Invalid action type in context")
+		http.Error(w, "invalid action type in request context", http.StatusBadRequest)
+		return
+	}
 	mattermostUserID := r.Header.Get(MattermostUserIDHeader)
 	if mattermostUserID == "" {
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
@@ -285,8 +336,8 @@ func (p *Plugin) connectUserToZoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := p.getOAuthConfig()
-	url := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusFound)
+	urlStr := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	http.Redirect(w, r, urlStr, http.StatusFound)
 }
 
 func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request) {
@@ -463,7 +514,7 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID str
 }
 
 func (p *Plugin) askPreferenceForMeeting(userID, channelID, rootID string) {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathAskPMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", url.PathEscape(manifest.Id), pathAskPMI)
 
 	userPMISettingPref, err := p.getPMISettingData(userID)
 	if err != nil {
@@ -609,6 +660,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if r.URL.Query().Get("force") != "" {
@@ -631,6 +683,21 @@ func (p *Plugin) handleChannelPreference(w http.ResponseWriter, r *http.Request)
 
 	if submitRequest.UserId == "" {
 		p.API.LogError("Invalid user ID", "UserID", submitRequest.UserId)
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	headerUserID := r.Header.Get(MattermostUserIDHeader)
+	if headerUserID == "" {
+		p.API.LogError("Missing Mattermost-User-Id header")
+		http.Error(w, "Not authorized", http.StatusUnauthorized)
+		return
+	}
+
+	if headerUserID != submitRequest.UserId {
+		p.API.LogWarn("User ID mismatch in channel preference request",
+			"header_user_id", headerUserID,
+			"payload_user_id", submitRequest.UserId)
 		http.Error(w, "Not authorized", http.StatusUnauthorized)
 		return
 	}
@@ -769,6 +836,10 @@ func (p *Plugin) checkPreviousMessages(channelID string) (recentMeeting bool, me
 	}
 
 	for _, post := range postList.ToSlice() {
+		if post.DeleteAt != 0 {
+			continue
+		}
+
 		meetingProvider := getString("meeting_provider", post.Props)
 		if meetingProvider == "" {
 			continue
@@ -908,7 +979,7 @@ func (p *Plugin) sendUserSettingForm(userID, channelID, rootID string) error {
 }
 
 func (p *Plugin) slackAttachmentToUpdatePMI(currentValue string) *model.SlackAttachment {
-	apiEndPoint := fmt.Sprintf("/plugins/%s%s", manifest.Id, pathUpdatePMI)
+	apiEndPoint := fmt.Sprintf("/plugins/%s%s", url.PathEscape(manifest.Id), pathUpdatePMI)
 
 	slackAttachment := model.SlackAttachment{
 		Fallback: "Failed to set your preference",
