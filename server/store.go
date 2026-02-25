@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -143,14 +144,20 @@ func (p *Plugin) deleteUserState(userID string) *model.AppError {
 	return p.API.KVDelete(key)
 }
 
+// meetingPostKey returns a KV-safe key for a given Zoom meeting UUID.
+// Zoom UUIDs can contain '/' and '=' which may cause issues in KV keys.
+func meetingPostKey(meetingUUID string) string {
+	return postMeetingKey + url.PathEscape(meetingUUID)
+}
+
 func (p *Plugin) storeMeetingPostID(meetingUUID string, postID string) *model.AppError {
-	key := fmt.Sprintf("%v%v", postMeetingKey, meetingUUID)
+	key := meetingPostKey(meetingUUID)
 	b := []byte(postID)
 	return p.API.KVSetWithExpiry(key, b, meetingPostIDTTL)
 }
 
 func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, error) {
-	key := fmt.Sprintf("%v%v", postMeetingKey, meetingUUID)
+	key := meetingPostKey(meetingUUID)
 	var postIDData []byte
 	if err := p.client.KV.Get(key, &postIDData); err != nil {
 		p.client.Log.Debug("Could not get meeting post from KVStore", "error", err.Error())
@@ -164,37 +171,94 @@ func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, error) {
 	return string(postIDData), nil
 }
 
+// meetingChannelEntry stores metadata about a meeting-to-channel mapping.
+type meetingChannelEntry struct {
+	ChannelID      string `json:"channel_id"`
+	IsSubscription bool   `json:"is_subscription"`
+	CreatedBy      string `json:"created_by"`
+}
+
+// Ad-hoc meeting channel entries expire after 24 hours. This must be long
+// enough to cover the full meeting duration (which can be many hours) plus
+// the post-meeting window for recording/transcript webhooks to arrive.
+const adHocMeetingChannelTTL = 60 * 60 * 24
+
+func meetingChannelKVKey(meetingID int) string {
+	return fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
+}
+
+func (p *Plugin) storeSubscriptionForMeeting(meetingID int, channelID, userID string) error {
+	entry := meetingChannelEntry{
+		ChannelID:      channelID,
+		IsSubscription: true,
+		CreatedBy:      userID,
+	}
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	return p.API.KVSet(meetingChannelKVKey(meetingID), data)
+}
+
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {
-	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
-	bytes := []byte(channelID)
-	_, err := p.client.KV.Set(key, bytes)
-	return err
+	key := meetingChannelKVKey(meetingID)
+
+	// If a subscription entry already exists for this meeting, don't overwrite
+	// it with an ad-hoc entry.
+	if existing, _ := p.getMeetingChannelEntry(meetingID); existing != nil && existing.IsSubscription {
+		return nil
+	}
+
+	entry := meetingChannelEntry{
+		ChannelID:      channelID,
+		IsSubscription: false,
+	}
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	return p.API.KVSetWithExpiry(key, data, adHocMeetingChannelTTL)
+}
+
+func (p *Plugin) getMeetingChannelEntry(meetingID int) (*meetingChannelEntry, *model.AppError) {
+	raw, appErr := p.API.KVGet(meetingChannelKVKey(meetingID))
+	if appErr != nil {
+		return nil, appErr
+	}
+	if raw == nil {
+		return nil, nil
+	}
+
+	var entry meetingChannelEntry
+	if err := json.Unmarshal(raw, &entry); err != nil {
+		return nil, nil
+	}
+	if entry.ChannelID == "" {
+		return nil, nil
+	}
+	return &entry, nil
 }
 
 func (p *Plugin) fetchChannelForMeeting(meetingID int) (string, *model.AppError) {
-	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
-	channelID, appErr := p.API.KVGet(key)
+	entry, appErr := p.getMeetingChannelEntry(meetingID)
 	if appErr != nil {
 		p.API.LogDebug("Could not get channel meeting from KVStore", "error", appErr.Error())
 		return "", appErr
 	}
-
-	if channelID == nil {
-		p.API.LogWarn("Stored channel meeting not found")
-		return "", appErr
+	if entry == nil {
+		return "", nil
 	}
-
-	return string(channelID), nil
+	return entry.ChannelID, nil
 }
 
 func (p *Plugin) deleteChannelForMeeting(meetingID int) error {
-	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
+	key := meetingChannelKVKey(meetingID)
 	return p.client.KV.Delete(key)
 }
 
 const kvListPerPage = 100
 
-func (p *Plugin) listAllMeetingSubscriptions() (map[string]string, error) {
+func (p *Plugin) listAllMeetingSubscriptions(userID string) (map[string]string, error) {
 	subscriptions := make(map[string]string)
 
 	for page := 0; ; page++ {
@@ -208,12 +272,26 @@ func (p *Plugin) listAllMeetingSubscriptions() (map[string]string, error) {
 				continue
 			}
 
-			meetingID := strings.TrimPrefix(key, meetingChannelKey)
-			channelIDBytes, kvErr := p.API.KVGet(key)
-			if kvErr != nil || channelIDBytes == nil {
+			raw, kvErr := p.API.KVGet(key)
+			if kvErr != nil || raw == nil {
 				continue
 			}
-			subscriptions[meetingID] = string(channelIDBytes)
+
+			var entry meetingChannelEntry
+			if err := json.Unmarshal(raw, &entry); err != nil || entry.ChannelID == "" {
+				continue
+			}
+
+			if !entry.IsSubscription {
+				continue
+			}
+
+			if entry.CreatedBy != userID {
+				continue
+			}
+
+			meetingID := strings.TrimPrefix(key, meetingChannelKey)
+			subscriptions[meetingID] = entry.ChannelID
 		}
 
 		if len(keys) < kvListPerPage {

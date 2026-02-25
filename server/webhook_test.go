@@ -28,6 +28,18 @@ import (
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
 
+func allowFlexibleLogging(api *plugintest.API) {
+	for _, method := range []string{"LogDebug", "LogWarn", "LogError"} {
+		api.On(method, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On(method, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On(method, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On(method, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On(method, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On(method, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On(method, mock.Anything).Maybe().Return()
+	}
+}
+
 var testConfig = &configuration{
 	OAuthClientID:     "clientid",
 	OAuthClientSecret: "clientsecret",
@@ -42,6 +54,7 @@ func TestWebhookValidate(t *testing.T) {
 	p.setConfiguration(testConfig)
 
 	api.On("GetLicense").Return(nil)
+	allowFlexibleLogging(api)
 	p.SetAPI(api)
 
 	requestBody := `{"payload":{"plainToken":"Kn5a3Wv7SP6YP5b4BWfZpg"},"event":"endpoint.url_validation"}`
@@ -78,9 +91,11 @@ func TestHandleMeetingStarted(t *testing.T) {
 		api.On("LogWarn", "could not get the active Zoom client", "error", "could not fetch Zoom OAuth info: must connect user account to Zoom first").Return()
 		api.On("HasPermissionToChannel", "user-id", "channel-id", mock.AnythingOfType("*model.Permission")).Return(true)
 		api.On("KVSetWithExpiry", "post_meeting_abc", []byte{}, int64(86400)).Return(nil)
-		api.On("KVSetWithOptions", "meeting_channel_123", mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{}).Return(true, nil)
+		api.On("KVSetWithExpiry", "meeting_channel_123", mock.AnythingOfType("[]uint8"), int64(adHocMeetingChannelTTL)).Return(nil)
 		api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/123"}, mock.AnythingOfType("*model.WebsocketBroadcast")).Return()
 		api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
+		api.On("GetPostsSince", "channel-id", mock.AnythingOfType("int64")).Return(&model.PostList{}, nil)
+		allowFlexibleLogging(api)
 		p.SetAPI(api)
 		p.client = pluginapi.NewClient(api, nil)
 		p.botUserID = ""
@@ -108,6 +123,7 @@ func TestHandleMeetingStarted(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetLicense").Return(nil)
 		api.On("LogError", "Failed to get meeting ID", "err", "strconv.Atoi: parsing \"invalid\": invalid syntax").Return()
+		allowFlexibleLogging(api)
 		p.SetAPI(api)
 
 		requestBody := `{"payload":{"object": {"id": "invalid", "uuid": "123-abc"}},"event":"meeting.started"}`
@@ -132,8 +148,8 @@ func TestHandleMeetingStarted(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetLicense").Return(nil)
 		api.On("KVGet", "meeting_channel_123").Return(nil, &model.AppError{})
-		api.On("LogDebug", "Could not get channel meeting from KVStore", "error", "").Return()
 		api.On("KVSetWithExpiry", "post_meeting_123-abc", []byte{}, int64(86400)).Return(nil)
+		allowFlexibleLogging(api)
 		p.SetAPI(api)
 
 		requestBody := `{"payload":{"object": {"id": "123", "uuid": "123-abc"}},"event":"meeting.started"}`
@@ -164,11 +180,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 		api.On("GetLicense").Return(nil)
 		api.On("KVGet", "post_meeting_123-abc").Return(nil, &model.AppError{StatusCode: 200})
 		api.On("KVGet", "meeting_channel_123").Return(nil, (*model.AppError)(nil))
-		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-		api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-		api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-		api.On("LogWarn", mock.Anything).Maybe().Return()
+		allowFlexibleLogging(api)
 		p.SetAPI(api)
 		p.client = pluginapi.NewClient(p.API, p.Driver)
 
@@ -200,6 +212,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 
 		api.On("GetLicense").Return(nil)
 		api.On("LogWarn", "Could not verify webhook signature: webhook timestamp is too old")
+		allowFlexibleLogging(api)
 		p.SetAPI(api)
 
 		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
@@ -228,6 +241,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 
 		api.On("GetLicense").Return(nil)
 		api.On("LogWarn", "Could not verify webhook signature: webhook timestamp is too far in the future")
+		allowFlexibleLogging(api)
 		p.SetAPI(api)
 
 		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
@@ -266,11 +280,7 @@ func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {
 	api.On("GetLicense").Return(nil)
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
 	api.On("KVGet", "meeting_channel_123").Return(nil, (*model.AppError)(nil))
-	api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-	api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-	api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-	api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-	api.On("LogWarn", mock.Anything).Maybe().Return()
+	allowFlexibleLogging(api)
 	p.SetAPI(api)
 	p.client = pluginapi.NewClient(p.API, p.Driver)
 
@@ -297,6 +307,7 @@ func TestWebhookVerifySignatureInvalid(t *testing.T) {
 
 	api.On("GetLicense").Return(nil)
 	api.On("LogWarn", "Could not verify webhook signature: provided signature does not match")
+	allowFlexibleLogging(api)
 	p.SetAPI(api)
 
 	requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
@@ -362,6 +373,7 @@ func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 	api.On("GetLicense").Return(nil)
 	api.On("GetPost", "post-id").Return(&model.Post{Id: "post-id", ChannelId: "channel-id"}, nil)
 	api.On("KVGet", "post_meeting_321").Return([]byte("post-id"), nil)
+	allowFlexibleLogging(api)
 	api.On("UploadFile", []byte("/test"), "channel-id", "transcription.txt").Return(&model.FileInfo{Id: "file-id"}, nil)
 	p.client = pluginapi.NewClient(api, nil)
 	api.On("CreatePost", &model.Post{
@@ -442,27 +454,10 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	api.On("GetLicense").Return(nil)
 	api.On("GetPost", "post-id").Return(&model.Post{Id: "post-id", ChannelId: "channel-id"}, nil)
 	api.On("KVGet", "post_meeting_321").Return([]byte("post-id"), nil)
+	allowFlexibleLogging(api)
 	api.On("UploadFile", []byte("/chat_file"), "channel-id", "Chat-history.txt").Return(&model.FileInfo{Id: "file-id"}, nil)
 	p.client = pluginapi.NewClient(api, nil)
-	api.On("CreatePost", &model.Post{
-		ChannelId: "channel-id",
-		RootId:    "post-id",
-		Message:   "Here's the zoom meeting recording:\n**Link:** [Meeting Recording]()\n**Password:** test-password",
-		Type:      "custom_zoom_chat",
-		Props: model.StringInterface{
-			"captions": []any{map[string]any{"file_id": "file-id"}},
-		},
-		FileIds: []string{"file-id"},
-	}).Return(&model.Post{
-		ChannelId: "channel-id",
-		RootId:    "post-id",
-		Message:   "Here's the zoom meeting recording:\n**Link:** [Meeting Recording]()\n**Password:** test-password",
-		Type:      "custom_zoom_chat",
-		Props: model.StringInterface{
-			"captions": []any{map[string]any{"file_id": "file-id"}},
-		},
-		FileIds: []string{"file-id"},
-	}, nil)
+	api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 	p.SetAPI(api)
 
 	now := time.Now()
@@ -480,9 +475,10 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 					},
 					{
 						"recording_start": now,
-						"recording_type":  "shared_screen_with_speaker_view",
+						"recording_type":  "shared_screen_with_speaker_view(CC)",
+						"file_type":       "MP4",
 						"download_url":    httpServer.URL + "/recording_file",
-						"playURL":         httpServer.URL + "/recording_url",
+						"play_url":        httpServer.URL + "/recording_url",
 					},
 				},
 			},

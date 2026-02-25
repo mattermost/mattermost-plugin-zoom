@@ -500,9 +500,6 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID str
 		},
 	}
 
-	existingChannelID, _ := p.fetchChannelForMeeting(meetingID)
-	post.Props["meeting_subscribed"] = existingChannelID != ""
-
 	createdPost, appErr := p.API.CreatePost(post)
 	if appErr != nil {
 		return appErr

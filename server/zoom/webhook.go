@@ -23,7 +23,8 @@ const (
 
 	RecordingTypeAudioTranscript = "audio_transcript"
 	RecordingTypeChat            = "chat_file"
-	RecordingTypeVideo           = "shared_screen_with_speaker_view"
+
+	RecordingFileTypeMP4 = "MP4"
 )
 
 type MeetingWebhookObject struct {

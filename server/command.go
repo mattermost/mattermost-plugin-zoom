@@ -296,7 +296,7 @@ func (p *Plugin) runSubscriptionListCommand(args *model.CommandArgs) (string, er
 		return "You do not have permission to view subscriptions in this channel.", nil
 	}
 
-	subs, err := p.listAllMeetingSubscriptions()
+	subs, err := p.listAllMeetingSubscriptions(args.UserId)
 	if err != nil {
 		p.client.Log.Error("Unable to list meeting subscriptions", "Error", err.Error())
 		return "Unable to list meeting subscriptions.", nil
@@ -337,7 +337,7 @@ func (p *Plugin) runSubscribeCommand(user *model.User, extra *model.CommandArgs,
 		return "Cannot subscribe to personal meeting", nil
 	}
 
-	if appErr := p.storeChannelForMeeting(meetingID, extra.ChannelId); appErr != nil {
+	if appErr := p.storeSubscriptionForMeeting(meetingID, extra.ChannelId, user.Id); appErr != nil {
 		return "", errors.Wrap(appErr, "cannot subscribe to meeting")
 	}
 

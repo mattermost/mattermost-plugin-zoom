@@ -169,7 +169,8 @@ func TestPlugin(t *testing.T) {
 			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{Atomic: true, OldValue: []uint8(nil), ExpireInSeconds: 15}).Return(true, nil)
 			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
 			api.On("KVSetWithOptions", "post_meeting_234", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
-			api.On("KVSetWithOptions", mock.MatchedBy(func(key string) bool { return strings.HasPrefix(key, meetingChannelKey) }), mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{}).Return(true, nil)
+			api.On("KVGet", mock.MatchedBy(func(key string) bool { return strings.HasPrefix(key, meetingChannelKey) })).Return(nil, (*model.AppError)(nil)).Maybe()
+			api.On("KVSetWithExpiry", mock.MatchedBy(func(key string) bool { return strings.HasPrefix(key, meetingChannelKey) }), mock.AnythingOfType("[]uint8"), int64(adHocMeetingChannelTTL)).Return(nil).Maybe()
 
 			api.On("EnsureBotUser", &model.Bot{
 				Username:    botUserName,
@@ -183,18 +184,7 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 
-			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogWarn", mock.Anything).Maybe().Return()
-			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
-			api.On("LogDebug", mock.Anything).Maybe().Return()
+			allowFlexibleLogging(api)
 
 			path, err := filepath.Abs("..")
 			require.Nil(t, err)
