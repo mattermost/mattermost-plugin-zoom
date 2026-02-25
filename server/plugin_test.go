@@ -169,6 +169,7 @@ func TestPlugin(t *testing.T) {
 			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{Atomic: true, OldValue: []uint8(nil), ExpireInSeconds: 15}).Return(true, nil)
 			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
 			api.On("KVSetWithOptions", "post_meeting_234", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
+			api.On("KVSetWithOptions", mock.MatchedBy(func(key string) bool { return strings.HasPrefix(key, meetingChannelKey) }), mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{}).Return(true, nil)
 
 			api.On("EnsureBotUser", &model.Bot{
 				Username:    botUserName,
@@ -182,8 +183,18 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 
-			api.On("LogWarn", mock.AnythingOfType("string")).Return()
-			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
+			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogWarn", mock.Anything).Maybe().Return()
+			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+			api.On("LogDebug", mock.Anything).Maybe().Return()
 
 			path, err := filepath.Abs("..")
 			require.Nil(t, err)

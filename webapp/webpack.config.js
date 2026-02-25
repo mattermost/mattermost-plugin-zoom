@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 var path = require('path');
+
 var webpack = require('webpack');
 
 module.exports = {

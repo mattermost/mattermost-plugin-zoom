@@ -78,6 +78,7 @@ func TestHandleMeetingStarted(t *testing.T) {
 		api.On("LogWarn", "could not get the active Zoom client", "error", "could not fetch Zoom OAuth info: must connect user account to Zoom first").Return()
 		api.On("HasPermissionToChannel", "user-id", "channel-id", mock.AnythingOfType("*model.Permission")).Return(true)
 		api.On("KVSetWithExpiry", "post_meeting_abc", []byte{}, int64(86400)).Return(nil)
+		api.On("KVSetWithOptions", "meeting_channel_123", mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{}).Return(true, nil)
 		api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/123"}, mock.AnythingOfType("*model.WebsocketBroadcast")).Return()
 		api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
 		p.SetAPI(api)
@@ -91,7 +92,7 @@ func TestHandleMeetingStarted(t *testing.T) {
 		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 		request.Header.Add("Content-Type", "application/json")
 
-		ts := "1660149894817"
+		ts := fmt.Sprintf("%d", time.Now().Unix())
 		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
 		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
 		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
@@ -115,7 +116,7 @@ func TestHandleMeetingStarted(t *testing.T) {
 		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 		request.Header.Add("Content-Type", "application/json")
 
-		ts := "1660149894817"
+		ts := fmt.Sprintf("%d", time.Now().Unix())
 		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
 		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
 		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
@@ -141,7 +142,7 @@ func TestHandleMeetingStarted(t *testing.T) {
 		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
 		request.Header.Add("Content-Type", "application/json")
 
-		ts := "1660149894817"
+		ts := fmt.Sprintf("%d", time.Now().Unix())
 		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
 		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
 		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
@@ -161,12 +162,17 @@ func TestWebhookVerifySignature(t *testing.T) {
 		p.setConfiguration(testConfig)
 
 		api.On("GetLicense").Return(nil)
-		api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
-		api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
+		api.On("KVGet", "post_meeting_123-abc").Return(nil, &model.AppError{StatusCode: 200})
+		api.On("KVGet", "meeting_channel_123").Return(nil, (*model.AppError)(nil))
+		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+		api.On("LogWarn", mock.Anything).Maybe().Return()
 		p.SetAPI(api)
 		p.client = pluginapi.NewClient(p.API, p.Driver)
 
-		requestBody := `{"payload":{"object": {"id": "123"}},"event":"meeting.ended"}`
+		requestBody := `{"payload":{"object": {"id": "123", "uuid": "123-abc"}},"event":"meeting.ended"}`
 
 		ts := fmt.Sprintf("%d", time.Now().Unix())
 		msg := fmt.Sprintf("v0:%s:%s", ts, requestBody)
@@ -184,7 +190,7 @@ func TestWebhookVerifySignature(t *testing.T) {
 		body, _ := io.ReadAll(w.Result().Body)
 		t.Log(string(body))
 
-		require.Equal(t, 200, w.Result().StatusCode)
+		require.Equal(t, http.StatusNotFound, w.Result().StatusCode)
 	})
 
 	t.Run("old timestamp is rejected", func(t *testing.T) {
@@ -259,7 +265,12 @@ func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {
 
 	api.On("GetLicense").Return(nil)
 	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
-	api.On("LogDebug", "Could not get meeting post from KVStore", "error", "")
+	api.On("KVGet", "meeting_channel_123").Return(nil, (*model.AppError)(nil))
+	api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+	api.On("LogDebug", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+	api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+	api.On("LogWarn", mock.Anything, mock.Anything, mock.Anything).Maybe().Return()
+	api.On("LogWarn", mock.Anything).Maybe().Return()
 	p.SetAPI(api)
 	p.client = pluginapi.NewClient(p.API, p.Driver)
 
@@ -276,7 +287,7 @@ func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
 
-	require.Equal(t, 200, w.Result().StatusCode)
+	require.Equal(t, http.StatusNotFound, w.Result().StatusCode)
 }
 
 func TestWebhookVerifySignatureInvalid(t *testing.T) {
@@ -392,10 +403,10 @@ func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 	})
 	requestBody := string(requestBodyBytes)
 
-	ts := "1660149894817"
+	ts := fmt.Sprintf("%d", time.Now().Unix())
 	h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
 	_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
-	signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+	signature := fmt.Sprintf("v0=%s", hex.EncodeToString(h.Sum(nil)))
 
 	w := httptest.NewRecorder()
 	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
@@ -481,10 +492,10 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	})
 	requestBody := string(requestBodyBytes)
 
-	ts := "1660149894817"
+	ts := fmt.Sprintf("%d", time.Now().Unix())
 	h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
 	_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
-	signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+	signature := fmt.Sprintf("v0=%s", hex.EncodeToString(h.Sum(nil)))
 
 	w := httptest.NewRecorder()
 	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))

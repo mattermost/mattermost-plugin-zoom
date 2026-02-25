@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/pkg/errors"
@@ -150,17 +151,17 @@ func (p *Plugin) storeMeetingPostID(meetingUUID string, postID string) *model.Ap
 
 func (p *Plugin) fetchMeetingPostID(meetingUUID string) (string, error) {
 	key := fmt.Sprintf("%v%v", postMeetingKey, meetingUUID)
-	var postID []byte
-	if err := p.client.KV.Get(key, &postID); err != nil {
+	var postIDData []byte
+	if err := p.client.KV.Get(key, &postIDData); err != nil {
 		p.client.Log.Debug("Could not get meeting post from KVStore", "error", err.Error())
 		return "", err
 	}
 
-	if string(postID) == "" {
+	if postIDData == nil {
 		return "", errors.New("stored meeting post ID not found")
 	}
 
-	return string(postID), nil
+	return string(postIDData), nil
 }
 
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {
@@ -189,6 +190,38 @@ func (p *Plugin) fetchChannelForMeeting(meetingID int) (string, *model.AppError)
 func (p *Plugin) deleteChannelForMeeting(meetingID int) error {
 	key := fmt.Sprintf("%v%v", meetingChannelKey, meetingID)
 	return p.client.KV.Delete(key)
+}
+
+const kvListPerPage = 100
+
+func (p *Plugin) listAllMeetingSubscriptions() (map[string]string, error) {
+	subscriptions := make(map[string]string)
+
+	for page := 0; ; page++ {
+		keys, appErr := p.API.KVList(page, kvListPerPage)
+		if appErr != nil {
+			return nil, errors.New(appErr.Message)
+		}
+
+		for _, key := range keys {
+			if !strings.HasPrefix(key, meetingChannelKey) {
+				continue
+			}
+
+			meetingID := strings.TrimPrefix(key, meetingChannelKey)
+			channelIDBytes, kvErr := p.API.KVGet(key)
+			if kvErr != nil || channelIDBytes == nil {
+				continue
+			}
+			subscriptions[meetingID] = string(channelIDBytes)
+		}
+
+		if len(keys) < kvListPerPage {
+			break
+		}
+	}
+
+	return subscriptions, nil
 }
 
 // getOAuthUserStateKey generates and returns the key for storing the OAuth user state in the KV store.

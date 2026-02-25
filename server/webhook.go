@@ -114,7 +114,7 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 		return
 	}
 
-	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.ID); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.Topic); postMeetingErr != nil {
 		p.API.LogError("Failed to post the zoom message in the channel", "err", postMeetingErr.Error())
 		return
 	}
@@ -131,22 +131,69 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 		return
 	}
 
-	meetingPostID := webhook.Payload.Object.UUID
-	postID, err := p.fetchMeetingPostID(meetingPostID)
+	webhookMeetingID := webhook.Payload.Object.ID
+	webhookUUID := webhook.Payload.Object.UUID
+	p.API.LogDebug("Handling meeting.ended webhook",
+		"webhook_meeting_id", webhookMeetingID,
+		"webhook_uuid", webhookUUID,
+	)
+
+	postID, err := p.fetchMeetingPostID(webhookUUID)
 	if err != nil {
-		return
+		p.API.LogWarn("Could not find meeting post by UUID, attempting lookup by stored UUID on post",
+			"webhook_uuid", webhookUUID,
+			"error", err.Error(),
+		)
+
+		// The UUID Zoom sends at meeting.ended can differ from the one at creation
+		// (e.g. PMI meetings, or recurring meetings get a new UUID per occurrence).
+		// Fall back to finding the post via the meeting_channel mapping and recent posts.
+		meetingIDInt, atoiErr := strconv.Atoi(webhookMeetingID)
+		if atoiErr != nil {
+			p.API.LogWarn("Could not parse meeting ID from webhook for fallback lookup",
+				"webhook_meeting_id", webhookMeetingID,
+				"error", atoiErr.Error(),
+			)
+			http.Error(w, "meeting post not found", http.StatusNotFound)
+			return
+		}
+
+		postID, err = p.findMeetingPostByMeetingID(meetingIDInt)
+		if err != nil {
+			p.API.LogWarn("Fallback meeting post lookup also failed",
+				"meeting_id", meetingIDInt,
+				"error", err.Error(),
+			)
+			http.Error(w, "meeting post not found", http.StatusNotFound)
+			return
+		}
+		p.API.LogDebug("Found meeting post via fallback lookup", "post_id", postID, "meeting_id", meetingIDInt)
 	}
 
 	post, err := p.client.Post.GetPost(postID)
 	if err != nil {
-		p.client.Log.Warn("Could not get meeting post by id", "err", err.Error())
+		p.client.Log.Warn("Could not get meeting post by id", "post_id", postID, "err", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	p.API.LogDebug("Found meeting post",
+		"post_id", post.Id,
+		"channel_id", post.ChannelId,
+		"meeting_status", post.Props["meeting_status"],
+		"meeting_id_prop", post.Props["meeting_id"],
+		"meeting_uuid_prop", post.Props["meeting_uuid"],
+	)
+
+	if post.Props["meeting_status"] == zoom.WebhookStatusEnded {
+		p.API.LogDebug("Meeting post already marked as ended, skipping update", "post_id", post.Id)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	start := time.Unix(0, post.CreateAt*int64(time.Millisecond))
 	end := model.GetMillis()
-	length := int(math.Ceil(float64((model.GetMillis()-post.CreateAt)/1000) / 60))
+	length := int(math.Ceil(float64((end-post.CreateAt)/1000) / 60))
 	startText := start.Format("Mon Jan 2 15:04:05 -0700 MST 2006")
 	topic, ok := post.Props["meeting_topic"].(string)
 	if !ok {
@@ -180,10 +227,70 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 		return
 	}
 
+	p.API.LogDebug("Successfully updated meeting post to ended", "post_id", post.Id)
+
+	subscribed, _ := post.Props["meeting_subscribed"].(bool)
+	if !subscribed && int(meetingID) != 0 {
+		if err := p.deleteChannelForMeeting(int(meetingID)); err != nil {
+			p.client.Log.Debug("Could not clean up channel-meeting mapping", "meeting_id", int(meetingID), "error", err.Error())
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(post); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
+}
+
+func (p *Plugin) findMeetingPostByMeetingID(meetingID int) (string, error) {
+	channelID, appErr := p.fetchChannelForMeeting(meetingID)
+	if appErr != nil || channelID == "" {
+		return "", errors.Errorf("no channel found for meeting %d", meetingID)
+	}
+
+	since := model.GetMillis() - meetingPostIDTTL*1000
+	postList, appErr := p.API.GetPostsSince(channelID, since)
+	if appErr != nil {
+		return "", errors.Wrap(appErr, "could not get recent posts for channel")
+	}
+
+	for _, post := range postList.Posts {
+		if post.Type != "custom_zoom" {
+			continue
+		}
+		propID, ok := post.Props["meeting_id"].(float64)
+		if ok && int(propID) == meetingID && post.Props["meeting_status"] != zoom.WebhookStatusEnded {
+			return post.Id, nil
+		}
+	}
+
+	return "", errors.Errorf("no active meeting post found for meeting %d in channel %s", meetingID, channelID)
+}
+
+// resolveRecordingMeetingPost finds the meeting post by UUID first, falling
+// back to a meeting-ID-based search when the UUID doesn't match (PMI /
+// recurring meetings get a new UUID per occurrence).
+func (p *Plugin) resolveRecordingMeetingPost(webhookUUID string, meetingID int) (*model.Post, error) {
+	postID, err := p.fetchMeetingPostID(webhookUUID)
+	if err != nil {
+		p.API.LogDebug("UUID-based post lookup failed, trying meeting ID fallback",
+			"webhook_uuid", webhookUUID,
+			"meeting_id", meetingID,
+			"error", err.Error(),
+		)
+
+		postID, err = p.findMeetingPostByMeetingID(meetingID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "could not find meeting post for uuid=%s meeting_id=%d", webhookUUID, meetingID)
+		}
+	}
+
+	post, getErr := p.client.Post.GetPost(postID)
+	if getErr != nil {
+		return nil, errors.Wrap(getErr, "could not get meeting post by id")
+	}
+
+	return post, nil
 }
 
 func (p *Plugin) handleTranscript(recording zoom.RecordingFile, postID, channelID, downloadToken string) error {
@@ -260,15 +367,10 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	meetingPostID := webhook.Payload.Object.UUID
-	postID, err := p.fetchMeetingPostID(meetingPostID)
+	post, err := p.resolveRecordingMeetingPost(webhook.Payload.Object.UUID, webhook.Payload.Object.ID)
 	if err != nil {
-		return
-	}
-
-	post, err := p.client.Post.GetPost(postID)
-	if err != nil {
-		p.API.LogWarn("Could not get meeting post by id", "err", err)
+		p.API.LogWarn("Could not resolve meeting post for transcript", "error", err.Error())
+		http.Error(w, "meeting post not found", http.StatusNotFound)
 		return
 	}
 
@@ -300,15 +402,10 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	meetingPostID := webhook.Payload.Object.UUID
-	postID, err := p.fetchMeetingPostID(meetingPostID)
+	post, err := p.resolveRecordingMeetingPost(webhook.Payload.Object.UUID, webhook.Payload.Object.ID)
 	if err != nil {
-		return
-	}
-
-	post, err := p.client.Post.GetPost(postID)
-	if err != nil {
-		p.API.LogWarn("Could not get meeting post by id", "err", err)
+		p.API.LogWarn("Could not resolve meeting post for recording", "error", err.Error())
+		http.Error(w, "meeting post not found", http.StatusNotFound)
 		return
 	}
 
@@ -334,26 +431,8 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 		}
 		for _, recording := range recordingGroup {
 			if recording.RecordingType == zoom.RecordingTypeChat {
-				request, err := http.NewRequest(http.MethodGet, recording.DownloadURL, nil)
-				if err != nil {
-					p.API.LogWarn("Unable to get the chat", "err", err)
-					return
-				}
-				request.Header.Set("Authorization", bearerString+webhook.DownloadToken)
-				response, err := http.DefaultClient.Do(request)
-				if err != nil {
-					p.API.LogWarn("Unable to get the chat", "err", err)
-					return
-				}
-				defer response.Body.Close()
-				chat, err := io.ReadAll(response.Body)
-				if err != nil {
-					p.API.LogWarn("Unable to get the chat", "err", err)
-					return
-				}
-				fileInfo, appErr2 := p.API.UploadFile(chat, post.ChannelId, "Chat-history.txt")
-				if appErr2 != nil {
-					p.API.LogWarn("Unable to get the chat", "err", appErr2)
+				fileInfo, chatErr := p.downloadAndUploadChat(recording, webhook.DownloadToken, post.ChannelId)
+				if chatErr != nil {
 					return
 				}
 
@@ -378,6 +457,36 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, r *http.Request
 	if err := json.NewEncoder(w).Encode(post); err != nil {
 		p.client.Log.Warn("failed to write response", "error", err.Error())
 	}
+}
+
+func (p *Plugin) downloadAndUploadChat(recording zoom.RecordingFile, downloadToken, channelID string) (*model.FileInfo, error) {
+	request, err := http.NewRequest(http.MethodGet, recording.DownloadURL, nil)
+	if err != nil {
+		p.API.LogWarn("Unable to get the chat", "err", err)
+		return nil, err
+	}
+	request.Header.Set("Authorization", bearerString+downloadToken)
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		p.API.LogWarn("Unable to get the chat", "err", err)
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	chat, err := io.ReadAll(response.Body)
+	if err != nil {
+		p.API.LogWarn("Unable to get the chat", "err", err)
+		return nil, err
+	}
+
+	fileInfo, appErr := p.API.UploadFile(chat, channelID, "Chat-history.txt")
+	if appErr != nil {
+		p.API.LogWarn("Unable to upload the chat file", "err", appErr)
+		return nil, appErr
+	}
+
+	return fileInfo, nil
 }
 
 func (p *Plugin) verifyMattermostWebhookSecret(r *http.Request) bool {
