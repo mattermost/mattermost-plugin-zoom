@@ -356,13 +356,16 @@ func TestWebhookBodyTooLarge(t *testing.T) {
 func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 	api := &plugintest.API{}
 	p := Plugin{}
-	p.setConfiguration(testConfig)
 
 	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte(r.URL.Path))
 	}))
 	defer httpServer.Close()
+
+	cfg := *testConfig
+	cfg.ZoomURL = httpServer.URL
+	p.setConfiguration(&cfg)
 
 	oldDefaultClient := http.DefaultClient
 	http.DefaultClient = httpServer.Client()
@@ -437,13 +440,16 @@ func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	api := &plugintest.API{}
 	p := Plugin{}
-	p.setConfiguration(testConfig)
 
 	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte(r.URL.Path))
 	}))
 	defer httpServer.Close()
+
+	cfg := *testConfig
+	cfg.ZoomURL = httpServer.URL
+	p.setConfiguration(&cfg)
 
 	oldDefaultClient := http.DefaultClient
 	http.DefaultClient = httpServer.Client()

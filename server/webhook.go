@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -297,10 +298,34 @@ func (p *Plugin) resolveRecordingMeetingPost(webhookUUID string, meetingID int) 
 	return post, nil
 }
 
+func (p *Plugin) isZoomDownloadURL(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Host == "" {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+
+	for _, trusted := range []string{p.getZoomURL(), p.getZoomAPIURL()} {
+		trustedURL, err := url.Parse(trusted)
+		if err != nil || trustedURL.Host == "" {
+			continue
+		}
+		if strings.ToLower(trustedURL.Hostname()) == host {
+			return true
+		}
+	}
+
+	return false
+}
+
 // downloadZoomFile fetches a file from Zoom using the given download token,
 // retrying up to maxRetries times on failure, then uploads it to the channel.
 func (p *Plugin) downloadZoomFile(downloadURL, downloadToken, channelID, filename string, maxRetries int) (*model.FileInfo, error) {
-	request, err := http.NewRequest(http.MethodGet, downloadURL, nil)
+	if !p.isZoomDownloadURL(downloadURL) {
+		return nil, errors.Errorf("refusing to download from untrusted URL: %s", downloadURL)
+	}
+
+	request, err := http.NewRequest(http.MethodGet, downloadURL, nil) // #nosec G107 -- URL is validated by isZoomDownloadURL above
 	if err != nil {
 		return nil, err
 	}
