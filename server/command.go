@@ -260,35 +260,38 @@ func (p *Plugin) runConnectCommand(user *model.User, extra *model.CommandArgs) (
 	return oauthMsg, nil
 }
 
+// subscriptionMeetingIDActions maps subscription actions that require a meeting ID
+// to their handler functions. Add new actions here to extend the command.
+var subscriptionMeetingIDActions = map[string]func(p *Plugin, user *model.User, args *model.CommandArgs, meetingID int) (string, error){
+	subscriptionActionAdd:    (*Plugin).runSubscribeCommand,
+	subscriptionActionRemove: (*Plugin).runUnsubscribeCommand,
+}
+
 func (p *Plugin) runSubscriptionCommand(args *model.CommandArgs, params []string, user *model.User) (string, error) {
 	if len(params) == 0 {
 		return "Please specify a subscription action: `add`, `remove`, or `list`.\nUsage: `/zoom subscription [action] [meetingID]`", nil
 	}
 
-	switch params[0] {
-	case subscriptionActionAdd:
-		if len(params) < 2 {
-			return "Please specify a meeting ID. Usage: `/zoom subscription add [meetingID]`", nil
-		}
-		meetingID, err := strconv.Atoi(params[1])
-		if err != nil {
-			return "Invalid meeting ID. Please provide a numeric meeting ID.", nil
-		}
-		return p.runSubscribeCommand(user, args, meetingID)
-	case subscriptionActionRemove:
-		if len(params) < 2 {
-			return "Please specify a meeting ID. Usage: `/zoom subscription remove [meetingID]`", nil
-		}
-		meetingID, err := strconv.Atoi(params[1])
-		if err != nil {
-			return "Invalid meeting ID. Please provide a numeric meeting ID.", nil
-		}
-		return p.runUnsubscribeCommand(user, args, meetingID)
-	case subscriptionActionList:
+	action := params[0]
+
+	if action == subscriptionActionList {
 		return p.runSubscriptionListCommand(args)
-	default:
-		return fmt.Sprintf("Unknown subscription action: `%s`. Available actions: `add`, `remove`, `list`.", params[0]), nil
 	}
+
+	handler, ok := subscriptionMeetingIDActions[action]
+	if !ok {
+		return fmt.Sprintf("Unknown subscription action: `%s`. Available actions: `add`, `remove`, `list`.", action), nil
+	}
+
+	if len(params) < 2 {
+		return fmt.Sprintf("Please specify a meeting ID. Usage: `/zoom subscription %s [meetingID]`", action), nil
+	}
+	meetingID, err := strconv.Atoi(params[1])
+	if err != nil {
+		return "Invalid meeting ID. Please provide a numeric meeting ID.", nil
+	}
+
+	return handler(p, user, args, meetingID)
 }
 
 func (p *Plugin) runSubscriptionListCommand(args *model.CommandArgs) (string, error) {
@@ -349,16 +352,17 @@ func (p *Plugin) runUnsubscribeCommand(user *model.User, extra *model.CommandArg
 		return "You do not have permission to unsubscribe from this channel", nil
 	}
 
-	_, err := p.getMeeting(user, meetingID)
-	if err != nil {
-		return "Can not unsubscribe from meeting: meeting not accesible in zoom", errors.Wrap(err, "meeting not accesible in zoom")
+	entry, _ := p.getMeetingChannelEntry(meetingID)
+	if entry == nil || !entry.IsSubscription {
+		return "No subscription found for this meeting.", nil
 	}
 
-	if channelID, appErr := p.fetchChannelForMeeting(meetingID); appErr != nil || channelID == "" {
-		return "Can not unsubscribe from meeting: meeting not found", errors.New("meeting not found")
+	if entry.CreatedBy != user.Id {
+		return "You can only remove subscriptions you created.", nil
 	}
+
 	if appErr := p.deleteChannelForMeeting(meetingID); appErr != nil {
-		return "Can not unsubscribe from meeting: unable to delete the meeting subscription", errors.Wrap(appErr, "cannot unsubscribe from meeting")
+		return "Unable to delete the meeting subscription.", errors.Wrap(appErr, "cannot unsubscribe from meeting")
 	}
 
 	return "Channel unsubscribed from meeting.", nil
