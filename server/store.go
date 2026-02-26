@@ -197,7 +197,10 @@ func (p *Plugin) storeSubscriptionForMeeting(meetingID int, channelID, userID st
 	if err != nil {
 		return err
 	}
-	return p.API.KVSet(meetingChannelKVKey(meetingID), data)
+	if appErr := p.API.KVSet(meetingChannelKVKey(meetingID), data); appErr != nil {
+		return appErr
+	}
+	return nil
 }
 
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {
@@ -217,11 +220,15 @@ func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {
 	if err != nil {
 		return err
 	}
-	return p.API.KVSetWithExpiry(key, data, adHocMeetingChannelTTL)
+	if appErr := p.API.KVSetWithExpiry(key, data, adHocMeetingChannelTTL); appErr != nil {
+		return appErr
+	}
+	return nil
 }
 
 func (p *Plugin) getMeetingChannelEntry(meetingID int) (*meetingChannelEntry, *model.AppError) {
-	raw, appErr := p.API.KVGet(meetingChannelKVKey(meetingID))
+	key := meetingChannelKVKey(meetingID)
+	raw, appErr := p.API.KVGet(key)
 	if appErr != nil {
 		return nil, appErr
 	}
@@ -231,6 +238,10 @@ func (p *Plugin) getMeetingChannelEntry(meetingID int) (*meetingChannelEntry, *m
 
 	var entry meetingChannelEntry
 	if err := json.Unmarshal(raw, &entry); err != nil {
+		p.API.LogWarn("failed to unmarshal meeting channel entry",
+			"key", key,
+			"error", err.Error(),
+		)
 		return nil, nil
 	}
 	if entry.ChannelID == "" {
@@ -242,7 +253,6 @@ func (p *Plugin) getMeetingChannelEntry(meetingID int) (*meetingChannelEntry, *m
 func (p *Plugin) fetchChannelForMeeting(meetingID int) (string, *model.AppError) {
 	entry, appErr := p.getMeetingChannelEntry(meetingID)
 	if appErr != nil {
-		p.API.LogDebug("Could not get channel meeting from KVStore", "error", appErr.Error())
 		return "", appErr
 	}
 	if entry == nil {

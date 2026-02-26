@@ -59,11 +59,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.API.LogDebug("Received webhook event",
-		"event", string(webhook.Event),
-		"body_size", len(b),
-	)
-
 	if webhook.Event != zoom.EventTypeValidateWebhook {
 		err = p.verifyZoomWebhookSignature(r, b)
 		if err != nil {
@@ -85,7 +80,6 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	case zoom.EventTypeTranscriptCompleted:
 		p.handleTranscriptCompleted(w, r, b)
 	default:
-		p.API.LogDebug("Received unhandled webhook event type", "event", string(webhook.Event))
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -105,33 +99,27 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, r *http.Request, bo
 		return
 	}
 
-	channelID, appErr := p.fetchChannelForMeeting(meetingID)
-	if appErr != nil {
+	entry, appErr := p.getMeetingChannelEntry(meetingID)
+	if appErr != nil || entry == nil || entry.ChannelID == "" {
 		return
 	}
 
-	if channelID == "" {
-		return
-	}
+	channelID := entry.ChannelID
 
-	// If a post already exists for this meeting (e.g. created via /zoom start),
-	// don't create a duplicate. Just update the stored UUID mapping so that
+	// For ad-hoc meetings (started via /zoom start), a post already exists.
+	// Don't create a duplicate — just update the stored UUID mapping so that
 	// meeting.ended can find the post later.
-	if existingPostID, err := p.findMeetingPostByMeetingID(meetingID); err == nil {
-		p.API.LogDebug("handleMeetingStarted: meeting post already exists, skipping duplicate and storing UUID mapping",
-			"meeting_id", meetingID,
-			"existing_post_id", existingPostID,
-			"webhook_uuid", webhook.Payload.Object.UUID,
-		)
-		if appErr := p.storeMeetingPostID(webhook.Payload.Object.UUID, existingPostID); appErr != nil {
-			p.API.LogWarn("handleMeetingStarted: failed to store UUID mapping for existing post",
-				"uuid", webhook.Payload.Object.UUID,
-				"post_id", existingPostID,
-				"error", appErr.Error(),
-			)
+	// Subscription meetings should always create a new post.
+	if !entry.IsSubscription {
+		if existingPostID, err := p.findMeetingPostByMeetingID(meetingID); err == nil {
+			if appErr := p.storeMeetingPostID(webhook.Payload.Object.UUID, existingPostID); appErr != nil {
+				p.API.LogWarn("failed to store UUID mapping for existing post",
+					"error", appErr.Error(),
+				)
+			}
+			w.WriteHeader(http.StatusOK)
+			return
 		}
-		w.WriteHeader(http.StatusOK)
-		return
 	}
 
 	botUser, appErr := p.API.GetUser(p.botUserID)
@@ -159,41 +147,27 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 
 	webhookMeetingID := webhook.Payload.Object.ID
 	webhookUUID := webhook.Payload.Object.UUID
-	p.API.LogDebug("Handling meeting.ended webhook",
-		"webhook_meeting_id", webhookMeetingID,
-		"webhook_uuid", webhookUUID,
-	)
 
 	postID, err := p.fetchMeetingPostID(webhookUUID)
 	if err != nil {
-		p.API.LogWarn("Could not find meeting post by UUID, attempting lookup by stored UUID on post",
-			"webhook_uuid", webhookUUID,
-			"error", err.Error(),
-		)
-
 		// The UUID Zoom sends at meeting.ended can differ from the one at creation
 		// (e.g. PMI meetings, or recurring meetings get a new UUID per occurrence).
 		// Fall back to finding the post via the meeting_channel mapping and recent posts.
 		meetingIDInt, atoiErr := strconv.Atoi(webhookMeetingID)
 		if atoiErr != nil {
-			p.API.LogWarn("Could not parse meeting ID from webhook for fallback lookup",
-				"webhook_meeting_id", webhookMeetingID,
-				"error", atoiErr.Error(),
-			)
 			http.Error(w, "meeting post not found", http.StatusNotFound)
 			return
 		}
 
 		postID, err = p.findMeetingPostByMeetingID(meetingIDInt)
 		if err != nil {
-			p.API.LogWarn("Fallback meeting post lookup also failed",
+			p.API.LogWarn("could not find meeting post",
 				"meeting_id", meetingIDInt,
 				"error", err.Error(),
 			)
 			http.Error(w, "meeting post not found", http.StatusNotFound)
 			return
 		}
-		p.API.LogDebug("Found meeting post via fallback lookup", "post_id", postID, "meeting_id", meetingIDInt)
 	}
 
 	post, err := p.client.Post.GetPost(postID)
@@ -203,16 +177,7 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 		return
 	}
 
-	p.API.LogDebug("Found meeting post",
-		"post_id", post.Id,
-		"channel_id", post.ChannelId,
-		"meeting_status", post.Props["meeting_status"],
-		"meeting_id_prop", post.Props["meeting_id"],
-		"meeting_uuid_prop", post.Props["meeting_uuid"],
-	)
-
 	if post.Props["meeting_status"] == zoom.WebhookStatusEnded {
-		p.API.LogDebug("Meeting post already marked as ended, skipping update", "post_id", post.Id)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -252,8 +217,6 @@ func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, r *http.Request, body
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	p.API.LogDebug("Successfully updated meeting post to ended", "post_id", post.Id)
 
 	// NOTE: We intentionally do NOT delete the meeting_channel mapping here.
 	// Recording and transcript webhooks arrive after meeting.ended and need
@@ -318,12 +281,6 @@ func (p *Plugin) findMeetingPostByMeetingIDWithFilter(meetingID int, activeOnly 
 func (p *Plugin) resolveRecordingMeetingPost(webhookUUID string, meetingID int) (*model.Post, error) {
 	postID, err := p.fetchMeetingPostID(webhookUUID)
 	if err != nil {
-		p.API.LogDebug("UUID-based post lookup failed, trying meeting ID fallback",
-			"webhook_uuid", webhookUUID,
-			"meeting_id", meetingID,
-			"error", err.Error(),
-		)
-
 		// Recording/transcript webhooks arrive after meeting.ended, so the post
 		// is already marked ENDED. Use activeOnly=false to include ended posts.
 		postID, err = p.findMeetingPostByMeetingIDWithFilter(meetingID, false)

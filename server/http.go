@@ -355,25 +355,18 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 
 	storedState, appErr := p.fetchOAuthUserState(authedUserID)
 	if appErr != nil {
-		p.API.LogWarn("OAuth completion failed: could not fetch stored state", "authed_user_id", authedUserID, "error", appErr.Error())
 		http.Error(w, "missing stored state", http.StatusNotFound)
 		return
 	}
 
-	p.API.LogDebug("OAuth state retrieved", "authed_user_id", authedUserID, "state_length", len(storedState))
-
 	userID, channelID, justConnect, err := parseOAuthUserState(storedState)
 	if err != nil {
-		p.API.LogWarn("OAuth completion failed: could not parse state", "authed_user_id", authedUserID, "error", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	p.API.LogDebug("OAuth state parsed", "user_id", userID, "channel_id", channelID, "just_connect", justConnect)
-
 	state := r.URL.Query().Get("state")
 	if storedState != state {
-		p.API.LogWarn("OAuth completion failed: state mismatch", "authed_user_id", authedUserID, "stored_state_length", len(storedState), "query_state_length", len(state))
 		http.Error(w, "OAuth user state mismatch", http.StatusUnauthorized)
 		return
 	}
@@ -506,11 +499,11 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID str
 	}
 
 	if appErr = p.storeMeetingPostID(meetingUUID, createdPost.Id); appErr != nil {
-		p.API.LogDebug("failed to store post id", "error", appErr)
+		p.API.LogWarn("failed to store meeting post ID", "error", appErr.Error())
 	}
 
 	if err := p.storeChannelForMeeting(meetingID, channelID); err != nil {
-		p.API.LogDebug("failed to store channel for meeting", "meeting_id", meetingID, "error", err)
+		p.API.LogWarn("failed to store channel for meeting", "error", err.Error())
 	}
 
 	p.client.Frontend.PublishWebSocketEvent(
@@ -763,7 +756,6 @@ func (p *Plugin) getMeeting(user *model.User, meetingID int) (*zoom.Meeting, err
 
 	meeting, err := client.GetMeeting(meetingID)
 	if err != nil {
-		p.API.LogDebug("failed to get meeting")
 		return nil, err
 	}
 	return meeting, nil
