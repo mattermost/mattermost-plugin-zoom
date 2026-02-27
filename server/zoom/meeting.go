@@ -13,6 +13,8 @@ const (
 	MeetingTypeScheduled MeetingType = 2
 	// MeetingTypeRecurringWithNoFixedTime meeting
 	MeetingTypeRecurringWithNoFixedTime MeetingType = 3
+	// MeetingTypePersonal
+	MeetingTypePersonal MeetingType = 4
 	// MeetingTypeRecurringWithFixedTime meeting
 	MeetingTypeRecurringWithFixedTime MeetingType = 8
 )

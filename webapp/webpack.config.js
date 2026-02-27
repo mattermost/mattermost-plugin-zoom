@@ -3,6 +3,8 @@
 
 var path = require('path');
 
+var webpack = require('webpack');
+
 module.exports = {
     entry: [
         './src/index.js',
@@ -31,6 +33,12 @@ module.exports = {
             },
         ],
     },
+    plugins: [
+        new webpack.DefinePlugin({
+            // eslint-disable-next-line no-process-env
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+        }),
+    ],
     externals: {
         react: 'React',
         'react-dom': 'ReactDOM',

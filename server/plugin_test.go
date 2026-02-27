@@ -65,10 +65,10 @@ func TestPlugin(t *testing.T) {
 	meetingRequest := httptest.NewRequest("POST", "/api/v1/meetings", strings.NewReader("{\"channel_id\": \"thechannelid\"}"))
 	meetingRequest.Header.Add("Mattermost-User-Id", "theuserid")
 
-	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234"}}}`
+	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234", "uuid": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started"}`))
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started", "payload": {"object": {"id": "234", "uuid": "234"}}}`))
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
@@ -131,6 +131,12 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVGet", "mmi_botid").Return([]byte(botUserID), nil)
 			api.On("KVGet", "zoomtoken_theuserid").Return(userInfo, nil)
+			api.On("KVGet", "meeting_channel_234").Return([]byte("thechannelid"), nil)
+			api.On("KVGet", "zoomtoken_"+botUserID).Return(userInfo, nil)
+			api.On("GetUser", botUserID).Return(&model.User{
+				Id: botUserID,
+			}, nil)
+			api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/234"}, &model.WebsocketBroadcast{UserId: botUserID}).Return()
 
 			api.On("SendEphemeralPost", "theuserid", mock.AnythingOfType("*model.Post")).Return(nil)
 
@@ -163,6 +169,8 @@ func TestPlugin(t *testing.T) {
 			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", mock.AnythingOfType("[]uint8"), model.PluginKVSetOptions{Atomic: true, OldValue: []uint8(nil), ExpireInSeconds: 15}).Return(true, nil)
 			api.On("KVSetWithOptions", "mutex_mmi_bot_ensure", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
 			api.On("KVSetWithOptions", "post_meeting_234", []byte(nil), model.PluginKVSetOptions{ExpireInSeconds: 0}).Return(true, nil)
+			api.On("KVGet", mock.MatchedBy(func(key string) bool { return strings.HasPrefix(key, meetingChannelKey) })).Return(nil, (*model.AppError)(nil)).Maybe()
+			api.On("KVSetWithExpiry", mock.MatchedBy(func(key string) bool { return strings.HasPrefix(key, meetingChannelKey) }), mock.AnythingOfType("[]uint8"), int64(adHocMeetingChannelTTL)).Return(nil).Maybe()
 
 			api.On("EnsureBotUser", &model.Bot{
 				Username:    botUserName,
@@ -176,8 +184,7 @@ func TestPlugin(t *testing.T) {
 
 			api.On("KVDelete", fmt.Sprintf("%v%v", postMeetingKey, 234)).Return(nil)
 
-			api.On("LogWarn", mock.AnythingOfType("string")).Return()
-			api.On("LogDebug", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
+			allowFlexibleLogging(api)
 
 			path, err := filepath.Abs("..")
 			require.Nil(t, err)
