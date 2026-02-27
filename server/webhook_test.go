@@ -357,7 +357,7 @@ func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 	api := &plugintest.API{}
 	p := Plugin{}
 
-	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte(r.URL.Path))
 	}))
@@ -441,7 +441,7 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	api := &plugintest.API{}
 	p := Plugin{}
 
-	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte(r.URL.Path))
 	}))
