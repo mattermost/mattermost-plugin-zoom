@@ -498,8 +498,10 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID str
 		return appErr
 	}
 
-	if appErr = p.storeMeetingPostID(meetingUUID, createdPost.Id); appErr != nil {
-		p.API.LogWarn("failed to store meeting post ID", "error", appErr.Error())
+	if meetingUUID != "" {
+		if appErr = p.storeMeetingPostID(meetingUUID, createdPost.Id); appErr != nil {
+			p.API.LogWarn("failed to store meeting post ID", "error", appErr.Error())
+		}
 	}
 
 	if err := p.storeChannelForMeeting(meetingID, channelID); err != nil {

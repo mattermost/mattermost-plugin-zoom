@@ -352,9 +352,15 @@ func (p *Plugin) runUnsubscribeCommand(user *model.User, extra *model.CommandArg
 		return "You do not have permission to unsubscribe from this channel", nil
 	}
 
-	entry, _ := p.getMeetingChannelEntry(meetingID)
+	entry, appErr := p.getMeetingChannelEntry(meetingID)
+	if appErr != nil {
+		return "Unable to load the meeting subscription.", errors.Wrap(appErr, "cannot fetch meeting subscription")
+	}
 	if entry == nil || !entry.IsSubscription {
 		return "No subscription found for this meeting.", nil
+	}
+	if entry.ChannelID != extra.ChannelId {
+		return "This meeting is subscribed to a different channel.", nil
 	}
 
 	if entry.CreatedBy != user.Id {

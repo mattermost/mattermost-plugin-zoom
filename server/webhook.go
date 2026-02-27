@@ -303,11 +303,17 @@ func (p *Plugin) isZoomDownloadURL(rawURL string) bool {
 	if err != nil || parsed.Host == "" {
 		return false
 	}
+	if !strings.EqualFold(parsed.Scheme, "https") {
+		return false
+	}
 	host := strings.ToLower(parsed.Hostname())
 
 	for _, trusted := range []string{p.getZoomURL(), p.getZoomAPIURL()} {
 		trustedURL, err := url.Parse(trusted)
 		if err != nil || trustedURL.Host == "" {
+			continue
+		}
+		if !strings.EqualFold(trustedURL.Scheme, "https") {
 			continue
 		}
 		if strings.ToLower(trustedURL.Hostname()) == host {
@@ -419,6 +425,7 @@ func (p *Plugin) handleTranscriptCompleted(w http.ResponseWriter, _ *http.Reques
 	if lastTranscriptionIdx != -1 {
 		err := p.handleTranscript(webhook.Payload.Object.RecordingFiles[lastTranscriptionIdx], post.Id, post.ChannelId, webhook.DownloadToken)
 		if err != nil {
+			http.Error(w, "failed to process transcript", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -468,6 +475,7 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 				fileInfo, chatErr := p.downloadAndUploadChat(recording, webhook.DownloadToken, post.ChannelId)
 				if chatErr != nil {
 					p.API.LogWarn("handleRecordingCompleted: failed to download/upload chat", "error", chatErr.Error())
+					http.Error(w, "failed to process recording webhook", http.StatusInternalServerError)
 					return
 				}
 
@@ -486,6 +494,7 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 		if newPost.Message != "" || len(newPost.FileIds) > 0 {
 			if _, appErr := p.API.CreatePost(newPost); appErr != nil {
 				p.API.LogWarn("handleRecordingCompleted: could not create post", "err", appErr)
+				http.Error(w, "failed to create recording post", http.StatusInternalServerError)
 				return
 			}
 		}

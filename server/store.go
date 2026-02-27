@@ -188,6 +188,17 @@ func meetingChannelKVKey(meetingID int) string {
 }
 
 func (p *Plugin) storeSubscriptionForMeeting(meetingID int, channelID, userID string) error {
+	existing, appErr := p.getMeetingChannelEntry(meetingID)
+	if appErr != nil {
+		return appErr
+	}
+	if existing != nil && existing.IsSubscription {
+		if existing.ChannelID == channelID && existing.CreatedBy == userID {
+			return nil
+		}
+		return errors.New("meeting already has an existing subscription")
+	}
+
 	entry := meetingChannelEntry{
 		ChannelID:      channelID,
 		IsSubscription: true,
@@ -206,9 +217,11 @@ func (p *Plugin) storeSubscriptionForMeeting(meetingID int, channelID, userID st
 func (p *Plugin) storeChannelForMeeting(meetingID int, channelID string) error {
 	key := meetingChannelKVKey(meetingID)
 
-	// If a subscription entry already exists for this meeting, don't overwrite
-	// it with an ad-hoc entry.
-	if existing, _ := p.getMeetingChannelEntry(meetingID); existing != nil && existing.IsSubscription {
+	existing, appErr := p.getMeetingChannelEntry(meetingID)
+	if appErr != nil {
+		return appErr
+	}
+	if existing != nil && existing.IsSubscription {
 		return nil
 	}
 

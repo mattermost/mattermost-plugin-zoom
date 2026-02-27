@@ -12,18 +12,20 @@ type Props = {
 };
 
 const renderPostWithMarkdown = (msg: string) => {
-    const windowAny: any = window;
-    const {formatText, messageHtmlToComponent} = windowAny.PostUtils;
+    const postUtils = (window as any).PostUtils;
+    if (!postUtils?.formatText || !postUtils?.messageHtmlToComponent) {
+        return <span>{msg}</span>;
+    }
 
-    return messageHtmlToComponent(
-        formatText(msg, {}),
+    return postUtils.messageHtmlToComponent(
+        postUtils.formatText(msg, {}),
         false,
     );
 };
 
 export const PostTypeChat = (props: Props) => {
     return (
-        <div data-testid={'zoom-post-transcription-body'}>
+        <div data-testid={'zoom-post-chat-body'}>
             {renderPostWithMarkdown(props.post.message)}
             <AISummaryButton
                 post={props.post}

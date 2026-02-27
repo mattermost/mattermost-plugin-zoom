@@ -36,7 +36,7 @@ module.exports = {
     plugins: [
         new webpack.DefinePlugin({
             // eslint-disable-next-line no-process-env
-            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
         }),
     ],
     externals: {
