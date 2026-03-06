@@ -318,6 +318,7 @@ func (p *Plugin) runSubscriptionListCommand(args *model.CommandArgs) (string, er
 		channel, appErr := p.client.Channel.Get(channelID)
 		if appErr != nil {
 			p.client.Log.Error("Unable to get channel for subscription list", "ChannelID", channelID, "Error", appErr.Error())
+			sb.WriteString(fmt.Sprintf("| %s | (unknown channel %s) |\n", meetingID, channelID))
 			continue
 		}
 		sb.WriteString(fmt.Sprintf("| %s | ~%s |\n", meetingID, channel.Name))

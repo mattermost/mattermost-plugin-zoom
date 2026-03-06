@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -259,7 +260,7 @@ func (p *Plugin) getMeetingChannelEntry(meetingID int) (*meetingChannelEntry, *m
 			"key", key,
 			"error", err.Error(),
 		)
-		return nil, nil
+		return nil, model.NewAppError("getMeetingChannelEntry", "zoom.store.unmarshal_meeting_channel", nil, err.Error(), http.StatusInternalServerError)
 	}
 	if entry.ChannelID == "" {
 		return nil, nil
@@ -293,65 +294,80 @@ func subscriptionIndexKVKey(userID string) string {
 	return subscriptionIndexKey + userID
 }
 
-func (p *Plugin) getSubscriptionIndex(userID string) (*subscriptionIndex, error) {
+const subscriptionIndexMaxRetries = 5
+
+func (p *Plugin) updateSubscriptionIndex(userID string, mutate func(*subscriptionIndex) *subscriptionIndex) error {
+	key := subscriptionIndexKVKey(userID)
+
+	for i := 0; i < subscriptionIndexMaxRetries; i++ {
+		oldRaw, appErr := p.API.KVGet(key)
+		if appErr != nil {
+			return appErr
+		}
+
+		var idx subscriptionIndex
+		if oldRaw != nil {
+			_ = json.Unmarshal(oldRaw, &idx)
+		}
+
+		updated := mutate(&idx)
+		if updated == nil {
+			return nil
+		}
+
+		newRaw, err := json.Marshal(updated)
+		if err != nil {
+			return err
+		}
+
+		ok, appErr := p.API.KVSetWithOptions(key, newRaw, model.PluginKVSetOptions{
+			Atomic:   true,
+			OldValue: oldRaw,
+		})
+		if appErr != nil {
+			return appErr
+		}
+		if ok {
+			return nil
+		}
+	}
+
+	return errors.New("updateSubscriptionIndex: too many concurrent updates")
+}
+
+func (p *Plugin) addToSubscriptionIndex(userID string, meetingID int) error {
+	return p.updateSubscriptionIndex(userID, func(idx *subscriptionIndex) *subscriptionIndex {
+		for _, id := range idx.MeetingIDs {
+			if id == meetingID {
+				return nil
+			}
+		}
+		idx.MeetingIDs = append(idx.MeetingIDs, meetingID)
+		return idx
+	})
+}
+
+func (p *Plugin) removeFromSubscriptionIndex(userID string, meetingID int) error {
+	return p.updateSubscriptionIndex(userID, func(idx *subscriptionIndex) *subscriptionIndex {
+		filtered := make([]int, 0, len(idx.MeetingIDs))
+		for _, id := range idx.MeetingIDs {
+			if id != meetingID {
+				filtered = append(filtered, id)
+			}
+		}
+		idx.MeetingIDs = filtered
+		return idx
+	})
+}
+
+func (p *Plugin) listAllMeetingSubscriptions(userID string) (map[string]string, error) {
 	raw, appErr := p.API.KVGet(subscriptionIndexKVKey(userID))
 	if appErr != nil {
 		return nil, appErr
 	}
-	if raw == nil {
-		return &subscriptionIndex{}, nil
-	}
 	var idx subscriptionIndex
-	if err := json.Unmarshal(raw, &idx); err != nil {
-		return &subscriptionIndex{}, nil
-	}
-	return &idx, nil
-}
-
-func (p *Plugin) saveSubscriptionIndex(userID string, idx *subscriptionIndex) error {
-	data, err := json.Marshal(idx)
-	if err != nil {
-		return err
-	}
-	if appErr := p.API.KVSet(subscriptionIndexKVKey(userID), data); appErr != nil {
-		return appErr
-	}
-	return nil
-}
-
-func (p *Plugin) addToSubscriptionIndex(userID string, meetingID int) error {
-	idx, err := p.getSubscriptionIndex(userID)
-	if err != nil {
-		return err
-	}
-	for _, id := range idx.MeetingIDs {
-		if id == meetingID {
-			return nil
-		}
-	}
-	idx.MeetingIDs = append(idx.MeetingIDs, meetingID)
-	return p.saveSubscriptionIndex(userID, idx)
-}
-
-func (p *Plugin) removeFromSubscriptionIndex(userID string, meetingID int) error {
-	idx, err := p.getSubscriptionIndex(userID)
-	if err != nil {
-		return err
-	}
-	filtered := idx.MeetingIDs[:0]
-	for _, id := range idx.MeetingIDs {
-		if id != meetingID {
-			filtered = append(filtered, id)
-		}
-	}
-	idx.MeetingIDs = filtered
-	return p.saveSubscriptionIndex(userID, idx)
-}
-
-func (p *Plugin) listAllMeetingSubscriptions(userID string) (map[string]string, error) {
-	idx, err := p.getSubscriptionIndex(userID)
-	if err != nil {
-		return nil, err
+	if raw != nil {
+		_ = json.Unmarshal(raw, &idx)
 	}
 
 	subscriptions := make(map[string]string)

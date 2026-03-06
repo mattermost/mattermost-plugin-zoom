@@ -85,11 +85,12 @@ func TestHandleMeetingStarted(t *testing.T) {
 	t.Run("successful meeting start", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetLicense").Return(nil)
-		api.On("KVGet", "meeting_channel_123").Return([]byte("channel-id"), nil)
-		api.On("GetUser", "").Return(&model.User{Id: "user-id"}, nil)
-		api.On("KVGet", "zoomtoken_user-id").Return(nil, &model.AppError{})
+		meetingEntry, _ := json.Marshal(meetingChannelEntry{ChannelID: "channel-id"})
+		api.On("KVGet", "meeting_channel_123").Return(meetingEntry, nil)
+		api.On("GetUser", "test-bot-id").Return(&model.User{Id: "test-bot-id"}, nil)
+		api.On("KVGet", "zoomtoken_test-bot-id").Return(nil, &model.AppError{})
 		api.On("LogWarn", "could not get the active Zoom client", "error", "could not fetch Zoom OAuth info: must connect user account to Zoom first").Return()
-		api.On("HasPermissionToChannel", "user-id", "channel-id", mock.AnythingOfType("*model.Permission")).Return(true)
+		api.On("HasPermissionToChannel", "test-bot-id", "channel-id", mock.AnythingOfType("*model.Permission")).Return(true)
 		api.On("KVSetWithExpiry", "post_meeting_abc", []byte{}, int64(86400)).Return(nil)
 		api.On("KVSetWithExpiry", "meeting_channel_123", mock.AnythingOfType("[]uint8"), int64(adHocMeetingChannelTTL)).Return(nil)
 		api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/123"}, mock.AnythingOfType("*model.WebsocketBroadcast")).Return()
@@ -98,7 +99,7 @@ func TestHandleMeetingStarted(t *testing.T) {
 		allowFlexibleLogging(api)
 		p.SetAPI(api)
 		p.client = pluginapi.NewClient(api, nil)
-		p.botUserID = ""
+		p.botUserID = "test-bot-id"
 		p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", telemetry.NewTrackerConfig(nil), nil)
 
 		requestBody := `{"payload":{"object": {"id": "123", "uuid": "abc", "topic": "test meeting"}},"event":"meeting.started"}`
@@ -144,11 +145,35 @@ func TestHandleMeetingStarted(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
 	})
 
-	t.Run("channel not found", func(t *testing.T) {
+	t.Run("channel lookup error returns 500", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetLicense").Return(nil)
-		api.On("KVGet", "meeting_channel_123").Return(nil, &model.AppError{})
-		api.On("KVSetWithExpiry", "post_meeting_123-abc", []byte{}, int64(86400)).Return(nil)
+		api.On("KVGet", "meeting_channel_123").Return(nil, &model.AppError{Message: "kv error"})
+		allowFlexibleLogging(api)
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "123", "uuid": "123-abc"}},"event":"meeting.started"}`
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+
+		ts := fmt.Sprintf("%d", time.Now().Unix())
+		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
+		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
+		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+		require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
+	})
+
+	t.Run("no channel entry returns 200", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetLicense").Return(nil)
+		api.On("KVGet", "meeting_channel_123").Return(nil, (*model.AppError)(nil))
 		allowFlexibleLogging(api)
 		p.SetAPI(api)
 

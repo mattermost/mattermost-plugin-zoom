@@ -102,7 +102,16 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, _ *http.Request, bo
 	}
 
 	entry, appErr := p.getMeetingChannelEntry(meetingID)
-	if appErr != nil || entry == nil || entry.ChannelID == "" {
+	if appErr != nil {
+		p.API.LogWarn("handleMeetingStarted: failed to get meeting channel entry",
+			"meeting_id", meetingID,
+			"error", appErr.Error(),
+		)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if entry == nil || entry.ChannelID == "" {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
