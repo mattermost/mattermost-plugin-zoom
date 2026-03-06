@@ -83,7 +83,10 @@ export const AISummaryButton = ({post, messageId, defaultMessage}: Props) => {
     }
 
     return (
-        <SummaryButton type='button' onClick={handleClick}>
+        <SummaryButton
+            type='button'
+            onClick={handleClick}
+        >
             <IconAI/>
             <FormattedMessage
                 id={messageId}
