@@ -452,6 +452,7 @@ func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 	request.Header.Add("x-zm-request-timestamp", ts)
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
+	require.Equal(t, http.StatusOK, w.Result().StatusCode)
 	body, _ := io.ReadAll(w.Result().Body)
 	t.Log(string(body))
 
@@ -524,6 +525,7 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	request.Header.Add("x-zm-request-timestamp", ts)
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
+	require.Equal(t, http.StatusOK, w.Result().StatusCode)
 	body, _ := io.ReadAll(w.Result().Body)
 	t.Log(string(body))
 

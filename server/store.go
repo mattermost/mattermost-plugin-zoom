@@ -213,7 +213,12 @@ func (p *Plugin) storeSubscriptionForMeeting(meetingID int, channelID, userID st
 	}
 
 	if err := p.addToSubscriptionIndex(userID, meetingID); err != nil {
-		p.API.LogWarn("failed to update subscription index", "error", err.Error())
+		p.API.LogWarn("failed to update subscription index, rolling back",
+			"meeting_id", meetingID,
+			"error", err.Error(),
+		)
+		_ = p.deleteChannelForMeeting(meetingID)
+		return errors.Wrap(err, "failed to update subscription index")
 	}
 
 	return nil
@@ -369,7 +374,13 @@ func (p *Plugin) listAllMeetingSubscriptions(userID string) (map[string]string, 
 	}
 	var idx subscriptionIndex
 	if raw != nil {
-		_ = json.Unmarshal(raw, &idx)
+		if err := json.Unmarshal(raw, &idx); err != nil {
+			p.API.LogWarn("failed to unmarshal subscription index",
+				"user_id", userID,
+				"error", err.Error(),
+			)
+			return nil, errors.Wrap(err, "corrupted subscription index")
+		}
 	}
 
 	subscriptions := make(map[string]string)

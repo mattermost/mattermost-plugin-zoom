@@ -286,7 +286,7 @@ func (p *Plugin) runSubscriptionCommand(args *model.CommandArgs, params []string
 	if len(params) < 2 {
 		return fmt.Sprintf("Please specify a meeting ID. Usage: `/zoom subscription %s [meetingID]`", action), nil
 	}
-	meetingID, err := strconv.Atoi(params[1])
+	meetingID, err := strconv.Atoi(strings.Join(params[1:], ""))
 	if err != nil {
 		return "Invalid meeting ID. Please provide a numeric meeting ID.", nil
 	}

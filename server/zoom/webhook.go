@@ -70,9 +70,9 @@ type Webhook struct {
 }
 
 type RecordingWebhook struct {
-	Type          string                  `schema:"type"`
+	Type          string                  `json:"event"`
 	DownloadToken string                  `json:"download_token"`
-	Payload       RecordingWebhookPayload `schema:"content"`
+	Payload       RecordingWebhookPayload `json:"payload"`
 }
 
 type RecordingWebhookPayload struct {

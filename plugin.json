@@ -107,7 +107,7 @@
                 "key": "EnablePostingRecordingPassword",
                 "display_name": "Enable Posting Recording Password:",
                 "type": "bool",
-                "help_text": "Enable posting the recording password to the channel when the recording is posted.",
+                "help_text": "When enabled, the recording password is posted to the channel alongside the recording link. This makes the password visible to all channel members and persisted in channel history and compliance exports. Only enable for channels where all members are trusted to access the recording.",
                 "regenerate_help_text": "",
                 "placeholder": "",
                 "default": false

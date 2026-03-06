@@ -375,9 +375,12 @@ func (p *Plugin) downloadZoomFile(downloadURL, downloadToken, channelID, filenam
 	}
 	defer response.Body.Close()
 
-	data, err := io.ReadAll(io.LimitReader(response.Body, maxDownloadSize))
+	data, err := io.ReadAll(io.LimitReader(response.Body, maxDownloadSize+1))
 	if err != nil {
 		return nil, err
+	}
+	if int64(len(data)) > maxDownloadSize {
+		return nil, errors.Errorf("download exceeds maximum size of %d bytes", maxDownloadSize)
 	}
 
 	fileInfo, appErr := p.API.UploadFile(data, channelID, filename)
@@ -504,7 +507,10 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 				if webhook.Payload.Object.Password != "" && p.getConfiguration().EnablePostingRecordingPassword {
 					msg += "\n**Password:** `" + webhook.Payload.Object.Password + "`"
 				}
-				newPost.Message = msg
+				if newPost.Message != "" {
+					newPost.Message += "\n\n"
+				}
+				newPost.Message += msg
 			}
 		}
 
