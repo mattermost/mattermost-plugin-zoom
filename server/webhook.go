@@ -136,11 +136,13 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, _ *http.Request, bo
 	botUser, appErr := p.API.GetUser(p.botUserID)
 	if appErr != nil {
 		p.API.LogError("Failed to get bot user", "err", appErr.Error())
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
 	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.Topic); postMeetingErr != nil {
 		p.API.LogError("Failed to post the zoom message in the channel", "err", postMeetingErr.Error())
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -351,7 +353,7 @@ func (p *Plugin) downloadZoomFile(downloadURL, downloadToken, channelID, filenam
 	var response *http.Response
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Duration(1<<attempt) * time.Second)
 		}
 		response, err = p.downloadClient.Do(request)
 		if err != nil {
@@ -499,7 +501,7 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 					continue
 				}
 				msg := "Here's the zoom meeting recording:\n**Link:** [Meeting Recording](" + recording.PlayURL + ")"
-				if webhook.Payload.Object.Password != "" {
+				if webhook.Payload.Object.Password != "" && p.getConfiguration().EnablePostingRecordingPassword {
 					msg += "\n**Password:** `" + webhook.Payload.Object.Password + "`"
 				}
 				newPost.Message = msg

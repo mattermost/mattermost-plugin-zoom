@@ -72,13 +72,15 @@ export const AISummaryButton = ({post, messageId, defaultMessage}: Props) => {
     const aiAvailable = useAIAvailable();
     const callsPostButtonClicked = useCallsPostButtonClicked();
 
+    const handleClick = useCallback(() => {
+        if (callsPostButtonClicked) {
+            callsPostButtonClicked(post);
+        }
+    }, [callsPostButtonClicked, post]);
+
     if (!aiAvailable || !callsPostButtonClicked) {
         return null;
     }
-
-    const handleClick = useCallback(() => {
-        callsPostButtonClicked(post);
-    }, [callsPostButtonClicked, post]);
 
     return (
         <SummaryButton onClick={handleClick}>

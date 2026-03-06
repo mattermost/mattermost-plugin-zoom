@@ -102,6 +102,15 @@
                 "regenerate_help_text": "",
                 "placeholder": "",
                 "default": false
+            },
+            {
+                "key": "EnablePostingRecordingPassword",
+                "display_name": "Enable Posting Recording Password:",
+                "type": "bool",
+                "help_text": "Enable posting the recording password to the channel when the recording is posted.",
+                "regenerate_help_text": "",
+                "placeholder": "",
+                "default": false
             }
         ]
     }

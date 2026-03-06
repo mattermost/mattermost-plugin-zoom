@@ -307,7 +307,9 @@ func (p *Plugin) updateSubscriptionIndex(userID string, mutate func(*subscriptio
 
 		var idx subscriptionIndex
 		if oldRaw != nil {
-			_ = json.Unmarshal(oldRaw, &idx)
+			if err := json.Unmarshal(oldRaw, &idx); err != nil {
+				p.API.LogWarn("failed to unmarshal subscription index", "error", err.Error())
+			}
 		}
 
 		updated := mutate(&idx)
