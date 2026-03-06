@@ -504,3 +504,32 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 
 	api.AssertExpectations(t)
 }
+
+func TestIsZoomDownloadURL(t *testing.T) {
+	p := Plugin{}
+	p.setConfiguration(testConfig)
+
+	tests := []struct {
+		name string
+		url  string
+		want bool
+	}{
+		{"exact zoom.us host", "https://zoom.us/rec/download/abc", true},
+		{"org subdomain of zoom.us", "https://mattermost.zoom.us/rec/webhook_download/abc", true},
+		{"deep subdomain of zoom.us", "https://a.b.zoom.us/rec/download/abc", true},
+		{"exact api.zoom.us host", "https://api.zoom.us/v2/recordings/download", true},
+		{"subdomain of api.zoom.us", "https://sub.api.zoom.us/v2/download", true},
+		{"http scheme rejected", "http://zoom.us/rec/download/abc", false},
+		{"unrelated host", "https://random.com/rec/download/abc", false},
+		{"suffix trick (notzoom.us)", "https://notzoom.us/rec/download/abc", false},
+		{"empty string", "", false},
+		{"no host", "https:///path", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := p.isZoomDownloadURL(tc.url)
+			require.Equal(t, tc.want, got, "isZoomDownloadURL(%q)", tc.url)
+		})
+	}
+}

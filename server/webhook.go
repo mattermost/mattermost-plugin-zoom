@@ -317,7 +317,8 @@ func (p *Plugin) isZoomDownloadURL(rawURL string) bool {
 		if !strings.EqualFold(trustedURL.Scheme, "https") {
 			continue
 		}
-		if strings.ToLower(trustedURL.Hostname()) == host {
+		trustedHost := strings.ToLower(trustedURL.Hostname())
+		if host == trustedHost || strings.HasSuffix(host, "."+trustedHost) {
 			return true
 		}
 	}
