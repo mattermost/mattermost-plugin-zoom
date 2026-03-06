@@ -123,7 +123,12 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, _ *http.Request, bo
 	// Subscription meetings should always create a new post.
 	if !entry.IsSubscription {
 		if existingPostID, err := p.findMeetingPostByMeetingID(meetingID); err == nil {
-			if appErr := p.storeMeetingPostID(webhook.Payload.Object.UUID, existingPostID); appErr != nil {
+			if webhook.Payload.Object.UUID == "" {
+				p.API.LogWarn("handleMeetingStarted: skipping UUID mapping — webhook UUID is empty",
+					"meeting_id", meetingID,
+					"post_id", existingPostID,
+				)
+			} else if appErr := p.storeMeetingPostID(webhook.Payload.Object.UUID, existingPostID); appErr != nil {
 				p.API.LogWarn("failed to store UUID mapping for existing post",
 					"error", appErr.Error(),
 				)

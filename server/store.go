@@ -313,7 +313,11 @@ func (p *Plugin) updateSubscriptionIndex(userID string, mutate func(*subscriptio
 		var idx subscriptionIndex
 		if oldRaw != nil {
 			if err := json.Unmarshal(oldRaw, &idx); err != nil {
-				p.API.LogWarn("failed to unmarshal subscription index", "error", err.Error())
+				p.API.LogWarn("updateSubscriptionIndex: corrupted index data",
+					"user_id", userID,
+					"error", err.Error(),
+				)
+				return errors.Wrap(err, "corrupted subscription index")
 			}
 		}
 
