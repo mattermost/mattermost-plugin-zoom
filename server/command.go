@@ -363,12 +363,16 @@ func (p *Plugin) runUnsubscribeCommand(user *model.User, extra *model.CommandArg
 		return "This meeting is subscribed to a different channel.", nil
 	}
 
-	if entry.CreatedBy != user.Id {
+	if entry.CreatedBy != user.Id && !user.IsSystemAdmin() {
 		return "You can only remove subscriptions you created.", nil
 	}
 
 	if appErr := p.deleteChannelForMeeting(meetingID); appErr != nil {
 		return "Unable to delete the meeting subscription.", errors.Wrap(appErr, "cannot unsubscribe from meeting")
+	}
+
+	if err := p.removeFromSubscriptionIndex(entry.CreatedBy, meetingID); err != nil {
+		p.API.LogWarn("failed to update subscription index on removal", "error", err.Error())
 	}
 
 	return "Channel unsubscribed from meeting.", nil

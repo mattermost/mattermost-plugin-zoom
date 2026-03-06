@@ -26,6 +26,7 @@ import (
 
 const bearerString = "Bearer "
 const maxWebhookBodySize = 1 << 20 // 1MB
+const maxDownloadSize = 10 << 20   // 10MB
 
 func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.verifyMattermostWebhookSecret(r) {
@@ -342,7 +343,7 @@ func (p *Plugin) downloadZoomFile(downloadURL, downloadToken, channelID, filenam
 		if attempt > 0 {
 			time.Sleep(1 * time.Second)
 		}
-		response, err = http.DefaultClient.Do(request)
+		response, err = p.downloadClient.Do(request)
 		if err != nil {
 			continue
 		}
@@ -362,7 +363,7 @@ func (p *Plugin) downloadZoomFile(downloadURL, downloadToken, channelID, filenam
 	}
 	defer response.Body.Close()
 
-	data, err := io.ReadAll(response.Body)
+	data, err := io.ReadAll(io.LimitReader(response.Body, maxDownloadSize))
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +473,7 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 		}
 		for _, recording := range recordingGroup {
 			if recording.RecordingType == zoom.RecordingTypeChat {
-				fileInfo, chatErr := p.downloadAndUploadChat(recording, webhook.DownloadToken, post.ChannelId)
+				fileInfo, chatErr := p.downloadZoomFile(recording.DownloadURL, webhook.DownloadToken, post.ChannelId, "Chat-history.txt", 5)
 				if chatErr != nil {
 					p.API.LogWarn("handleRecordingCompleted: failed to download/upload chat", "error", chatErr.Error())
 					http.Error(w, "failed to process recording webhook", http.StatusInternalServerError)
@@ -483,6 +484,10 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 				newPost.AddProp("captions", []any{map[string]any{"file_id": fileInfo.Id}})
 				newPost.Type = "custom_zoom_chat"
 			} else if strings.EqualFold(recording.FileType, zoom.RecordingFileTypeMP4) && recording.PlayURL != "" {
+				if !p.isZoomDownloadURL(recording.PlayURL) {
+					p.API.LogWarn("handleRecordingCompleted: refusing to post untrusted play URL", "url", recording.PlayURL)
+					continue
+				}
 				msg := "Here's the zoom meeting recording:\n**Link:** [Meeting Recording](" + recording.PlayURL + ")"
 				if webhook.Payload.Object.Password != "" {
 					msg += "\n**Password:** `" + webhook.Payload.Object.Password + "`"
@@ -504,10 +509,6 @@ func (p *Plugin) handleRecordingCompleted(w http.ResponseWriter, _ *http.Request
 	if err := json.NewEncoder(w).Encode(post); err != nil {
 		p.API.LogWarn("failed to write response", "error", err.Error())
 	}
-}
-
-func (p *Plugin) downloadAndUploadChat(recording zoom.RecordingFile, downloadToken, channelID string) (*model.FileInfo, error) {
-	return p.downloadZoomFile(recording.DownloadURL, downloadToken, channelID, "Chat-history.txt", 0)
 }
 
 func (p *Plugin) verifyMattermostWebhookSecret(r *http.Request) bool {

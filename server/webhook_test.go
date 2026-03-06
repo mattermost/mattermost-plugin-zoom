@@ -367,11 +367,7 @@ func TestWebhookHandleTranscriptCompleted(t *testing.T) {
 	cfg.ZoomURL = httpServer.URL
 	p.setConfiguration(&cfg)
 
-	oldDefaultClient := http.DefaultClient
-	http.DefaultClient = httpServer.Client()
-	defer func() {
-		http.DefaultClient = oldDefaultClient
-	}()
+	p.downloadClient = httpServer.Client()
 
 	api.On("GetLicense").Return(nil)
 	api.On("GetPost", "post-id").Return(&model.Post{Id: "post-id", ChannelId: "channel-id"}, nil)
@@ -451,11 +447,7 @@ func TestWebhookHandleRecordingCompleted(t *testing.T) {
 	cfg.ZoomURL = httpServer.URL
 	p.setConfiguration(&cfg)
 
-	oldDefaultClient := http.DefaultClient
-	http.DefaultClient = httpServer.Client()
-	defer func() {
-		http.DefaultClient = oldDefaultClient
-	}()
+	p.downloadClient = httpServer.Client()
 
 	api.On("GetLicense").Return(nil)
 	api.On("GetPost", "post-id").Return(&model.Post{Id: "post-id", ChannelId: "channel-id"}, nil)

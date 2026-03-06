@@ -5,6 +5,7 @@ import React from 'react';
 import {FormattedMessage} from 'react-intl';
 import {useSelector} from 'react-redux';
 
+import type {GlobalState} from '@mattermost/types/store';
 import type {Post} from '@mattermost/types/posts';
 
 import styled from 'styled-components';
@@ -13,16 +14,21 @@ import IconAI from 'src/components/ai_icon';
 
 const aiPluginID = 'mattermost-ai';
 
+type PluginState = GlobalState & {
+    plugins?: {plugins?: Record<string, unknown>};
+    [key: string]: unknown;
+};
+
 export const useAIAvailable = () => {
-    return useSelector((state: any) => Boolean(state.plugins?.plugins?.[aiPluginID]));
+    return useSelector((state: PluginState) => Boolean(state.plugins?.plugins?.[aiPluginID]));
 };
 
 export const useCallsPostButtonClicked = () => {
-    return useSelector((state: any) => {
-        const aiPluginState = state['plugins-' + aiPluginID];
+    return useSelector((state: PluginState) => {
+        const aiPluginState = state['plugins-' + aiPluginID] as Record<string, unknown> | undefined;
         const handler = aiPluginState?.callsPostButtonClickedTranscription;
         if (typeof handler === 'function') {
-            return handler;
+            return handler as (post: Post) => void;
         }
         return null;
     });

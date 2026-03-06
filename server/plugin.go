@@ -5,9 +5,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -29,7 +31,13 @@ const (
 	falseString = "false"
 
 	zoomProviderName = "Zoom"
+
+	defaultDownloadTimeout = 5 * time.Minute
 )
+
+var defaultDownloadClient = &http.Client{
+	Timeout: defaultDownloadTimeout,
+}
 
 type Plugin struct {
 	plugin.MattermostPlugin
@@ -50,11 +58,16 @@ type Plugin struct {
 
 	telemetryClient telemetry.Client
 	tracker         telemetry.Tracker
+
+	// downloadClient is the HTTP client used for downloading files from Zoom.
+	// Initialized in OnActivate; tests may override it before exercising handlers.
+	downloadClient *http.Client
 }
 
 // OnActivate checks if the configurations is valid and ensures the bot account exists
 func (p *Plugin) OnActivate() error {
 	p.client = pluginapi.NewClient(p.API, p.Driver)
+	p.downloadClient = defaultDownloadClient
 
 	config := p.getConfiguration()
 	if err := config.IsValid(p.isCloudLicense()); err != nil {
