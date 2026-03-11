@@ -7,6 +7,8 @@ import manifest from './manifest';
 
 import ChannelHeaderIcon from './components/channel-header-icon';
 import PostTypeZoom from './components/post_type_zoom';
+import {PostTypeTranscription} from './components/post_type_transcription';
+import {PostTypeChat} from './components/post_type_chat';
 import {startMeeting} from './actions';
 import Client from './client';
 import {getPluginURL, getServerRoute} from './selectors';
@@ -50,6 +52,8 @@ class Plugin {
         );
 
         registry.registerPostTypeComponent('custom_zoom', PostTypeZoom);
+        registry.registerPostTypeComponent('custom_zoom_transcript', PostTypeTranscription);
+        registry.registerPostTypeComponent('custom_zoom_chat', PostTypeChat);
         Client.setServerRoute(getServerRoute(store.getState()));
     }
 }
