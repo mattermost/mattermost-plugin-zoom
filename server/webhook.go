@@ -117,6 +117,18 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, _ *http.Request, bo
 
 	channelID := entry.ChannelID
 
+	if entry.IsSubscription && entry.CreatedBy != "" {
+		if !p.API.HasPermissionToChannel(entry.CreatedBy, channelID, model.PermissionCreatePost) {
+			p.API.LogWarn("handleMeetingStarted: subscription creator lost channel access, skipping post",
+				"meeting_id", meetingID,
+				"channel_id", channelID,
+				"created_by", entry.CreatedBy,
+			)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
 	// For ad-hoc meetings (started via /zoom start), a post already exists.
 	// Don't create a duplicate — just update the stored UUID mapping so that
 	// meeting.ended can find the post later.

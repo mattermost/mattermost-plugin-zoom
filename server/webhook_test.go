@@ -170,6 +170,38 @@ func TestHandleMeetingStarted(t *testing.T) {
 		require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
 	})
 
+	t.Run("subscription creator lost channel access returns 200 without posting", func(t *testing.T) {
+		api := &plugintest.API{}
+		api.On("GetLicense").Return(nil)
+		meetingEntry, _ := json.Marshal(meetingChannelEntry{
+			ChannelID:      "channel-id",
+			IsSubscription: true,
+			CreatedBy:      "creator-user-id",
+		})
+		api.On("KVGet", "meeting_channel_123").Return(meetingEntry, nil)
+		api.On("HasPermissionToChannel", "creator-user-id", "channel-id", model.PermissionCreatePost).Return(false)
+		allowFlexibleLogging(api)
+		p.SetAPI(api)
+
+		requestBody := `{"payload":{"object": {"id": "123", "uuid": "abc"}},"event":"meeting.started"}`
+		w := httptest.NewRecorder()
+		reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+		request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+		request.Header.Add("Content-Type", "application/json")
+
+		ts := fmt.Sprintf("%d", time.Now().Unix())
+		h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
+		_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
+		signature := "v0=" + hex.EncodeToString(h.Sum(nil))
+
+		request.Header.Add("x-zm-signature", signature)
+		request.Header.Add("x-zm-request-timestamp", ts)
+
+		p.ServeHTTP(&plugin.Context{}, w, request)
+		require.Equal(t, http.StatusOK, w.Result().StatusCode)
+		api.AssertNotCalled(t, "CreatePost", mock.Anything)
+	})
+
 	t.Run("no channel entry returns 200", func(t *testing.T) {
 		api := &plugintest.API{}
 		api.On("GetLicense").Return(nil)

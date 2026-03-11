@@ -341,6 +341,19 @@ func (p *Plugin) runSubscribeCommand(user *model.User, extra *model.CommandArgs,
 		return "Cannot subscribe to personal meeting", nil
 	}
 
+	if !user.IsSystemAdmin() {
+		zoomUser, authErr := p.authenticateAndFetchZoomUser(user)
+		if authErr != nil {
+			if appErr := p.storeOAuthUserState(user.Id, extra.ChannelId, false); appErr != nil {
+				p.API.LogWarn("failed to store user state")
+			}
+			return authErr.Message, authErr.Err
+		}
+		if meeting.HostID != zoomUser.ID {
+			return "You can only subscribe to meetings you host. Contact a system admin to subscribe to other meetings.", nil
+		}
+	}
+
 	if appErr := p.storeSubscriptionForMeeting(meetingID, extra.ChannelId, user.Id); appErr != nil {
 		return "", errors.Wrap(appErr, "cannot subscribe to meeting")
 	}
