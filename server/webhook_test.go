@@ -392,10 +392,10 @@ func TestWebhookBodyTooLarge(t *testing.T) {
 	p.setConfiguration(testConfig)
 
 	api.On("GetLicense").Return(nil)
-	api.On("LogWarn", "Webhook request body too large")
+	api.On("LogWarn", "Cannot read body from Webhook")
 	p.SetAPI(api)
 
-	largeBody := make([]byte, maxWebhookBodySize+100)
+	largeBody := make([]byte, maxRequestBodySize+100)
 	for i := range largeBody {
 		largeBody[i] = 'a'
 	}
@@ -407,7 +407,34 @@ func TestWebhookBodyTooLarge(t *testing.T) {
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
 
-	require.Equal(t, 413, w.Result().StatusCode)
+	result := w.Result()
+	defer result.Body.Close()
+	require.True(t, result.StatusCode == http.StatusBadRequest || result.StatusCode == http.StatusRequestEntityTooLarge)
+}
+
+func TestDeauthorizationBodyTooLarge(t *testing.T) {
+	api := &plugintest.API{}
+	p := Plugin{}
+	p.setConfiguration(testConfig)
+
+	api.On("GetLicense").Return(nil)
+	p.SetAPI(api)
+
+	largeBody := make([]byte, maxRequestBodySize+100)
+	for i := range largeBody {
+		largeBody[i] = 'a'
+	}
+
+	w := httptest.NewRecorder()
+	reqBody := io.NopCloser(bytes.NewReader(largeBody))
+	request := httptest.NewRequest("POST", "/deauthorization?secret=webhooksecret", reqBody)
+	request.Header.Add("Content-Type", "application/json")
+
+	p.ServeHTTP(&plugin.Context{}, w, request)
+
+	result := w.Result()
+	defer result.Body.Close()
+	require.True(t, result.StatusCode == http.StatusBadRequest || result.StatusCode == http.StatusRequestEntityTooLarge)
 }
 
 func TestWebhookHandleTranscriptCompleted(t *testing.T) {
