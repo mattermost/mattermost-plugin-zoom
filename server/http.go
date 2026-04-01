@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	maxRequestBodySize       = 1 << 20 // 1 MB
 	defaultMeetingTopic      = "Zoom Meeting"
 	zoomOAuthUserStateLength = 4
 	settingDataError         = "something went wrong while getting settings data"
@@ -80,6 +81,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
 		return
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 
 	switch path := r.URL.Path; path {
 	case pathWebhook:
