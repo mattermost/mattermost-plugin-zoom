@@ -8,8 +8,9 @@ import Client from '../client';
 export function startMeeting(channelId, rootId = '', force = false, topic = '') {
     return async (dispatch, getState) => {
         const userId = getState().entities.bots.accounts.user_id;
+        const connectionId = getState().websocket?.connectionId || '';
         try {
-            const {error} = await Client.startMeeting(channelId, rootId, topic, force);
+            const {error} = await Client.startMeeting(channelId, rootId, topic, force, connectionId);
             if (error) {
                 dispatchError(dispatch, channelId, rootId, userId, error);
                 return error;
