@@ -215,7 +215,7 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, args.ChannelId, args.RootId, topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, args.ChannelId, args.RootId, topic, ""); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
 

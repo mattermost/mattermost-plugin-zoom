@@ -11,11 +11,12 @@ export default class Client {
         this.url = url + '/plugins/' + manifest.id;
     }
 
-    startMeeting = async (channelId, rootId, topic = '', force = false) => {
+    startMeeting = async (channelId, rootId, topic = '', force = false, connectionId = '') => {
         const res = await doPost(`${this.url}/api/v1/meetings${force ? '?force=true' : ''}`, {
             channel_id: channelId,
             topic,
             root_id: rootId,
+            connection_id: connectionId,
         });
 
         return {meetingUrl: res.meeting_url, error: res.error};

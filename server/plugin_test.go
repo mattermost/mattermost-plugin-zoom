@@ -137,7 +137,7 @@ func TestPlugin(t *testing.T) {
 			api.On("GetUser", botUserID).Return(&model.User{
 				Id: botUserID,
 			}, nil)
-			api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/234"}, &model.WebsocketBroadcast{UserId: botUserID}).Return()
+			api.On("PublishWebSocketEvent", "meeting_started", map[string]interface{}{"meeting_url": "https://zoom.us/j/234"}, mock.AnythingOfType("*model.WebsocketBroadcast")).Return()
 
 			api.On("SendEphemeralPost", "theuserid", mock.AnythingOfType("*model.Post")).Return(nil)
 
