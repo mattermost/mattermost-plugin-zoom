@@ -161,7 +161,6 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, _ *http.Request, bo
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-
 }
 
 func (p *Plugin) handleMeetingEnded(w http.ResponseWriter, _ *http.Request, body []byte) {

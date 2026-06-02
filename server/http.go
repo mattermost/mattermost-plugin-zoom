@@ -249,7 +249,6 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		p.API.LogWarn("failed to post the meeting", "Error", postMeetingErr.Error())
 		return
 	}
-
 }
 
 func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Request) {
