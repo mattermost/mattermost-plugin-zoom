@@ -21,7 +21,6 @@ import (
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
 	"github.com/mattermost/mattermost/server/public/plugin/plugintest/mock"
-	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -209,7 +208,6 @@ func TestPlugin(t *testing.T) {
 				RestrictMeetingCreation: true,
 			})
 			p.SetAPI(api)
-			p.tracker = telemetry.NewTracker(nil, "", "", "", "", "", telemetry.TrackerConfig{}, nil)
 
 			err = p.OnActivate()
 			require.Nil(t, err)
