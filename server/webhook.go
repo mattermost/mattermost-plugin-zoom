@@ -156,7 +156,7 @@ func (p *Plugin) handleMeetingStarted(w http.ResponseWriter, _ *http.Request, bo
 		return
 	}
 
-	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.Topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(botUser, meetingID, webhook.Payload.Object.UUID, channelID, "", webhook.Payload.Object.Topic, ""); postMeetingErr != nil {
 		p.API.LogError("Failed to post the zoom message in the channel", "err", postMeetingErr.Error())
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return

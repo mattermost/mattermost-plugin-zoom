@@ -61,10 +61,11 @@ var ZoomChannelPreferences = map[string]string{
 }
 
 type startMeetingRequest struct {
-	ChannelID string `json:"channel_id"`
-	RootID    string `json:"root_id"`
-	Topic     string `json:"topic"`
-	UsePMI    string `json:"use_pmi"`
+	ChannelID    string `json:"channel_id"`
+	RootID       string `json:"root_id"`
+	Topic        string `json:"topic"`
+	UsePMI       string `json:"use_pmi"`
+	ConnectionID string `json:"connection_id"`
 }
 
 type ErrorResponse struct {
@@ -244,7 +245,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, defaultMeetingTopic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, defaultMeetingTopic, ""); postMeetingErr != nil {
 		p.API.LogWarn("failed to post the meeting", "Error", postMeetingErr.Error())
 		return
 	}
@@ -430,7 +431,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
 		// Returning error might not be appropriate here as the main logic for this API is to connect users.
-		if _, err := p.handleMeetingCreation(channelID, "", defaultMeetingTopic, user, zoomUser); err != nil {
+		if _, err := p.handleMeetingCreation(channelID, "", defaultMeetingTopic, "", user, zoomUser); err != nil {
 			p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		}
 	}
@@ -455,7 +456,7 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID string, channelID string, rootID string, topic string) error {
+func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID string, channelID string, rootID string, topic string, connectionID string) error {
 	meetingURL := p.getMeetingURL(creator, meetingID)
 
 	if topic == "" {
@@ -506,12 +507,17 @@ func (p *Plugin) postMeeting(creator *model.User, meetingID int, meetingUUID str
 		p.API.LogWarn("failed to store channel for meeting", "error", err.Error())
 	}
 
+	broadcast := &model.WebsocketBroadcast{UserId: creator.Id}
+	if connectionID != "" {
+		broadcast.ConnectionId = connectionID
+	}
+
 	p.client.Frontend.PublishWebSocketEvent(
 		WebsocketEventMeetingStarted,
 		map[string]interface{}{
 			"meeting_url": meetingURL,
 		},
-		&model.WebsocketBroadcast{UserId: creator.Id},
+		broadcast,
 	)
 
 	return nil
@@ -660,7 +666,7 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		topic = defaultMeetingTopic
 	}
 
-	meetingURL, err := p.handleMeetingCreation(req.ChannelID, req.RootID, topic, user, zoomUser)
+	meetingURL, err := p.handleMeetingCreation(req.ChannelID, req.RootID, topic, req.ConnectionID, user, zoomUser)
 	if err != nil {
 		p.API.LogWarn("Error in creating meeting", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1082,7 +1088,7 @@ func (mv ZoomChannelSettingsMapValue) IsValid() error {
 	return nil
 }
 
-func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *model.User, zoomUser *zoom.User) (string, error) {
+func (p *Plugin) handleMeetingCreation(channelID, rootID, topic, connectionID string, user *model.User, zoomUser *zoom.User) (string, error) {
 	var meetingID int
 	var meetingUUID string
 	var createMeetingErr error
@@ -1112,7 +1118,7 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic string, user *mo
 		}
 	}
 
-	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, topic); postMeetingErr != nil {
+	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, topic, connectionID); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
 
