@@ -226,9 +226,7 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 	var meetingID int
 	var meetingUUID string
 	var createMeetingErr error
-	createMeetingWithPMI := false
 	if action == usePersonalMeetingID {
-		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
@@ -251,9 +249,6 @@ func (p *Plugin) startMeeting(action, userID, channelID, rootID string) {
 		p.API.LogWarn("failed to post the meeting", "Error", postMeetingErr.Error())
 		return
 	}
-
-	p.trackMeetingStart(userID, telemetryStartSourceCommand)
-	p.trackMeetingType(userID, createMeetingWithPMI)
 }
 
 func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Request) {
@@ -431,7 +426,6 @@ func (p *Plugin) completeUserOAuthToZoom(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	p.trackConnect(userID)
 	if justConnect {
 		p.postEphemeral(userID, channelID, "", "Successfully connected to Zoom")
 	} else {
@@ -678,10 +672,6 @@ func (p *Plugin) handleStartMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Query().Get("force") != "" {
-		p.trackMeetingForced(userID)
-	}
-
 	if _, err = w.Write([]byte(fmt.Sprintf(`{"meeting_url": "%s"}`, meetingURL))); err != nil {
 		p.API.LogWarn("failed to write the response", "Error", err.Error())
 	}
@@ -810,8 +800,6 @@ func (p *Plugin) postConfirm(meetingLink string, channelID string, topic string,
 			"meeting_provider":         provider,
 		},
 	}
-
-	p.trackMeetingDuplication(userID)
 
 	return p.API.SendEphemeralPost(userID, post)
 }
@@ -1108,13 +1096,11 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic, connectionID st
 		return "", errors.Wrap(err, "error fetching PMI setting data")
 	}
 
-	createMeetingWithPMI := false
 	switch userPMISettingPref {
 	case "", zoomPMISettingValueAsk:
 		p.askPreferenceForMeeting(user.Id, channelID, rootID)
 		return "", nil
 	case trueString:
-		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
@@ -1134,9 +1120,6 @@ func (p *Plugin) handleMeetingCreation(channelID, rootID, topic, connectionID st
 	if postMeetingErr := p.postMeeting(user, meetingID, meetingUUID, channelID, rootID, topic, connectionID); postMeetingErr != nil {
 		return "", postMeetingErr
 	}
-
-	p.trackMeetingStart(user.Id, telemetryStartSourceCommand)
-	p.trackMeetingType(user.Id, createMeetingWithPMI)
 
 	meetingURL := p.getMeetingURL(user, meetingID)
 	return meetingURL, nil

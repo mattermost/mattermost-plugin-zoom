@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/bot/logger"
-	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 	"github.com/pkg/errors"
 )
 
@@ -121,10 +119,6 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
 	var configuration = new(configuration)
-	prevConfigAccountLevelOAuth := false
-	if p.configuration != nil {
-		prevConfigAccountLevelOAuth = p.configuration.AccountLevelApp
-	}
 
 	// Load the public configuration fields from the Mattermost server configuration.
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
@@ -136,17 +130,6 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	p.setConfiguration(configuration)
-
-	p.tracker = telemetry.NewTracker(p.telemetryClient, p.API.GetDiagnosticId(), p.API.GetServerVersion(), manifest.Id, manifest.Version, "zoom", telemetry.NewTrackerConfig(p.API.GetConfig()), logger.New(p.API))
-
-	if prevConfigAccountLevelOAuth != p.configuration.AccountLevelApp {
-		method := telemetryOauthModeOauth
-		if p.configuration.AccountLevelApp {
-			method = telemetryOauthModeOauthAccountLevel
-		}
-
-		p.trackOAuthModeChange(method)
-	}
 
 	// re-register the plugin command here as a configuration update might change the available commands
 	command, err := p.getCommand()

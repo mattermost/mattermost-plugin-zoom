@@ -192,13 +192,11 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		return "", err
 	}
 
-	createMeetingWithPMI := false
 	switch userPMISettingPref {
 	case "", zoomPMISettingValueAsk:
 		p.askPreferenceForMeeting(user.Id, args.ChannelId, args.RootId)
 		return "", nil
 	case trueString:
-		createMeetingWithPMI = true
 		meetingID = zoomUser.Pmi
 
 		if meetingID <= 0 {
@@ -219,8 +217,6 @@ func (p *Plugin) runStartCommand(args *model.CommandArgs, user *model.User, topi
 		return "", postMeetingErr
 	}
 
-	p.trackMeetingStart(args.UserId, telemetryStartSourceCommand)
-	p.trackMeetingType(args.UserId, createMeetingWithPMI)
 	return "", nil
 }
 
@@ -410,8 +406,6 @@ func (p *Plugin) runDisconnectCommand(user *model.User) (string, error) {
 	if err != nil {
 		return "Could not disconnect OAuth from Zoom, " + err.Error(), nil
 	}
-
-	p.trackDisconnect(user.Id)
 
 	return "User disconnected from Zoom.", nil
 }

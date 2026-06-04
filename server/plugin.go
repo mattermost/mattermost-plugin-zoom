@@ -17,7 +17,6 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/pluginapi"
-	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/telemetry"
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
@@ -55,9 +54,6 @@ type Plugin struct {
 	configuration *configuration
 
 	siteURL string
-
-	telemetryClient telemetry.Client
-	tracker         telemetry.Tracker
 
 	// downloadClient is the HTTP client used for downloading files from Zoom.
 	// Initialized in OnActivate; tests may override it before exercising handlers.
@@ -112,22 +108,10 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(appErr, "couldn't set profile image")
 	}
 
-	p.telemetryClient, err = telemetry.NewRudderClient()
-	if err != nil {
-		p.API.LogWarn("telemetry client not started", "error", err.Error())
-	}
-
 	return nil
 }
 
 func (p *Plugin) OnDeactivate() error {
-	if p.telemetryClient != nil {
-		err := p.telemetryClient.Close()
-		if err != nil {
-			p.API.LogWarn("OnDeactivate: failed to close telemetryClient", "error", err.Error())
-		}
-	}
-
 	return nil
 }
 
