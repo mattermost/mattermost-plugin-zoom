@@ -77,6 +77,15 @@ type MeetingURLResponse struct {
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
+	// Recover from any unexpected panic so a single bad request cannot terminate
+	// the plugin subprocess and take down all Zoom routes.
+	defer func() {
+		if rec := recover(); rec != nil {
+			p.API.LogError("Recovered from panic while serving HTTP request", "path", r.URL.Path, "error", fmt.Sprintf("%v", rec))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+	}()
+
 	config := p.getConfiguration()
 	if err := config.IsValid(p.isCloudLicense()); err != nil {
 		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
@@ -117,6 +126,11 @@ func (p *Plugin) submitFormPMIForMeeting(w http.ResponseWriter, r *http.Request)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			http.Error(w, "failed to write the response", http.StatusInternalServerError)
 		}
+		return
+	}
+	if postActionIntegrationRequest == nil {
+		p.API.LogWarn("Empty PostActionIntegrationRequest body")
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -261,6 +275,11 @@ func (p *Plugin) submitFormPMIForPreference(w http.ResponseWriter, r *http.Reque
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			http.Error(w, "failed to write the response", http.StatusInternalServerError)
 		}
+		return
+	}
+	if postActionIntegrationRequest == nil {
+		p.API.LogWarn("Empty PostActionIntegrationRequest body")
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -683,6 +702,11 @@ func (p *Plugin) handleChannelPreference(w http.ResponseWriter, r *http.Request)
 	if err := decoder.Decode(&submitRequest); err != nil {
 		p.API.LogError("Error decoding dialog request", "Error", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if submitRequest == nil {
+		p.API.LogError("Empty dialog request body")
+		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
