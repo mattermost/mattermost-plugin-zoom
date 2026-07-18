@@ -76,43 +76,64 @@ type MeetingURLResponse struct {
 	MeetingURL string `json:"meeting_url"`
 }
 
+// responseWriterRecorder tracks whether a response has been written so panic
+// recovery can avoid writing to an already-committed response.
+type responseWriterRecorder struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+func (rw *responseWriterRecorder) WriteHeader(code int) {
+	rw.wroteHeader = true
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriterRecorder) Write(b []byte) (int, error) {
+	rw.wroteHeader = true
+	return rw.ResponseWriter.Write(b)
+}
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
+	rw := &responseWriterRecorder{ResponseWriter: w}
+
 	// Recover from any unexpected panic so a single bad request cannot terminate
 	// the plugin subprocess and take down all Zoom routes.
 	defer func() {
 		if rec := recover(); rec != nil {
 			p.API.LogError("Recovered from panic while serving HTTP request", "path", r.URL.Path, "error", fmt.Sprintf("%v", rec))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			if !rw.wroteHeader {
+				http.Error(rw, "internal server error", http.StatusInternalServerError)
+			}
 		}
 	}()
 
 	config := p.getConfiguration()
 	if err := config.IsValid(p.isCloudLicense()); err != nil {
-		http.Error(w, "This plugin is not configured.", http.StatusNotImplemented)
+		http.Error(rw, "This plugin is not configured.", http.StatusNotImplemented)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+	r.Body = http.MaxBytesReader(rw, r.Body, maxRequestBodySize)
 
 	switch path := r.URL.Path; path {
 	case pathWebhook:
-		p.handleWebhook(w, r)
+		p.handleWebhook(rw, r)
 	case pathStartMeeting:
-		p.handleStartMeeting(w, r)
+		p.handleStartMeeting(rw, r)
 	case pathConnectUser:
-		p.connectUserToZoom(w, r)
+		p.connectUserToZoom(rw, r)
 	case pathCompleteUserOAuth:
-		p.completeUserOAuthToZoom(w, r)
+		p.completeUserOAuthToZoom(rw, r)
 	case pathDeauthorizeUser:
-		p.deauthorizeUser(w, r)
+		p.deauthorizeUser(rw, r)
 	case pathUpdatePMI:
-		p.submitFormPMIForPreference(w, r)
+		p.submitFormPMIForPreference(rw, r)
 	case pathAskPMI:
-		p.submitFormPMIForMeeting(w, r)
+		p.submitFormPMIForMeeting(rw, r)
 	case pathChannelPreference:
-		p.handleChannelPreference(w, r)
+		p.handleChannelPreference(rw, r)
 	default:
-		http.NotFound(w, r)
+		http.NotFound(rw, r)
 	}
 }
 
