@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/plugin/plugintest"
 	"github.com/mattermost/mattermost/server/public/plugin/plugintest/mock"
 )
@@ -153,6 +154,74 @@ func TestSubmitFormPMIForPreference(t *testing.T) {
 			assert.Equal(t, tc.expectStatus, rr.Code)
 		})
 	}
+}
+
+// panicAfterWriteWriter commits the response body, then panics so ServeHTTP's
+// recover path can be exercised after headers are already written.
+type panicAfterWriteWriter struct {
+	http.ResponseWriter
+	message string
+}
+
+func (w *panicAfterWriteWriter) Write(b []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(b)
+	if err != nil {
+		return n, err
+	}
+	panic(w.message)
+}
+
+func TestServeHTTPRecoversFromPanic(t *testing.T) {
+	validConfig := &configuration{
+		WebhookSecret:     "secret",
+		EncryptionKey:     "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
+		OAuthClientID:     "clientid",
+		OAuthClientSecret: "clientsecret",
+	}
+
+	t.Run("panic before response is committed returns 500", func(t *testing.T) {
+		api := &plugintest.API{}
+		p := Plugin{}
+		p.SetAPI(api)
+		p.setConfiguration(validConfig)
+
+		api.On("GetLicense").Return(nil).Run(func(args mock.Arguments) {
+			panic("boom before write")
+		})
+		api.On("LogError", "Recovered from panic while serving HTTP request", "path", "/", "error", "boom before write").Once()
+
+		rr := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+		require.NotPanics(t, func() {
+			p.ServeHTTP(&plugin.Context{}, rr, req)
+		})
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Contains(t, rr.Body.String(), "internal server error")
+		api.AssertExpectations(t)
+	})
+
+	t.Run("panic after response is committed leaves status untouched", func(t *testing.T) {
+		api := &plugintest.API{}
+		p := Plugin{}
+		p.SetAPI(api)
+		p.setConfiguration(validConfig)
+
+		api.On("GetLicense").Return(nil)
+		api.On("LogError", "Recovered from panic while serving HTTP request", "path", "/unknown", "error", "boom after write").Once()
+
+		rr := httptest.NewRecorder()
+		w := &panicAfterWriteWriter{ResponseWriter: rr, message: "boom after write"}
+		req := httptest.NewRequest(http.MethodGet, "/unknown", nil)
+
+		require.NotPanics(t, func() {
+			p.ServeHTTP(&plugin.Context{}, w, req)
+		})
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		assert.Contains(t, rr.Body.String(), "404 page not found")
+		assert.NotContains(t, rr.Body.String(), "internal server error")
+		api.AssertExpectations(t)
+	})
 }
 
 // A JSON `null` body decodes without error but leaves the target pointer nil.
