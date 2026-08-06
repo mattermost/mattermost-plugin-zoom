@@ -88,7 +88,7 @@
                 "key": "ZoomWebhookSecret",
                 "display_name": "Zoom Webhook Secret:",
                 "type": "text",
-                "help_text": "Secret Token taken from Zoom's webhook configuration page",
+                "help_text": "Secret Token taken from Zoom's webhook configuration page. Required: webhook events are rejected while this is empty.",
                 "regenerate_help_text": "",
                 "placeholder": "",
                 "default": null,

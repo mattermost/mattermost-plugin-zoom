@@ -333,17 +333,11 @@ func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {
 	p.setConfiguration(configWithoutSecret)
 
 	api.On("GetLicense").Return(nil)
-	api.On("KVGet", "post_meeting_123").Return(nil, &model.AppError{StatusCode: 200})
-	api.On("KVGet", "meeting_channel_123").Return(nil, (*model.AppError)(nil))
 	allowFlexibleLogging(api)
 	p.SetAPI(api)
 	p.client = pluginapi.NewClient(p.API, p.Driver)
 
 	requestBody := `{"payload":{"object": {"id": "123", "uuid": "123"}},"event":"meeting.ended"}`
-
-	ts := "1660149894817"
-	h := hmac.New(sha256.New, []byte(testConfig.ZoomWebhookSecret))
-	_, _ = h.Write([]byte("v0:" + ts + ":" + requestBody))
 
 	w := httptest.NewRecorder()
 	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
@@ -352,7 +346,42 @@ func TestWebhookEmptyZoomWebhookSecret(t *testing.T) {
 
 	p.ServeHTTP(&plugin.Context{}, w, request)
 
-	require.Equal(t, http.StatusNotFound, w.Result().StatusCode)
+	require.Equal(t, http.StatusUnauthorized, w.Result().StatusCode)
+}
+
+func TestWebhookEmptyZoomWebhookSecretWithValidSignature(t *testing.T) {
+	api := &plugintest.API{}
+	p := Plugin{}
+
+	configWithoutSecret := &configuration{
+		OAuthClientID:     "clientid",
+		OAuthClientSecret: "clientsecret",
+		EncryptionKey:     "encryptionkey",
+		WebhookSecret:     "webhooksecret",
+		ZoomWebhookSecret: "",
+	}
+	p.setConfiguration(configWithoutSecret)
+
+	api.On("GetLicense").Return(nil)
+	allowFlexibleLogging(api)
+	p.SetAPI(api)
+	p.client = pluginapi.NewClient(p.API, p.Driver)
+
+	requestBody := `{"payload":{"object": {"id": "123", "uuid": "123"}},"event":"meeting.ended"}`
+
+	ts := fmt.Sprintf("%d", time.Now().Unix())
+	hash, _ := createWebhookSignatureHash("", fmt.Sprintf("v0:%s:%s", ts, requestBody))
+
+	w := httptest.NewRecorder()
+	reqBody := io.NopCloser(bytes.NewBufferString(requestBody))
+	request := httptest.NewRequest("POST", "/webhook?secret=webhooksecret", reqBody)
+	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("x-zm-signature", fmt.Sprintf("v0=%s", hash))
+	request.Header.Add("x-zm-request-timestamp", ts)
+
+	p.ServeHTTP(&plugin.Context{}, w, request)
+
+	require.Equal(t, http.StatusUnauthorized, w.Result().StatusCode)
 }
 
 func TestWebhookVerifySignatureInvalid(t *testing.T) {
