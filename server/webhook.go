@@ -552,7 +552,7 @@ const webhookTimestampMaxAge = 5 * time.Minute
 func (p *Plugin) verifyZoomWebhookSignature(r *http.Request, body []byte) error {
 	config := p.getConfiguration()
 	if config.ZoomWebhookSecret == "" {
-		return nil
+		return errors.New("zoom webhook secret not set")
 	}
 
 	var webhook zoom.Webhook
