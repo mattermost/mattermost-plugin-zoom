@@ -10,8 +10,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +26,19 @@ import (
 
 	"github.com/mattermost/mattermost-plugin-zoom/server/zoom"
 )
+
+const testZoomWebhookSecret = "thezoomwebhooksecret"
+
+func signZoomWebhookRequest(t *testing.T, r *http.Request, body string) {
+	t.Helper()
+
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	hash, err := createWebhookSignatureHash(testZoomWebhookSecret, fmt.Sprintf("v0:%s:%s", ts, body))
+	require.NoError(t, err)
+
+	r.Header.Set("x-zm-request-timestamp", ts)
+	r.Header.Set("x-zm-signature", "v0="+hash)
+}
 
 func TestPlugin(t *testing.T) {
 	// Mock Zoom server
@@ -66,8 +81,11 @@ func TestPlugin(t *testing.T) {
 
 	endedPayload := `{"event": "meeting.ended", "payload": {"object": {"id": "234", "uuid": "234"}}}`
 	validStoppedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(endedPayload))
+	signZoomWebhookRequest(t, validStoppedWebhookRequest, endedPayload)
 
-	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(`{"event": "meeting.started", "payload": {"object": {"id": "234", "uuid": "234"}}}`))
+	startedPayload := `{"event": "meeting.started", "payload": {"object": {"id": "234", "uuid": "234"}}}`
+	validStartedWebhookRequest := httptest.NewRequest("POST", "/webhook?secret=thewebhooksecret", strings.NewReader(startedPayload))
+	signZoomWebhookRequest(t, validStartedWebhookRequest, startedPayload)
 
 	noSecretWebhookRequest := httptest.NewRequest("POST", "/webhook", strings.NewReader(endedPayload))
 
@@ -202,6 +220,7 @@ func TestPlugin(t *testing.T) {
 			p.setConfiguration(&configuration{
 				ZoomAPIURL:              ts.URL,
 				WebhookSecret:           "thewebhooksecret",
+				ZoomWebhookSecret:       testZoomWebhookSecret,
 				EncryptionKey:           "4Su-mLR7N6VwC6aXjYhQoT0shtS9fKz+",
 				OAuthClientID:           "clientid",
 				OAuthClientSecret:       "clientsecret",
