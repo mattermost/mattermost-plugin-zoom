@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Apps Webhooks"
+  },
+  "paths": {
+    "app_deauthorized": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/App_deauthorizedEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "App_deauthorizedEvent": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "user_id": {
+                "type": "string"
+              },
+              "account_id": {
+                "type": "string"
+              },
+              "client_id": {
+                "type": "string"
+              },
+              "deauthorization_time": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "event_ts": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

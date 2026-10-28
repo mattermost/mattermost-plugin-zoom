@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -948,43 +947,6 @@ func (p *Plugin) deauthorizeUser(w http.ResponseWriter, r *http.Request) {
 	if err = p.sendDirectMessage(info.UserID, message); err != nil {
 		p.API.LogWarn("failed to dm user about deauthorization", "error", err.Error())
 	}
-
-	if req.Payload.UserDataRetention == falseString {
-		if err := p.completeCompliance(req.Payload); err != nil {
-			p.API.LogWarn("failed to complete compliance after user deauthorization", "error", err.Error())
-		}
-	}
-}
-
-func (p *Plugin) completeCompliance(payload zoom.DeauthorizationPayload) error {
-	data := zoom.ComplianceRequest{
-		ClientID:                     payload.ClientID,
-		UserID:                       payload.UserID,
-		AccountID:                    payload.AccountID,
-		DeauthorizationEventReceived: payload,
-		ComplianceCompleted:          true,
-	}
-
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return errors.Wrap(err, "could not marshal JSON data")
-	}
-
-	res, err := http.Post(
-		p.getZoomAPIURL()+"/oauth/data/compliance",
-		"application/json",
-		bytes.NewReader(jsonData),
-	)
-	if err != nil {
-		return errors.Wrap(err, "could not make POST request to the data compliance endpoint")
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 300 {
-		return errors.Errorf("data compliance request has failed with status code: %d", res.StatusCode)
-	}
-
-	return nil
 }
 
 // parseOAuthUserState parses the user ID and the channel ID from the given OAuth user state.

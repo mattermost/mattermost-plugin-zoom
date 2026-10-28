@@ -1,0 +1,18 @@
+{
+  "meetings": {
+    "url": "https://developers.zoom.us/api/zoap/meetings/methods",
+    "operations": ["GET /meetings/{meetingId}", "POST /users/{userId}/meetings"]
+  },
+  "users": {
+    "url": "https://developers.zoom.us/api/zoap/users/methods",
+    "operations": ["GET /users/{userId}"]
+  },
+  "meeting-events": {
+    "url": "https://developers.zoom.us/api/zoap/meetings/events/",
+    "operations": ["POST meeting.started", "POST meeting.ended", "POST recording.completed", "POST recording.transcript_completed"]
+  },
+  "app-events": {
+    "url": "https://developers.zoom.us/api/zoap/marketplace/events/",
+    "operations": ["POST app_deauthorized"]
+  }
+}
