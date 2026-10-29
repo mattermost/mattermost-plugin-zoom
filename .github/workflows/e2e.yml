@@ -71,7 +71,7 @@ jobs:
       - name: Collect server logs
         if: failure()
         working-directory: e2e/playwright
-        run: docker compose logs mattermost > playwright-report/mattermost.log 2>&1 || true
+        run: mkdir -p playwright-report && docker compose logs mattermost > playwright-report/mattermost.log 2>&1 || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -80,7 +80,7 @@ jobs:
           path: e2e/playwright/playwright-report
           retention-days: 14
 
-  # Non-blocking: core CSS changes in the server image can shift the baselines too.
+  # Non-blocking: a screenshot diff needs a person to judge whether the change is intended.
   visual:
     name: playwright visual
     runs-on: ubuntu-latest
@@ -88,7 +88,6 @@ jobs:
     continue-on-error: true
     env:
       CI: true
-      MM_IMAGE: mattermost/mattermost-enterprise-edition:release-12.0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,10 +114,6 @@ jobs:
       - name: Install e2e dependencies
         working-directory: e2e/playwright
         run: npm ci
-
-      - name: Start Mattermost
-        working-directory: e2e/playwright
-        run: npm run env:up
 
       - name: Compare screenshots
         working-directory: e2e/playwright

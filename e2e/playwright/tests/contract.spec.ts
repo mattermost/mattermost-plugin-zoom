@@ -18,6 +18,12 @@ test('validator rejects fields with the wrong type', () => {
     expect(errors.join('\n')).toContain('/pmi must be integer');
 });
 
+test('auth failures follow Zoom\'s API-wide error shape', () => {
+    expect(validator.validateResponse('GET', '/users/me', 401, {code: 124, message: 'Invalid access token.'})).toEqual([]);
+    expect(validator.validateResponse('GET', '/users/me', 401, {error: 'unauthorized'})).not.toEqual([]);
+    expect(validator.validateResponse('GET', '/users/me', 403, {code: 124, message: 'Forbidden'})).not.toEqual([]);
+});
+
 test('synthetic webhook events must match Zoom\'s published event schema', () => {
     const event = {event: 'meeting.started', event_ts: Date.now(), payload: {account_id: 'a', object: {id: '1', uuid: 'u', host_id: 'h', topic: 't', type: 1, start_time: '2026-01-01T00:00:00Z', duration: 0}}};
 

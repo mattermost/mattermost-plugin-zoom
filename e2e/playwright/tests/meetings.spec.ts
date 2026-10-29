@@ -116,6 +116,18 @@ test('a Zoom API failure is reported to the user', async ({pw, zoom}) => {
     expect(await zoomPosts(zoom.userClient, zoom.channel.id)).toEqual([]);
 });
 
+test('a token revoked on the Zoom side is reported to the user', async ({pw, zoom}) => {
+    const {zoomUser} = await zoom.connect();
+    setPMIPreference(zoom.user.id, 'false');
+    await fakeZoom.issueTokens(zoomUser.id);
+    const {page} = await openChannel(pw, zoom.user, zoom.team.name);
+
+    await page.locator(appBarIcon).click();
+
+    await expect(postWithText(page, 'Error fetching user from Zoom')).toBeVisible();
+    expect(await zoomPosts(zoom.userClient, zoom.channel.id)).toEqual([]);
+});
+
 test('an unconnected user is asked to connect when starting a meeting', async ({pw, zoom}) => {
     const {channelsPage, page} = await openChannel(pw, zoom.user, zoom.team.name);
 

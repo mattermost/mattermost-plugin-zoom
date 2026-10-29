@@ -28,6 +28,15 @@ const knownSpecGaps = [
     },
 ];
 
+// Zoom documents auth failures once for the whole API (e.g. code 124 "Invalid access token."), not per operation.
+const apiWideResponses: Record<number, {content: {'application/json': {schema: object}}}> = {
+    401: {content: {'application/json': {schema: {
+        type: 'object',
+        required: ['code', 'message'],
+        properties: {code: {type: 'integer'}, message: {type: 'string'}},
+    }}}},
+};
+
 // Paths are relative to the API base URL, without the /v2 prefix.
 export class ContractValidator {
     private readonly ajv = new Ajv({strict: false, allErrors: true, verbose: true});
@@ -70,7 +79,7 @@ export class ContractValidator {
         if (!op) {
             return [];
         }
-        const response = op.responses[String(status)] ?? op.responses.default;
+        const response = op.responses[String(status)] ?? op.responses.default ?? apiWideResponses[status];
         if (!response) {
             return [`${op.method} ${op.template}: status ${status} is not a documented response`];
         }

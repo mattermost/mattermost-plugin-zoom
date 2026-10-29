@@ -17,6 +17,8 @@ services:
 
   mattermost:
     image: ${MM_IMAGE:-mattermostdevelopment/mattermost-enterprise-edition:master}
+    # Server images are published for amd64 only; Apple Silicon runs them under emulation.
+    platform: linux/amd64
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,6 +56,8 @@ services:
     profiles: [visual]
     image: mcr.microsoft.com/playwright:v${PW_VERSION:-1.64.1}-noble
     network_mode: service:mattermost
+    # Chromium rasterizes text differently per CPU architecture; CI runners are amd64.
+    platform: linux/amd64
     init: true
     command: npx -y playwright@${PW_VERSION:-1.64.1} run-server --port 3333 --host 0.0.0.0
     healthcheck:
