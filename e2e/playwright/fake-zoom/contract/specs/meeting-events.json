@@ -1,0 +1,746 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Meetings Webhooks"
+  },
+  "paths": {
+    "meeting.started": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Meeting.startedEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "meeting.ended": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Meeting.endedEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "recording.completed": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Recording.completedEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    },
+    "recording.transcript_completed": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Recording.transcript_completedEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {}
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Meeting.endedEvent": {
+        "required": [
+          "event",
+          "event_ts",
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "event_ts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "payload": {
+            "required": [
+              "account_id",
+              "object"
+            ],
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string"
+              },
+              "object": {
+                "required": [
+                  "duration",
+                  "end_time",
+                  "host_email",
+                  "host_id",
+                  "id",
+                  "start_time",
+                  "topic",
+                  "type",
+                  "uuid"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "host_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "topic": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4,
+                      7,
+                      8
+                    ]
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "integer"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "Meeting.startedEvent": {
+        "required": [
+          "event",
+          "event_ts",
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "event_ts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "payload": {
+            "required": [
+              "account_id",
+              "object"
+            ],
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string"
+              },
+              "object": {
+                "required": [
+                  "duration",
+                  "host_email",
+                  "host_id",
+                  "id",
+                  "start_time",
+                  "topic",
+                  "type",
+                  "uuid"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "host_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "topic": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4,
+                      7,
+                      8
+                    ]
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "Recording.completedEvent": {
+        "required": [
+          "download_token",
+          "event",
+          "event_ts",
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "event_ts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "download_token": {
+            "type": "string"
+          },
+          "payload": {
+            "required": [
+              "account_id",
+              "object"
+            ],
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string"
+              },
+              "object": {
+                "required": [
+                  "account_id",
+                  "duration",
+                  "host_email",
+                  "host_id",
+                  "id",
+                  "password",
+                  "recording_count",
+                  "recording_files",
+                  "share_url",
+                  "start_time",
+                  "topic",
+                  "total_size",
+                  "type",
+                  "uuid"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "uuid": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "account_id": {
+                    "type": "string"
+                  },
+                  "topic": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7,
+                      8,
+                      9,
+                      99
+                    ]
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "host_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "duration": {
+                    "type": "integer"
+                  },
+                  "share_url": {
+                    "type": "string"
+                  },
+                  "total_size": {
+                    "type": "integer"
+                  },
+                  "recording_count": {
+                    "type": "integer"
+                  },
+                  "on_prem": {
+                    "type": "boolean"
+                  },
+                  "recording_play_passcode": {
+                    "type": "string"
+                  },
+                  "auto_delete": {
+                    "type": "boolean"
+                  },
+                  "auto_delete_date": {
+                    "type": "string"
+                  },
+                  "recording_files": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "download_url",
+                        "file_extension",
+                        "file_size",
+                        "file_type",
+                        "id",
+                        "meeting_id",
+                        "recording_end",
+                        "recording_start",
+                        "recording_type",
+                        "status"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "meeting_id": {
+                          "type": "string"
+                        },
+                        "recording_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "recording_end": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "file_type": {
+                          "type": "string",
+                          "enum": [
+                            "MP4",
+                            "M4A",
+                            "CHAT",
+                            "TRANSCRIPT",
+                            "CSV",
+                            "TB",
+                            "CC",
+                            "CHAT_MESSAGE",
+                            "SUMMARY",
+                            "TIMELINE"
+                          ]
+                        },
+                        "file_size": {
+                          "type": "integer"
+                        },
+                        "file_extension": {
+                          "type": "string",
+                          "enum": [
+                            "MP4",
+                            "M4A",
+                            "TXT",
+                            "VTT",
+                            "CSV",
+                            "JSON",
+                            "JPG"
+                          ]
+                        },
+                        "file_name": {
+                          "type": "string"
+                        },
+                        "play_url": {
+                          "type": "string"
+                        },
+                        "download_url": {
+                          "type": "string"
+                        },
+                        "file_path": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "processing"
+                          ]
+                        },
+                        "recording_type": {
+                          "type": "string",
+                          "enum": [
+                            "shared_screen_with_speaker_view(CC)",
+                            "shared_screen_with_speaker_view",
+                            "shared_screen_with_gallery_view",
+                            "gallery_view",
+                            "shared_screen",
+                            "audio_only",
+                            "chat_file",
+                            "active_speaker",
+                            "host_video",
+                            "audio_only_each_participant",
+                            "cc_transcript",
+                            "closed_caption",
+                            "poll",
+                            "timeline",
+                            "thumbnail",
+                            "audio_interpretation",
+                            "summary",
+                            "summary_next_steps",
+                            "summary_smart_chapters",
+                            "sign_interpretation",
+                            "production_studio"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "participant_audio_files": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "download_url",
+                        "file_extension",
+                        "file_name",
+                        "file_size",
+                        "file_type",
+                        "id",
+                        "recording_end",
+                        "recording_start",
+                        "status"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "recording_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "recording_end": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "file_type": {
+                          "type": "string"
+                        },
+                        "file_name": {
+                          "type": "string"
+                        },
+                        "file_size": {
+                          "type": "integer"
+                        },
+                        "file_extension": {
+                          "type": "string"
+                        },
+                        "play_url": {
+                          "type": "string"
+                        },
+                        "download_url": {
+                          "type": "string"
+                        },
+                        "file_path": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "processing"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "Recording.transcript_completedEvent": {
+        "required": [
+          "event",
+          "event_ts",
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "event_ts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "download_token": {
+            "type": "string"
+          },
+          "payload": {
+            "required": [
+              "account_id",
+              "object"
+            ],
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string"
+              },
+              "object": {
+                "required": [
+                  "account_id",
+                  "duration",
+                  "host_email",
+                  "host_id",
+                  "id",
+                  "recording_count",
+                  "recording_files",
+                  "share_url",
+                  "start_time",
+                  "topic",
+                  "total_size",
+                  "type",
+                  "uuid"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "uuid": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "account_id": {
+                    "type": "string"
+                  },
+                  "topic": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7,
+                      8,
+                      9,
+                      99
+                    ]
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "host_email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "duration": {
+                    "type": "integer"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "share_url": {
+                    "type": "string"
+                  },
+                  "total_size": {
+                    "type": "integer"
+                  },
+                  "recording_count": {
+                    "type": "integer"
+                  },
+                  "recording_files": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "download_url",
+                        "file_extension",
+                        "file_size",
+                        "file_type",
+                        "id",
+                        "meeting_id",
+                        "recording_end",
+                        "recording_start",
+                        "recording_type",
+                        "status"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "meeting_id": {
+                          "type": "string"
+                        },
+                        "recording_start": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "recording_end": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "file_type": {
+                          "type": "string"
+                        },
+                        "file_size": {
+                          "type": "integer"
+                        },
+                        "file_extension": {
+                          "type": "string"
+                        },
+                        "file_name": {
+                          "type": "string"
+                        },
+                        "play_url": {
+                          "type": "string"
+                        },
+                        "download_url": {
+                          "type": "string"
+                        },
+                        "file_path": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "processing"
+                          ]
+                        },
+                        "recording_type": {
+                          "type": "string",
+                          "enum": [
+                            "shared_screen_with_speaker_view(CC)",
+                            "shared_screen_with_speaker_view",
+                            "shared_screen_with_gallery_view",
+                            "gallery_view",
+                            "shared_screen",
+                            "audio_only",
+                            "audio_transcript",
+                            "chat_file",
+                            "active_speaker",
+                            "host_video",
+                            "audio_only_each_participant",
+                            "cc_transcript",
+                            "closed_caption",
+                            "poll",
+                            "timeline",
+                            "thumbnail"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

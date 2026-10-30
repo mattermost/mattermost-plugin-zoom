@@ -201,8 +201,10 @@ func (p *Plugin) sendDirectMessage(userID string, message string) error {
 		UserId:    p.botUserID,
 	}
 
-	_, err = p.API.CreatePost(post)
-	return err
+	if _, err = p.API.CreatePost(post); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Plugin) GetZoomSuperUserToken() (*oauth2.Token, error) {

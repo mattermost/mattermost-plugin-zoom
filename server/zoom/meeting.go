@@ -95,7 +95,7 @@ type CreateMeetingRequest struct {
 	TrackingFields []struct {
 		Field string `json:"field"`
 		Value string `json:"value"`
-	} `json:"tracking_fields"`
+	} `json:"tracking_fields,omitempty"`
 	Recurrence *struct {
 		Type           int    `json:"type"`
 		RepeatInterval int    `json:"repeat_interval"`
@@ -115,12 +115,12 @@ type CreateMeetingRequest struct {
 		Watermark             bool     `json:"watermark"`
 		UsePMI                bool     `json:"use_pmi"`
 		ApprovalType          int      `json:"approval_type"`
-		RegistrationType      int      `json:"registration_type"`
-		Audio                 string   `json:"audio"`
-		AutoRecording         string   `json:"auto_recording"`
+		RegistrationType      int      `json:"registration_type,omitempty"`
+		Audio                 string   `json:"audio,omitempty"`
+		AutoRecording         string   `json:"auto_recording,omitempty"`
 		AlternativeHosts      string   `json:"alternative_hosts"`
 		WaitingRoom           bool     `json:"waiting_room"`
-		GlobalDialInCountries []string `json:"global_dial_in_countries"`
+		GlobalDialInCountries []string `json:"global_dial_in_countries,omitempty"`
 		GlobalDialInNumbers   []struct {
 			Country     string `json:"country"`
 			CountryName string `json:"country_name"`
