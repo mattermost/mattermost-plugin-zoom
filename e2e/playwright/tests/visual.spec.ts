@@ -37,8 +37,6 @@ test.describe('@visual', () => {
         return {page, channelsPage, post, attachment};
     }
 
-    const dateLine = (attachment: Locator) => attachment.getByText(/^Date:/);
-
     test('started meeting post', async ({pw, zoom}) => {
         const {attachment} = await meetingPost(pw, zoom, {topic: 'Design review'});
         await expect(attachment).toHaveScreenshot('started.png');
@@ -62,7 +60,12 @@ test.describe('@visual', () => {
 
     test('ended meeting summary', async ({pw, zoom}) => {
         const {attachment} = await meetingPost(pw, zoom, {status: 'ENDED'});
-        await expect(attachment).toHaveScreenshot('ended.png', {mask: [dateLine(attachment)]});
+
+        // The date is the post's creation time; a fixed value keeps the line's width stable.
+        await attachment.getByText(/^Date:/).evaluate((el) => {
+            el.textContent = 'Date: Jan 1 at 12:00 PM';
+        });
+        await expect(attachment).toHaveScreenshot('ended.png');
     });
 
     test('meeting post in the reply thread', async ({pw, zoom}) => {
