@@ -8,7 +8,7 @@ import {expect, test, type ZoomFixture} from '../support/fixture';
 import {openChannel} from '../support/ui';
 import {createMeetingPost, type MeetingPostOptions} from '../support/zoom_posts';
 
-test.describe('@visual', () => {
+test.describe('visual', {tag: '@visual'}, () => {
     // eslint-disable-next-line no-process-env
     test.skip(!process.env.PW_VISUAL_BROWSER_WS, 'baselines only match the dockerized browser (npm run test:visual)');
 
@@ -37,52 +37,115 @@ test.describe('@visual', () => {
         return {page, channelsPage, post, attachment};
     }
 
-    test('started meeting post', async ({pw, zoom}) => {
+    /**
+     * @objective Verify the started meeting post renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for started meeting post', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open a channel with a started meeting post
         const {attachment} = await meetingPost(pw, zoom, {topic: 'Design review'});
+
+        // * Verify the post matches the baseline
         await expect(attachment).toHaveScreenshot('started.png');
     });
 
-    test('personal meeting ID post', async ({pw, zoom}) => {
+    /**
+     * @objective Verify the personal meeting ID post renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for personal meeting ID post', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open a channel with a personal meeting ID post
         const {attachment} = await meetingPost(pw, zoom, {personal: true, meetingId: 5551234567});
+
+        // * Verify the post matches the baseline
         await expect(attachment).toHaveScreenshot('personal.png');
     });
 
-    test('long topic post', async ({pw, zoom}) => {
+    /**
+     * @objective Verify a meeting post with a long topic renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for long topic post', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open a channel with a long-topic meeting post
         const topic = 'Quarterly cross-team planning sync for the platform reliability roadmap '.repeat(4).trim();
         const {attachment} = await meetingPost(pw, zoom, {topic});
+
+        // * Verify the post matches the baseline
         await expect(attachment).toHaveScreenshot('long-topic.png');
     });
 
-    test('recent meeting prompt', async ({pw, zoom}) => {
+    /**
+     * @objective Verify the recent-meeting prompt renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for recent meeting prompt', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open a channel with a recent-meeting prompt
         const {attachment} = await meetingPost(pw, zoom, {status: 'RECENTLY_CREATED'});
+
+        // * Verify the prompt matches the baseline
         await expect(attachment).toHaveScreenshot('recently-created.png');
     });
 
-    test('ended meeting summary', async ({pw, zoom}) => {
+    /**
+     * @objective Verify the ended meeting summary renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for ended meeting summary', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open a channel with an ended meeting post
         const {attachment} = await meetingPost(pw, zoom, {status: 'ENDED'});
 
-        // The date is the post's creation time; a fixed value keeps the line's width stable.
+        // # Replace the date, which is the post's creation time, so the line's width stays stable
         await attachment.getByText(/^Date:/).evaluate((el) => {
             el.textContent = 'Date: Jan 1 at 12:00 PM';
         });
+
+        // * Verify the summary matches the baseline
         await expect(attachment).toHaveScreenshot('ended.png');
     });
 
-    test('meeting post in the reply thread', async ({pw, zoom}) => {
-        const {page, channelsPage, post} = await meetingPost(pw, zoom, {topic: 'Incident retro'});
+    /**
+     * @objective Verify a meeting post in the reply thread renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for meeting post in reply thread', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open the meeting post's reply thread
+        const {channelsPage, post} = await meetingPost(pw, zoom, {topic: 'Incident retro'});
         await (await channelsPage.centerView.getPostById(post.id)).reply();
         const rhsPost = await channelsPage.sidebarRight.getPostById(post.id);
         const attachment = rhsPost.container.locator('.attachment');
         await expect(attachment).toBeVisible();
         await settle(pw, attachment);
+
+        // * Verify the thread post matches the baseline
         await expect(attachment).toHaveScreenshot('reply-thread.png');
     });
 
-    test('app bar icon', async ({pw, zoom}) => {
+    /**
+     * @objective Verify the app bar icon renders like the baseline.
+     *
+     * @precondition
+     * Runs in the pinned dockerized browser and server (npm run test:visual).
+     */
+    test('matches baseline for app bar icon', {tag: '@zoom_plugin'}, async ({pw, zoom}) => {
+        // # Open a channel
         const {page} = await openChannel(pw, zoom.user, zoom.team.name);
         const icon = page.locator('#app-bar-icon-zoom');
         await expect(icon.locator('img')).toBeVisible();
         await settle(pw, icon);
+
+        // * Verify the icon matches the baseline
         await expect(icon).toHaveScreenshot('app-bar-icon.png');
     });
 });

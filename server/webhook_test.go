@@ -18,6 +18,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
@@ -462,6 +463,52 @@ func TestDeauthorizationBodyTooLarge(t *testing.T) {
 	result := w.Result()
 	defer result.Body.Close()
 	require.True(t, result.StatusCode == http.StatusBadRequest || result.StatusCode == http.StatusRequestEntityTooLarge)
+}
+
+func TestDeauthorizationDisconnectsUserWithoutCallingZoom(t *testing.T) {
+	var zoomRequests []string
+	zoomServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		zoomRequests = append(zoomRequests, r.Method+" "+r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer zoomServer.Close()
+
+	cfg := *testConfig
+	cfg.EncryptionKey = "0123456789abcdef0123456789abcdef"
+	cfg.ZoomAPIURL = zoomServer.URL
+
+	api := &plugintest.API{}
+	p := Plugin{botUserID: "test-bot-id"}
+	p.setConfiguration(&cfg)
+	api.On("GetLicense").Return(nil)
+	allowFlexibleLogging(api)
+
+	encryptedToken, err := encrypt([]byte(cfg.EncryptionKey), "access-token")
+	require.NoError(t, err)
+	encoded, err := json.Marshal(zoom.OAuthUserInfo{UserID: "mm-user", ZoomID: "zoom-user", OAuthToken: &oauth2.Token{AccessToken: encryptedToken}})
+	require.NoError(t, err)
+
+	api.On("KVGet", zoomUserByZoomID+"zoom-user").Return(encoded, nil)
+	api.On("KVGet", zoomUserByMMID+"mm-user").Return(encoded, nil)
+	api.On("KVDelete", zoomUserByMMID+"mm-user").Return(nil).Once()
+	api.On("KVDelete", zoomUserByZoomID+"zoom-user").Return(nil).Once()
+	api.On("GetDirectChannel", "mm-user", "test-bot-id").Return(&model.Channel{Id: "dm-channel"}, nil)
+	api.On("CreatePost", mock.MatchedBy(func(post *model.Post) bool {
+		return post.ChannelId == "dm-channel" && post.UserId == "test-bot-id"
+	})).Return(&model.Post{}, nil).Once()
+	p.SetAPI(api)
+
+	// user_data_retention=false used to trigger a call to Zoom's retired Data Compliance API.
+	body := `{"event": "app_deauthorized", "payload": {"account_id": "account", "user_id": "zoom-user", "client_id": "clientid", "user_data_retention": "false", "deauthorization_time": "2019-06-17T13:52:28.632Z"}}`
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/deauthorization?secret=webhooksecret", bytes.NewBufferString(body))
+	request.Header.Add("Content-Type", "application/json")
+
+	p.ServeHTTP(&plugin.Context{}, w, request)
+
+	require.Equal(t, http.StatusOK, w.Result().StatusCode, w.Body.String())
+	require.Empty(t, zoomRequests)
+	api.AssertExpectations(t)
 }
 
 func TestWebhookHandleTranscriptCompleted(t *testing.T) {
