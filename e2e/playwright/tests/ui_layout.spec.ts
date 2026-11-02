@@ -176,7 +176,7 @@ test('renders app bar icon at icon size', {tag: '@zoom_plugin'}, async ({pw, zoo
     await expect(icon).toBeVisible();
 
     // * Verify the image loaded and is a square between 16 and 40 pixels
-    expect(await icon.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0), 'app-bar-icon.png should load').toBe(true);
+    await expect.poll(() => icon.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0), {message: 'app-bar-icon.png should load'}).toBe(true);
     const {width, height} = (await icon.boundingBox())!;
     expect(width).toBeGreaterThanOrEqual(16);
     expect(width).toBeLessThanOrEqual(40);
