@@ -143,13 +143,13 @@ const controlRoutes: Record<string, (ctx: RequestContext) => void> = {
     },
     'GET /__control/meetings': ({res, state}) => sendJSON(res, 200, [...state.meetings.values()]),
     'POST /__control/meetings': ({res, body, state}) => {
-        const {hostId, topic, type} = JSON.parse(body) as {hostId: string; topic: string; type: number};
+        const {hostId, topic, type, id} = JSON.parse(body) as {hostId: string; topic: string; type: number; id?: number};
         const host = state.users.get(hostId);
         if (!host) {
             sendJSON(res, 400, {error: `unknown host ${hostId}`});
             return;
         }
-        sendJSON(res, 200, createMeeting(state, host, topic, type));
+        sendJSON(res, 200, createMeeting(state, host, topic, type, id));
     },
     'POST /__control/downloads': ({res, body, state}) => {
         const {content} = JSON.parse(body) as {content: string};
@@ -276,8 +276,7 @@ function lookupUser(ctx: RequestContext, caller: ZoomUser, grant: TokenGrant, ra
     return user;
 }
 
-function createMeeting(state: FakeZoomState, host: ZoomUser, topic: string, type: number): ZoomMeeting {
-    const id = randomInt(80_000_000_000, 89_999_999_999);
+function createMeeting(state: FakeZoomState, host: ZoomUser, topic: string, type: number, id = randomInt(80_000_000_000, 89_999_999_999)): ZoomMeeting {
     const password = randomHex().slice(0, 6);
     const meeting: ZoomMeeting = {
         uuid: randomBytes(16).toString('base64'),

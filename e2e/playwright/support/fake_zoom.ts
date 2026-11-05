@@ -27,7 +27,7 @@ export const fakeZoom = {
     setAccountLevelApp: (accountLevel: boolean) => control('POST', '/app', {accountLevel}),
     authorizeAs: (userId: string) => control('POST', '/authorizing-user', {userId}),
     meetings: () => control<ZoomMeeting[]>('GET', '/meetings'),
-    createMeeting: (hostId: string, topic: string, type = 2) => control<ZoomMeeting>('POST', '/meetings', {hostId, topic, type}),
+    createMeeting: (hostId: string, topic: string, type = 2, id?: number) => control<ZoomMeeting>('POST', '/meetings', {hostId, topic, type, id}),
     createDownload: (content: string) => control<{downloadURL: string; playURL: string; downloadToken: string}>('POST', '/downloads', {content}),
     fault: (method: string, path: string, status: number) => control('POST', '/fault', {method, path, status}),
 };
