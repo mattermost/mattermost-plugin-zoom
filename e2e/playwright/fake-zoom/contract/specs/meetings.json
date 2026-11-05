@@ -1,0 +1,2448 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Meetings API"
+  },
+  "paths": {
+    "/meetings/{meetingId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assistant_id": {
+                      "type": "string"
+                    },
+                    "host_email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "host_id": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "uuid": {
+                      "type": "string"
+                    },
+                    "registration_url": {
+                      "type": "string"
+                    },
+                    "agenda": {
+                      "maxLength": 2000,
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "encrypted_password": {
+                      "type": "string"
+                    },
+                    "pstn_password": {
+                      "type": "string"
+                    },
+                    "h323_password": {
+                      "type": "string"
+                    },
+                    "join_url": {
+                      "type": "string"
+                    },
+                    "chat_join_url": {
+                      "type": "string"
+                    },
+                    "occurrences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "duration": {
+                            "type": "integer"
+                          },
+                          "occurrence_id": {
+                            "type": "string"
+                          },
+                          "start_time": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "deleted"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "password": {
+                      "minimum": 8,
+                      "type": "string"
+                    },
+                    "pmi": {
+                      "type": "string"
+                    },
+                    "pre_schedule": {
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "recurrence": {
+                      "required": [
+                        "type"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "end_date_time": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "end_times": {
+                          "maximum": 60,
+                          "type": "integer",
+                          "default": 1
+                        },
+                        "monthly_day": {
+                          "type": "integer",
+                          "default": 1
+                        },
+                        "monthly_week": {
+                          "type": "integer",
+                          "enum": [
+                            -1,
+                            1,
+                            2,
+                            3,
+                            4
+                          ],
+                          "x-enum-descriptions": [
+                            "Last week",
+                            "First week",
+                            "Second week",
+                            "Third week",
+                            "Fourth week"
+                          ]
+                        },
+                        "monthly_week_day": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7
+                          ],
+                          "x-enum-descriptions": [
+                            "Sunday",
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday"
+                          ]
+                        },
+                        "repeat_interval": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3
+                          ],
+                          "x-enum-descriptions": [
+                            "Daily",
+                            "Weekly",
+                            "Monthly"
+                          ]
+                        },
+                        "weekly_days": {
+                          "type": "string",
+                          "default": "1",
+                          "enum": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6",
+                            "7"
+                          ]
+                        }
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "properties": {
+                        "additional_data_center_regions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "allow_multiple_devices": {
+                          "type": "boolean"
+                        },
+                        "alternative_hosts": {
+                          "type": "string"
+                        },
+                        "alternative_hosts_email_notification": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "alternative_host_update_polls": {
+                          "type": "boolean"
+                        },
+                        "alternative_host_manage_meeting_summary": {
+                          "type": "boolean"
+                        },
+                        "alternative_host_manage_cloud_recording": {
+                          "type": "boolean"
+                        },
+                        "approval_type": {
+                          "type": "integer",
+                          "default": 2,
+                          "enum": [
+                            0,
+                            1,
+                            2
+                          ],
+                          "x-enum-descriptions": [
+                            "Automatically Approve",
+                            "Manually Approve",
+                            "No Registration Required"
+                          ]
+                        },
+                        "approved_or_denied_countries_or_regions": {
+                          "type": "object",
+                          "properties": {
+                            "approved_list": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "denied_list": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "method": {
+                              "type": "string",
+                              "enum": [
+                                "approve",
+                                "deny"
+                              ]
+                            }
+                          }
+                        },
+                        "audio": {
+                          "type": "string",
+                          "default": "both",
+                          "enum": [
+                            "both",
+                            "telephony",
+                            "voip",
+                            "thirdParty"
+                          ],
+                          "x-enum-descriptions": [
+                            "Both Telephony and VoIP",
+                            "Telephony only",
+                            "VoIP only",
+                            "Third party audio conference"
+                          ]
+                        },
+                        "audio_conference_info": {
+                          "maxLength": 2048,
+                          "type": "string"
+                        },
+                        "authentication_domains": {
+                          "type": "string"
+                        },
+                        "authentication_exception": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "join_url": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "authentication_name": {
+                          "type": "string"
+                        },
+                        "authentication_option": {
+                          "type": "string"
+                        },
+                        "auto_recording": {
+                          "type": "string",
+                          "default": "none",
+                          "enum": [
+                            "local",
+                            "cloud",
+                            "none"
+                          ]
+                        },
+                        "disable_recording_control": {
+                          "type": "string",
+                          "default": "none",
+                          "enum": [
+                            "none",
+                            "all"
+                          ]
+                        },
+                        "host_pause_stop_recording": {
+                          "type": "boolean"
+                        },
+                        "auto_add_recording_to_video_management": {
+                          "required": [
+                            "enable"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "channels": {
+                              "maxItems": 5,
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "required": [
+                                  "channel_id"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                  "channel_id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "breakout_room": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "rooms": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "participants": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "calendar_type": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2
+                          ],
+                          "x-enum-descriptions": [
+                            "Outlook",
+                            "Google Calendar"
+                          ]
+                        },
+                        "close_registration": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "cn_meeting": {
+                          "type": "boolean",
+                          "deprecated": true,
+                          "default": false
+                        },
+                        "contact_email": {
+                          "type": "string"
+                        },
+                        "contact_name": {
+                          "type": "string"
+                        },
+                        "custom_keys": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "maxLength": 64,
+                                "type": "string"
+                              },
+                              "value": {
+                                "maxLength": 256,
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "email_notification": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "encryption_type": {
+                          "type": "string",
+                          "enum": [
+                            "enhanced_encryption",
+                            "e2ee"
+                          ]
+                        },
+                        "enforce_login": {
+                          "type": "boolean",
+                          "deprecated": true
+                        },
+                        "enforce_login_domains": {
+                          "type": "string",
+                          "deprecated": true
+                        },
+                        "focus_mode": {
+                          "type": "boolean"
+                        },
+                        "global_dial_in_countries": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "global_dial_in_numbers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "city": {
+                                "type": "string"
+                              },
+                              "country": {
+                                "type": "string"
+                              },
+                              "country_name": {
+                                "type": "string"
+                              },
+                              "number": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "toll",
+                                  "tollfree"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "host_video": {
+                          "type": "boolean"
+                        },
+                        "in_meeting": {
+                          "type": "boolean",
+                          "deprecated": true,
+                          "default": false
+                        },
+                        "jbh_time": {
+                          "type": "integer",
+                          "enum": [
+                            0,
+                            5,
+                            10,
+                            15
+                          ]
+                        },
+                        "join_before_host": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "question_and_answer": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "allow_submit_questions": {
+                              "type": "boolean"
+                            },
+                            "allow_anonymous_questions": {
+                              "type": "boolean"
+                            },
+                            "question_visibility": {
+                              "type": "string",
+                              "enum": [
+                                "answered",
+                                "all"
+                              ]
+                            },
+                            "attendees_can_comment": {
+                              "type": "boolean"
+                            },
+                            "attendees_can_upvote": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "language_interpretation": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "interpreters": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "email": {
+                                    "type": "string",
+                                    "format": "email"
+                                  },
+                                  "languages": {
+                                    "type": "string",
+                                    "deprecated": true
+                                  },
+                                  "interpreter_languages": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "sign_language_interpretation": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "interpreters": {
+                              "maximum": 20,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "email": {
+                                    "type": "string",
+                                    "format": "email"
+                                  },
+                                  "sign_language": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "meeting_authentication": {
+                          "type": "boolean"
+                        },
+                        "mute_upon_entry": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "participant_video": {
+                          "type": "boolean"
+                        },
+                        "private_meeting": {
+                          "type": "boolean"
+                        },
+                        "registrants_confirmation_email": {
+                          "type": "boolean"
+                        },
+                        "registrants_email_notification": {
+                          "type": "boolean"
+                        },
+                        "registration_type": {
+                          "type": "integer",
+                          "default": 1,
+                          "enum": [
+                            1,
+                            2,
+                            3
+                          ],
+                          "x-enum-descriptions": [
+                            "Attendees register once and can attend any of the occurrences",
+                            "Attendees need to register for each occurrence to attend",
+                            "Attendees register once and can choose one or more occurrences to attend"
+                          ]
+                        },
+                        "show_share_button": {
+                          "type": "boolean"
+                        },
+                        "show_join_info": {
+                          "type": "boolean"
+                        },
+                        "use_pmi": {
+                          "type": "boolean"
+                        },
+                        "waiting_room": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "waiting_room_options": {
+                          "required": [
+                            "mode"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "mode": {
+                              "type": "string",
+                              "enum": [
+                                "follow_setting",
+                                "custom"
+                              ]
+                            },
+                            "who_goes_to_waiting_room": {
+                              "type": "string",
+                              "enum": [
+                                "everyone",
+                                "users_not_in_account",
+                                "users_not_in_account_or_whitelisted_domains",
+                                "users_not_on_invite",
+                                "users_not_in_org"
+                              ]
+                            }
+                          }
+                        },
+                        "watermark": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "host_save_video_order": {
+                          "type": "boolean"
+                        },
+                        "internal_meeting": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "meeting_invitees": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "internal_user": {
+                                "type": "boolean",
+                                "default": false
+                              }
+                            }
+                          }
+                        },
+                        "continuous_meeting_chat": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "auto_add_invited_external_users": {
+                              "type": "boolean",
+                              "deprecated": true
+                            },
+                            "auto_add_meeting_participants": {
+                              "type": "boolean",
+                              "deprecated": true
+                            },
+                            "channel_id": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "participant_focused_meeting": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "push_change_to_calendar": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "resources": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "resource_type": {
+                                "type": "string",
+                                "enum": [
+                                  "whiteboard"
+                                ]
+                              },
+                              "resource_id": {
+                                "type": "string"
+                              },
+                              "permission_level": {
+                                "type": "string",
+                                "default": "editor",
+                                "enum": [
+                                  "editor",
+                                  "commenter",
+                                  "viewer"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "auto_start_meeting_summary": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "who_will_receive_summary": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4
+                          ]
+                        },
+                        "auto_start_ai_companion_questions": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "who_can_ask_questions": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5
+                          ]
+                        },
+                        "summary_template_id": {
+                          "type": "string"
+                        },
+                        "device_testing": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "request_permission_to_unmute_participants": {
+                          "type": "boolean"
+                        },
+                        "allow_host_control_participant_mute_state": {
+                          "type": "boolean"
+                        },
+                        "disable_participant_video": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "email_in_attendee_report": {
+                          "type": "boolean"
+                        },
+                        "auto_start_deepfake_detection": {
+                          "type": "boolean"
+                        },
+                        "prevent_screen_capture": {
+                          "type": "boolean"
+                        },
+                        "allow_participants_to_transcribe_meetings_with_my_notes": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "participant_scope": {
+                              "type": "string",
+                              "enum": [
+                                "organization",
+                                "all"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "start_time": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "start_url": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "waiting",
+                        "started"
+                      ]
+                    },
+                    "sensitivity_label_id": {
+                      "type": "string"
+                    },
+                    "template_id": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "topic": {
+                      "type": "string"
+                    },
+                    "tracking_fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "visible": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "type": {
+                      "type": "integer",
+                      "default": 2,
+                      "enum": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        8,
+                        10
+                      ]
+                    },
+                    "dynamic_host_key": {
+                      "type": "string"
+                    },
+                    "creation_source": {
+                      "type": "string",
+                      "enum": [
+                        "other",
+                        "open_api",
+                        "web_portal",
+                        "zoom_scheduler"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {},
+          "404": {},
+          "429": {}
+        }
+      }
+    },
+    "/users/{userId}/meetings": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agenda": {
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "default_password": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "duration": {
+                    "maximum": 1440,
+                    "minimum": 1,
+                    "type": "integer",
+                    "default": 60
+                  },
+                  "password": {
+                    "maxLength": 10,
+                    "type": "string"
+                  },
+                  "pre_schedule": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "recurrence": {
+                    "required": [
+                      "type"
+                    ],
+                    "type": "object",
+                    "properties": {
+                      "end_date_time": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "end_times": {
+                        "maximum": 60,
+                        "type": "integer",
+                        "default": 1
+                      },
+                      "monthly_day": {
+                        "type": "integer",
+                        "default": 1
+                      },
+                      "monthly_week": {
+                        "type": "integer",
+                        "enum": [
+                          -1,
+                          1,
+                          2,
+                          3,
+                          4
+                        ],
+                        "x-enum-descriptions": [
+                          "Last week",
+                          "First week",
+                          "Second week",
+                          "Third week",
+                          "Fourth week"
+                        ]
+                      },
+                      "monthly_week_day": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2,
+                          3,
+                          4,
+                          5,
+                          6,
+                          7
+                        ],
+                        "x-enum-descriptions": [
+                          "Sunday",
+                          "Monday",
+                          "Tuesday",
+                          "Wednesday",
+                          "Thursday",
+                          "Friday",
+                          "Saturday"
+                        ]
+                      },
+                      "repeat_interval": {
+                        "type": "integer"
+                      },
+                      "type": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2,
+                          3
+                        ],
+                        "x-enum-descriptions": [
+                          "Daily",
+                          "Weekly",
+                          "Monthly"
+                        ]
+                      },
+                      "weekly_days": {
+                        "type": "string",
+                        "default": "1",
+                        "enum": [
+                          "1",
+                          "2",
+                          "3",
+                          "4",
+                          "5",
+                          "6",
+                          "7"
+                        ]
+                      }
+                    }
+                  },
+                  "schedule_for": {
+                    "type": "string"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "properties": {
+                      "additional_data_center_regions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "allow_multiple_devices": {
+                        "type": "boolean"
+                      },
+                      "alternative_hosts": {
+                        "type": "string"
+                      },
+                      "alternative_hosts_email_notification": {
+                        "type": "boolean",
+                        "default": true
+                      },
+                      "approval_type": {
+                        "type": "integer",
+                        "default": 2,
+                        "enum": [
+                          0,
+                          1,
+                          2
+                        ],
+                        "x-enum-descriptions": [
+                          "Automatically approve registration.",
+                          "Manually approve registration.",
+                          "No registration required."
+                        ]
+                      },
+                      "approved_or_denied_countries_or_regions": {
+                        "type": "object",
+                        "properties": {
+                          "approved_list": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "denied_list": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "approve",
+                              "deny"
+                            ]
+                          }
+                        }
+                      },
+                      "audio": {
+                        "type": "string",
+                        "default": "both",
+                        "enum": [
+                          "both",
+                          "telephony",
+                          "voip",
+                          "thirdParty"
+                        ],
+                        "x-enum-descriptions": [
+                          "Telephony and VoIP.",
+                          "Telephony only.",
+                          "VoIP only.",
+                          "Third party audio conference."
+                        ]
+                      },
+                      "audio_conference_info": {
+                        "maxLength": 2048,
+                        "type": "string"
+                      },
+                      "authentication_domains": {
+                        "type": "string"
+                      },
+                      "authentication_exception": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "email": {
+                              "type": "string",
+                              "format": "email"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "authentication_option": {
+                        "type": "string"
+                      },
+                      "auto_recording": {
+                        "type": "string",
+                        "default": "none",
+                        "enum": [
+                          "local",
+                          "cloud",
+                          "none"
+                        ]
+                      },
+                      "host_pause_stop_recording": {
+                        "type": "boolean"
+                      },
+                      "auto_add_recording_to_video_management": {
+                        "required": [
+                          "enable"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "channels": {
+                            "maxItems": 5,
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "required": [
+                                "channel_id"
+                              ],
+                              "type": "object",
+                              "properties": {
+                                "channel_id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "breakout_room": {
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "rooms": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "participants": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "calendar_type": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2
+                        ],
+                        "x-enum-descriptions": [
+                          "Outlook",
+                          "Google Calendar"
+                        ]
+                      },
+                      "close_registration": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "cn_meeting": {
+                        "type": "boolean",
+                        "deprecated": true,
+                        "default": false
+                      },
+                      "contact_email": {
+                        "type": "string"
+                      },
+                      "contact_name": {
+                        "type": "string"
+                      },
+                      "email_notification": {
+                        "type": "boolean",
+                        "default": true
+                      },
+                      "encryption_type": {
+                        "type": "string",
+                        "enum": [
+                          "enhanced_encryption",
+                          "e2ee"
+                        ]
+                      },
+                      "focus_mode": {
+                        "type": "boolean"
+                      },
+                      "global_dial_in_countries": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "host_video": {
+                        "type": "boolean"
+                      },
+                      "in_meeting": {
+                        "type": "boolean",
+                        "deprecated": true,
+                        "default": false
+                      },
+                      "jbh_time": {
+                        "type": "integer",
+                        "enum": [
+                          0,
+                          5,
+                          10,
+                          15
+                        ]
+                      },
+                      "join_before_host": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "question_and_answer": {
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "allow_submit_questions": {
+                            "type": "boolean"
+                          },
+                          "allow_anonymous_questions": {
+                            "type": "boolean"
+                          },
+                          "question_visibility": {
+                            "type": "string",
+                            "enum": [
+                              "answered",
+                              "all"
+                            ]
+                          },
+                          "attendees_can_comment": {
+                            "type": "boolean"
+                          },
+                          "attendees_can_upvote": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "language_interpretation": {
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "interpreters": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "email": {
+                                  "type": "string",
+                                  "format": "email"
+                                },
+                                "languages": {
+                                  "type": "string",
+                                  "deprecated": true
+                                },
+                                "interpreter_languages": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "sign_language_interpretation": {
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "interpreters": {
+                            "maximum": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "email": {
+                                  "type": "string",
+                                  "format": "email"
+                                },
+                                "sign_language": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "meeting_authentication": {
+                        "type": "boolean"
+                      },
+                      "meeting_invitees": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "email": {
+                              "type": "string",
+                              "format": "email"
+                            }
+                          }
+                        }
+                      },
+                      "mute_upon_entry": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "participant_video": {
+                        "type": "boolean"
+                      },
+                      "private_meeting": {
+                        "type": "boolean"
+                      },
+                      "registrants_confirmation_email": {
+                        "type": "boolean"
+                      },
+                      "registrants_email_notification": {
+                        "type": "boolean"
+                      },
+                      "registration_type": {
+                        "type": "integer",
+                        "default": 1,
+                        "enum": [
+                          1,
+                          2,
+                          3
+                        ],
+                        "x-enum-descriptions": [
+                          "Attendees register once and can attend any meeting occurrence.",
+                          "Attendees must register for each meeting occurrence.",
+                          "Attendees register once and can select one or more meeting occurrences to attend."
+                        ]
+                      },
+                      "show_share_button": {
+                        "type": "boolean"
+                      },
+                      "show_join_info": {
+                        "type": "boolean"
+                      },
+                      "use_pmi": {
+                        "type": "boolean"
+                      },
+                      "waiting_room": {
+                        "type": "boolean"
+                      },
+                      "waiting_room_options": {
+                        "required": [
+                          "mode"
+                        ],
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "follow_setting",
+                              "custom"
+                            ]
+                          },
+                          "who_goes_to_waiting_room": {
+                            "type": "string",
+                            "enum": [
+                              "everyone",
+                              "users_not_in_account",
+                              "users_not_in_account_or_whitelisted_domains",
+                              "users_not_on_invite",
+                              "users_not_in_org"
+                            ]
+                          }
+                        }
+                      },
+                      "watermark": {
+                        "type": "boolean"
+                      },
+                      "host_save_video_order": {
+                        "type": "boolean"
+                      },
+                      "alternative_host_update_polls": {
+                        "type": "boolean"
+                      },
+                      "alternative_host_manage_meeting_summary": {
+                        "type": "boolean"
+                      },
+                      "alternative_host_manage_cloud_recording": {
+                        "type": "boolean"
+                      },
+                      "internal_meeting": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "continuous_meeting_chat": {
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "auto_add_invited_external_users": {
+                            "type": "boolean",
+                            "deprecated": true
+                          },
+                          "auto_add_meeting_participants": {
+                            "type": "boolean",
+                            "deprecated": true
+                          }
+                        }
+                      },
+                      "participant_focused_meeting": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "push_change_to_calendar": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "resources": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "resource_type": {
+                              "type": "string",
+                              "enum": [
+                                "whiteboard"
+                              ]
+                            },
+                            "resource_id": {
+                              "type": "string"
+                            },
+                            "permission_level": {
+                              "type": "string",
+                              "default": "editor",
+                              "enum": [
+                                "editor",
+                                "commenter",
+                                "viewer"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "auto_start_meeting_summary": {
+                        "type": "boolean"
+                      },
+                      "who_will_receive_summary": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2,
+                          3,
+                          4
+                        ]
+                      },
+                      "auto_start_ai_companion_questions": {
+                        "type": "boolean"
+                      },
+                      "who_can_ask_questions": {
+                        "type": "integer",
+                        "enum": [
+                          1,
+                          2,
+                          3,
+                          4,
+                          5
+                        ]
+                      },
+                      "summary_template_id": {
+                        "type": "string"
+                      },
+                      "device_testing": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "request_permission_to_unmute_participants": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "allow_host_control_participant_mute_state": {
+                        "type": "boolean"
+                      },
+                      "disable_participant_video": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "email_in_attendee_report": {
+                        "type": "boolean"
+                      },
+                      "auto_start_deepfake_detection": {
+                        "type": "boolean"
+                      },
+                      "prevent_screen_capture": {
+                        "type": "boolean"
+                      },
+                      "disable_recording_control": {
+                        "type": "string",
+                        "default": "none",
+                        "enum": [
+                          "none",
+                          "all"
+                        ]
+                      },
+                      "allow_participants_to_transcribe_meetings_with_my_notes": {
+                        "type": "object",
+                        "properties": {
+                          "enable": {
+                            "type": "boolean"
+                          },
+                          "participant_scope": {
+                            "type": "string",
+                            "enum": [
+                              "organization",
+                              "all"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "sensitivity_label_id": {
+                    "type": "string"
+                  },
+                  "template_id": {
+                    "type": "string"
+                  },
+                  "timezone": {
+                    "type": "string"
+                  },
+                  "topic": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "tracking_fields": {
+                    "type": "array",
+                    "items": {
+                      "required": [
+                        "field"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "type": {
+                    "type": "integer",
+                    "default": 2,
+                    "enum": [
+                      1,
+                      2,
+                      3,
+                      8,
+                      10
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assistant_id": {
+                      "type": "string"
+                    },
+                    "host_email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "host_id": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "uuid": {
+                      "type": "string"
+                    },
+                    "registration_url": {
+                      "type": "string"
+                    },
+                    "agenda": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "encrypted_password": {
+                      "type": "string"
+                    },
+                    "pstn_password": {
+                      "type": "string"
+                    },
+                    "h323_password": {
+                      "type": "string"
+                    },
+                    "join_url": {
+                      "type": "string"
+                    },
+                    "chat_join_url": {
+                      "type": "string"
+                    },
+                    "occurrences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "duration": {
+                            "type": "integer"
+                          },
+                          "occurrence_id": {
+                            "type": "string"
+                          },
+                          "start_time": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "deleted"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "password": {
+                      "type": "string"
+                    },
+                    "pmi": {
+                      "type": "string"
+                    },
+                    "pre_schedule": {
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "recurrence": {
+                      "required": [
+                        "type"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "end_date_time": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "end_times": {
+                          "maximum": 60,
+                          "type": "integer",
+                          "default": 1
+                        },
+                        "monthly_day": {
+                          "type": "integer",
+                          "default": 1
+                        },
+                        "monthly_week": {
+                          "type": "integer",
+                          "enum": [
+                            -1,
+                            1,
+                            2,
+                            3,
+                            4
+                          ],
+                          "x-enum-descriptions": [
+                            "Last week",
+                            "First week",
+                            "Second week",
+                            "Third week",
+                            "Fourth week"
+                          ]
+                        },
+                        "monthly_week_day": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7
+                          ],
+                          "x-enum-descriptions": [
+                            "Sunday",
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday"
+                          ]
+                        },
+                        "repeat_interval": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3
+                          ],
+                          "x-enum-descriptions": [
+                            "Daily",
+                            "Weekly",
+                            "Monthly"
+                          ]
+                        },
+                        "weekly_days": {
+                          "type": "string",
+                          "default": "1",
+                          "enum": [
+                            "1",
+                            "2",
+                            "3",
+                            "4",
+                            "5",
+                            "6",
+                            "7"
+                          ]
+                        }
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "properties": {
+                        "additional_data_center_regions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "allow_multiple_devices": {
+                          "type": "boolean"
+                        },
+                        "alternative_hosts": {
+                          "type": "string"
+                        },
+                        "alternative_hosts_email_notification": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "alternative_host_update_polls": {
+                          "type": "boolean"
+                        },
+                        "alternative_host_manage_meeting_summary": {
+                          "type": "boolean"
+                        },
+                        "alternative_host_manage_cloud_recording": {
+                          "type": "boolean"
+                        },
+                        "approval_type": {
+                          "type": "integer",
+                          "default": 2,
+                          "enum": [
+                            0,
+                            1,
+                            2
+                          ],
+                          "x-enum-descriptions": [
+                            "Automatically Approve",
+                            "Manually Approve",
+                            "No Registration Required"
+                          ]
+                        },
+                        "approved_or_denied_countries_or_regions": {
+                          "type": "object",
+                          "properties": {
+                            "approved_list": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "denied_list": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "method": {
+                              "type": "string",
+                              "enum": [
+                                "approve",
+                                "deny"
+                              ]
+                            }
+                          }
+                        },
+                        "audio": {
+                          "type": "string",
+                          "default": "both",
+                          "enum": [
+                            "both",
+                            "telephony",
+                            "voip",
+                            "thirdParty"
+                          ],
+                          "x-enum-descriptions": [
+                            "Both Telephony and VoIP",
+                            "Telephony only",
+                            "VoIP only",
+                            "Third party audio conference"
+                          ]
+                        },
+                        "audio_conference_info": {
+                          "maxLength": 2048,
+                          "type": "string"
+                        },
+                        "authentication_domains": {
+                          "type": "string"
+                        },
+                        "authentication_exception": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "join_url": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "authentication_name": {
+                          "type": "string"
+                        },
+                        "authentication_option": {
+                          "type": "string"
+                        },
+                        "auto_recording": {
+                          "type": "string",
+                          "default": "none",
+                          "enum": [
+                            "local",
+                            "cloud",
+                            "none"
+                          ]
+                        },
+                        "host_pause_stop_recording": {
+                          "type": "boolean"
+                        },
+                        "auto_add_recording_to_video_management": {
+                          "required": [
+                            "enable"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "channels": {
+                              "maxItems": 5,
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "required": [
+                                  "channel_id"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                  "channel_id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "breakout_room": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "rooms": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "participants": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "calendar_type": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2
+                          ],
+                          "x-enum-descriptions": [
+                            "Outlook",
+                            "Google Calendar"
+                          ]
+                        },
+                        "close_registration": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "cn_meeting": {
+                          "type": "boolean",
+                          "deprecated": true,
+                          "default": false
+                        },
+                        "contact_email": {
+                          "type": "string"
+                        },
+                        "contact_name": {
+                          "type": "string"
+                        },
+                        "custom_keys": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "maxLength": 64,
+                                "type": "string"
+                              },
+                              "value": {
+                                "maxLength": 256,
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "email_notification": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "encryption_type": {
+                          "type": "string",
+                          "enum": [
+                            "enhanced_encryption",
+                            "e2ee"
+                          ]
+                        },
+                        "enforce_login": {
+                          "type": "boolean",
+                          "deprecated": true
+                        },
+                        "enforce_login_domains": {
+                          "type": "string",
+                          "deprecated": true
+                        },
+                        "focus_mode": {
+                          "type": "boolean"
+                        },
+                        "global_dial_in_countries": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "global_dial_in_numbers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "city": {
+                                "type": "string"
+                              },
+                              "country": {
+                                "type": "string"
+                              },
+                              "country_name": {
+                                "type": "string"
+                              },
+                              "number": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "toll",
+                                  "tollfree"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "host_video": {
+                          "type": "boolean"
+                        },
+                        "in_meeting": {
+                          "type": "boolean",
+                          "deprecated": true,
+                          "default": false
+                        },
+                        "jbh_time": {
+                          "type": "integer",
+                          "enum": [
+                            0,
+                            5,
+                            10,
+                            15
+                          ]
+                        },
+                        "join_before_host": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "question_and_answer": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "allow_submit_questions": {
+                              "type": "boolean"
+                            },
+                            "allow_anonymous_questions": {
+                              "type": "boolean"
+                            },
+                            "question_visibility": {
+                              "type": "string",
+                              "enum": [
+                                "answered",
+                                "all"
+                              ]
+                            },
+                            "attendees_can_comment": {
+                              "type": "boolean"
+                            },
+                            "attendees_can_upvote": {
+                              "type": "boolean"
+                            }
+                          }
+                        },
+                        "language_interpretation": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "interpreters": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "email": {
+                                    "type": "string",
+                                    "format": "email"
+                                  },
+                                  "languages": {
+                                    "type": "string",
+                                    "deprecated": true
+                                  },
+                                  "interpreter_languages": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "sign_language_interpretation": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "interpreters": {
+                              "maximum": 20,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "email": {
+                                    "type": "string",
+                                    "format": "email"
+                                  },
+                                  "sign_language": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "meeting_authentication": {
+                          "type": "boolean"
+                        },
+                        "mute_upon_entry": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "participant_video": {
+                          "type": "boolean"
+                        },
+                        "private_meeting": {
+                          "type": "boolean"
+                        },
+                        "registrants_confirmation_email": {
+                          "type": "boolean"
+                        },
+                        "registrants_email_notification": {
+                          "type": "boolean"
+                        },
+                        "registration_type": {
+                          "type": "integer",
+                          "default": 1,
+                          "enum": [
+                            1,
+                            2,
+                            3
+                          ],
+                          "x-enum-descriptions": [
+                            "Attendees register once and can attend any of the occurrences",
+                            "Attendees need to register for each occurrence to attend",
+                            "Attendees register once and can choose one or more occurrences to attend"
+                          ]
+                        },
+                        "show_share_button": {
+                          "type": "boolean"
+                        },
+                        "show_join_info": {
+                          "type": "boolean"
+                        },
+                        "use_pmi": {
+                          "type": "boolean"
+                        },
+                        "waiting_room": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "waiting_room_options": {
+                          "required": [
+                            "mode"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "mode": {
+                              "type": "string",
+                              "enum": [
+                                "follow_setting",
+                                "custom"
+                              ]
+                            },
+                            "who_goes_to_waiting_room": {
+                              "type": "string",
+                              "enum": [
+                                "everyone",
+                                "users_not_in_account",
+                                "users_not_in_account_or_whitelisted_domains",
+                                "users_not_on_invite",
+                                "users_not_in_org"
+                              ]
+                            }
+                          }
+                        },
+                        "watermark": {
+                          "type": "boolean"
+                        },
+                        "host_save_video_order": {
+                          "type": "boolean"
+                        },
+                        "internal_meeting": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "meeting_invitees": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "email": {
+                                "type": "string",
+                                "format": "email"
+                              }
+                            }
+                          }
+                        },
+                        "continuous_meeting_chat": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "auto_add_invited_external_users": {
+                              "type": "boolean",
+                              "deprecated": true
+                            },
+                            "auto_add_meeting_participants": {
+                              "type": "boolean",
+                              "deprecated": true
+                            },
+                            "channel_id": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "participant_focused_meeting": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "push_change_to_calendar": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "resources": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "resource_type": {
+                                "type": "string",
+                                "enum": [
+                                  "whiteboard"
+                                ]
+                              },
+                              "resource_id": {
+                                "type": "string"
+                              },
+                              "permission_level": {
+                                "type": "string",
+                                "default": "editor",
+                                "enum": [
+                                  "editor",
+                                  "commenter",
+                                  "viewer"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "auto_start_meeting_summary": {
+                          "type": "boolean"
+                        },
+                        "who_will_receive_summary": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4
+                          ]
+                        },
+                        "auto_start_ai_companion_questions": {
+                          "type": "boolean"
+                        },
+                        "who_can_ask_questions": {
+                          "type": "integer",
+                          "enum": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5
+                          ]
+                        },
+                        "summary_template_id": {
+                          "type": "string"
+                        },
+                        "device_testing": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "request_permission_to_unmute_participants": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "allow_host_control_participant_mute_state": {
+                          "type": "boolean"
+                        },
+                        "disable_participant_video": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "email_in_attendee_report": {
+                          "type": "boolean"
+                        },
+                        "auto_start_deepfake_detection": {
+                          "type": "boolean"
+                        },
+                        "prevent_screen_capture": {
+                          "type": "boolean"
+                        },
+                        "disable_recording_control": {
+                          "type": "string",
+                          "default": "none",
+                          "enum": [
+                            "none",
+                            "all"
+                          ]
+                        },
+                        "allow_participants_to_transcribe_meetings_with_my_notes": {
+                          "type": "object",
+                          "properties": {
+                            "enable": {
+                              "type": "boolean"
+                            },
+                            "participant_scope": {
+                              "type": "string",
+                              "enum": [
+                                "organization",
+                                "all"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "start_time": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "start_url": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "waiting",
+                        "started"
+                      ]
+                    },
+                    "sensitivity_label_id": {
+                      "type": "string"
+                    },
+                    "template_id": {
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "topic": {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    "tracking_fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "visible": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "type": {
+                      "type": "integer",
+                      "default": 2,
+                      "enum": [
+                        1,
+                        2,
+                        3,
+                        8,
+                        10
+                      ]
+                    },
+                    "dynamic_host_key": {
+                      "type": "string"
+                    },
+                    "creation_source": {
+                      "type": "string",
+                      "enum": [
+                        "other",
+                        "open_api",
+                        "web_portal",
+                        "zoom_scheduler"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {},
+          "404": {},
+          "429": {}
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

@@ -436,3 +436,15 @@ func TestIsChannelRestrictedForMeetings(t *testing.T) {
 		})
 	}
 }
+
+func TestSendDirectMessageReturnsNilWhenThePostIsCreated(t *testing.T) {
+	api := &plugintest.API{}
+	api.On("GetDirectChannel", "user-id", "bot-id").Return(&model.Channel{Id: "dm-channel"}, nil)
+	api.On("CreatePost", mock.AnythingOfType("*model.Post")).Return(&model.Post{}, nil)
+
+	p := Plugin{botUserID: "bot-id"}
+	p.SetAPI(api)
+
+	// A nil *model.AppError returned as error is non-nil, so callers would treat success as failure.
+	require.NoError(t, p.sendDirectMessage("user-id", "hello"))
+}

@@ -116,7 +116,12 @@ func (c *OAuthClient) CreateMeeting(user *User, topic string) (*Meeting, error) 
 		return nil, err
 	}
 
-	urlStr := fmt.Sprintf("%s/users/%s/meetings", c.apiURL, url.PathEscape(user.Email))
+	// User-level tokens may only address the caller as "me"; Zoom rejects them for any other user ID or email.
+	userPath := "me"
+	if c.isAccountLevel {
+		userPath = url.PathEscape(user.Email)
+	}
+	urlStr := fmt.Sprintf("%s/users/%s/meetings", c.apiURL, userPath)
 	res, err := client.Post(urlStr, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, err
