@@ -117,7 +117,6 @@ type DeauthorizationEvent struct {
 }
 
 type DeauthorizationPayload struct {
-	UserDataRetention   string `json:"user_data_retention"`
 	AccountID           string `json:"account_id"`
 	UserID              string `json:"user_id"`
 	Signature           string
