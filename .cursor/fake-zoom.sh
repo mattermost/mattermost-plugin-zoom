@@ -10,7 +10,7 @@ cd "$(dirname "$0")/../e2e/playwright"
 # Prints KEY's last value from .env (read, not sourced), the file support/constants.ts loads.
 env_file_value() {
     [[ -f .env ]] || return 0
-    sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env | tail -n 1 | sed "s/^[\"']//; s/[\"'][[:space:]]*$//; s/[[:space:]]*$//"
+    node -e 'const v = require("node:util").parseEnv(require("node:fs").readFileSync(".env", "utf8"))[process.argv[1]]; if (v !== undefined) console.log(v);' "$1"
 }
 
 # Like process.loadEnvFile, .env never overrides variables already set in the environment.
