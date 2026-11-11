@@ -7,8 +7,17 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../e2e/playwright"
 
-PORT="${FAKE_ZOOM_PORT:-8091}"
-TLS_PORT="${FAKE_ZOOM_TLS_PORT:-8444}"
+# Prints KEY's last value from .env (read, not sourced), the file support/constants.ts loads.
+env_file_value() {
+    [[ -f .env ]] || return 0
+    sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env | tail -n 1 | sed "s/^[\"']//; s/[\"'][[:space:]]*$//; s/[[:space:]]*$//"
+}
+
+# Like process.loadEnvFile, .env never overrides variables already set in the environment.
+PORT="${FAKE_ZOOM_PORT:-$(env_file_value FAKE_ZOOM_PORT)}"
+PORT="${PORT:-8091}"
+TLS_PORT="${FAKE_ZOOM_TLS_PORT:-$(env_file_value FAKE_ZOOM_TLS_PORT)}"
+TLS_PORT="${TLS_PORT:-8444}"
 PID_FILE=/tmp/fake-zoom.pid
 LOG_FILE=/tmp/fake-zoom.log
 
@@ -31,10 +40,16 @@ running() { [[ "$(state)" == running ]]; }
 
 # Starts fake-zoom in the background and waits for it to answer.
 start() {
-    if running; then
-        log "Already running on :$PORT and :$TLS_PORT."
-        return 0
-    fi
+    case "$(state)" in
+        running)
+            log "Already running on :$PORT and :$TLS_PORT."
+            return 0
+            ;;
+        unresponsive)
+            log "A listener on :$PORT is not responding; run stop or free the port first." >&2
+            exit 1
+            ;;
+    esac
     # Same certificate the stack mounts into Mattermost's trusted roots; a no-op while it is valid.
     ./scripts/fake_zoom_cert.sh
     setsid nohup tsx --eval "
