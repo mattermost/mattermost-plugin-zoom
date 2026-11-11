@@ -14,8 +14,11 @@ ADMIN_USER=sysadmin
 ADMIN_PASSWORD='Sys@dmin-sample1'
 TEAM=agent
 
+# Prints a prefixed status message.
 log() { echo "[dev-setup] $*"; }
+# Runs docker compose for the E2E stack.
 compose() { (cd e2e/playwright && docker compose "$@"); }
+# Runs mmctl in local mode inside the Mattermost container.
 mmctl() { compose exec -T mattermost /mattermost/bin/mmctl --local "$@"; }
 
 if [[ "${1:-}" != "--no-build" ]]; then

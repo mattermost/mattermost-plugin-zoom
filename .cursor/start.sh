@@ -11,12 +11,15 @@
 # Cursor environment secrets (anonymous pulls can hit rate limits).
 set -euo pipefail
 
+# Prints a prefixed status message.
 log() { echo "[cloud-agent-start] $*"; }
 
 cd "$(dirname "$0")/.."
 
+# Reads an ARG default from .cursor/Dockerfile.
 image_arg() { sed -n "s/^ARG $1=//p" .cursor/Dockerfile; }
 
+# Installs the given apt packages that are not already installed.
 apt_install() {
     local missing=()
     for pkg in "$@"; do
@@ -32,6 +35,7 @@ apt_install() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends "${missing[@]}" >/dev/null
 }
 
+# Installs Go at the Dockerfile's GO_VERSION when it is missing.
 ensure_go() {
     command -v go >/dev/null 2>&1 && return 0
     local version
@@ -43,6 +47,7 @@ ensure_go() {
     for bin in go gofmt; do sudo ln -sf /usr/local/go/bin/$bin /usr/local/bin/$bin; done
 }
 
+# Installs Node at the Dockerfile's NODE_VERSION when it is missing.
 ensure_node() {
     command -v node >/dev/null 2>&1 && return 0
     local version arch
@@ -58,6 +63,7 @@ ensure_node() {
     for bin in node npm npx; do sudo ln -sf /usr/local/node/bin/$bin /usr/local/bin/$bin; done
 }
 
+# Installs tsx at the Dockerfile's TSX_VERSION when it is missing.
 ensure_tsx() {
     command -v tsx >/dev/null 2>&1 && return 0
     log "tsx is missing; installing it."
@@ -65,6 +71,7 @@ ensure_tsx() {
     sudo ln -sf "$(npm prefix -g)/bin/tsx" /usr/local/bin/tsx
 }
 
+# Installs Docker Engine and Compose when either is missing.
 ensure_docker() {
     if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         return 0
@@ -91,6 +98,7 @@ ensure_docker() {
     sudo usermod -aG docker "$(id -un)" || true
 }
 
+# Grants the current user read/write access to the Docker socket.
 ensure_socket_access() {
     [[ -S /var/run/docker.sock ]] || return 0
     sudo chgrp docker /var/run/docker.sock 2>/dev/null || true
@@ -100,6 +108,7 @@ ensure_socket_access() {
     fi
 }
 
+# Logs in to Docker Hub when credentials are set.
 docker_login_if_configured() {
     if [[ -z "${DOCKERHUB_USERNAME:-}" || -z "${DOCKERHUB_TOKEN:-}" ]]; then
         log "Docker Hub credentials not configured; anonymous pulls may hit rate limits."
@@ -112,11 +121,12 @@ docker_login_if_configured() {
     fi
 }
 
+# Succeeds when the Docker daemon and Compose are usable.
 ready() {
     docker info >/dev/null 2>&1 && docker compose version >/dev/null 2>&1
 }
 
-apt_install jq openssl procps
+apt_install acl jq openssl procps
 ensure_go
 ensure_node
 ensure_tsx

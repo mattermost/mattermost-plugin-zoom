@@ -12,9 +12,24 @@ TLS_PORT="${FAKE_ZOOM_TLS_PORT:-8444}"
 PID_FILE=/tmp/fake-zoom.pid
 LOG_FILE=/tmp/fake-zoom.log
 
+# Prints a prefixed status message.
 log() { echo "[fake-zoom] $*"; }
-running() { curl -fsS "http://127.0.0.1:$PORT/__control/requests" >/dev/null 2>&1; }
 
+# Prints running, stopped (connection refused) or unresponsive (anything else, e.g. a timeout).
+state() {
+    local rc=0
+    curl -fsS --max-time 2 "http://127.0.0.1:$PORT/__control/requests" >/dev/null 2>&1 || rc=$?
+    case "$rc" in
+        0) echo running ;;
+        7) echo stopped ;;
+        *) echo unresponsive ;;
+    esac
+}
+
+# Succeeds when fake-zoom answers on its control endpoint.
+running() { [[ "$(state)" == running ]]; }
+
+# Starts fake-zoom in the background and waits for it to answer.
 start() {
     if running; then
         log "Already running on :$PORT and :$TLS_PORT."
@@ -50,23 +65,39 @@ start() {
     exit 1
 }
 
+# Kills the background process group and waits until nothing listens on the port.
 stop() {
+    local current
     if [[ -f "$PID_FILE" ]]; then
         kill -- "-$(cat "$PID_FILE")" 2>/dev/null || true
         rm -f "$PID_FILE"
     fi
     for _ in $(seq 1 10); do
-        running || { log "Stopped."; return 0; }
+        current="$(state)"
+        [[ "$current" == stopped ]] && { log "Stopped."; return 0; }
         sleep 1
     done
-    log "Something else is still serving :$PORT." >&2
+    if [[ "$current" == unresponsive ]]; then
+        log "A listener on :$PORT is still active but not responding." >&2
+    else
+        log "Something else is still serving :$PORT." >&2
+    fi
     exit 1
+}
+
+# Reports whether fake-zoom is running, stopped or unresponsive.
+status() {
+    case "$(state)" in
+        running) log "Running on :$PORT and :$TLS_PORT." ;;
+        unresponsive) log "A listener on :$PORT is not responding." >&2; exit 1 ;;
+        *) log "Not running."; exit 1 ;;
+    esac
 }
 
 case "${1:-start}" in
     start) start ;;
     stop) stop ;;
     restart) stop && start ;;
-    status) running && log "Running on :$PORT and :$TLS_PORT." || { log "Not running."; exit 1; } ;;
+    status) status ;;
     *) echo "usage: $0 start|stop|restart|status" >&2; exit 2 ;;
 esac
