@@ -1,0 +1,22 @@
+{
+  "name": "mattermost-plugin-zoom",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "user": "ubuntu",
+  "install": ".cursor/install.sh",
+  "start": ".cursor/start.sh",
+  "terminals": [
+    {
+      "name": "mattermost",
+      "command": "make e2e-env-up && .cursor/dev-setup.sh && echo 'Mattermost is ready at http://127.0.0.1:8065' && cd e2e/playwright && docker compose logs -f --tail 0 mattermost",
+      "description": "Runs Mattermost with the plugin built from this checkout (`make dist`), Postgres, and fake-zoom (e2e/playwright/fake-zoom, in the background on :8091 for OAuth, join links and its control API, and :8444 over https for the REST API and recording downloads), then follows Mattermost's logs. Wait for 'Mattermost is ready'. Open http://127.0.0.1:8065 in the browser (not localhost: it must match the SiteURL) and log in as sysadmin / Sys@dmin-sample1 (team 'agent'). The plugin is set up with a user-level OAuth app against the fake, so `/zoom connect` completes the OAuth flow without any sign-in and connects as 'E2E Zoom User' (e2e-zoom-user@example.com); after that `/zoom start` or the channel header button creates a meeting in the fake. Drive the fake through its control API on http://127.0.0.1:8091/__control (see support/fake_zoom.ts): POST /reset, POST /users {email}, POST /authorizing-user {userId} to connect as another Zoom user, POST /app {accountLevel} for an account-level app, GET /meetings, POST /fault {method, path, status} to make a Zoom call fail. To simulate a Zoom webhook (meeting ended, recording completed), sign and POST it as support/zoom_webhook.ts does. Use this to reproduce a bug in the browser, change the code, and check the fix. After changing the plugin, run `.cursor/dev-setup.sh` to rebuild and reinstall it (also after `make e2e-env-down && make e2e-env-up`, which wipes all data). Server and plugin logs: `cd e2e/playwright && docker compose logs mattermost`. fake-zoom logs: /tmp/fake-zoom.log; the calls the plugin made: http://127.0.0.1:8091/__control/requests (contract violations against Zoom's OpenAPI spec: /__control/contract-violations). Automated tests start their own fake on the same ports, so run `.cursor/fake-zoom.sh stop && make e2e` from the repo root, then `.cursor/dev-setup.sh --no-build` to get back to the hands-on setup; filter with `cd e2e/playwright && npx playwright test tests/<spec>.spec.ts`. See e2e/playwright/README.md for writing tests. There are no real Zoom credentials, and none are needed. The visual specs (@visual, `npm run test:visual`) are not set up here."
+    }
+  ],
+  "ports": [
+    {
+      "name": "Mattermost",
+      "port": 8065
+    }
+  ]
+}
