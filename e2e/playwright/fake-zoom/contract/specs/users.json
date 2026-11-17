@@ -133,8 +133,29 @@
                         },
                         "division_ids": {
                           "type": "array",
+                          "deprecated": true,
                           "items": {
                             "type": "string"
+                          }
+                        },
+                        "divisions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "division_id": {
+                                "type": "string"
+                              },
+                              "division_name": {
+                                "type": "string"
+                              },
+                              "division_description": {
+                                "type": "string"
+                              },
+                              "is_main_division": {
+                                "type": "boolean"
+                              }
+                            }
                           }
                         },
                         "im_group_ids": {

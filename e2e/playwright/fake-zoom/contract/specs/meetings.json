@@ -736,6 +736,9 @@
                             4
                           ]
                         },
+                        "support_participants_receive_summary": {
+                          "type": "boolean"
+                        },
                         "auto_start_ai_companion_questions": {
                           "type": "boolean",
                           "default": false
@@ -1468,6 +1471,9 @@
                           3,
                           4
                         ]
+                      },
+                      "support_participants_receive_summary": {
+                        "type": "boolean"
                       },
                       "auto_start_ai_companion_questions": {
                         "type": "boolean"
@@ -2297,6 +2303,9 @@
                             3,
                             4
                           ]
+                        },
+                        "support_participants_receive_summary": {
+                          "type": "boolean"
                         },
                         "auto_start_ai_companion_questions": {
                           "type": "boolean"
